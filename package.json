@@ -1,0 +1,14 @@
+{
+  "name": "app",
+  "private": true,
+  "scripts": {
+    "build": "esbuild app/javascript/*.* --bundle --outdir=app/assets/builds --loader:.js=jsx",
+    "build:watch": "esbuild app/javascript/*.* --bundle --outdir=app/assets/builds --loader:.js=jsx --watch"
+  },
+  "dependencies": {
+    "@hotwired/stimulus": "^3.2.2"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.11"
+  }
+}
