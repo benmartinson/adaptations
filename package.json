@@ -6,7 +6,8 @@
     "build:watch": "esbuild app/javascript/*.* --bundle --outdir=app/assets/builds --loader:.js=jsx --watch"
   },
   "dependencies": {
-    "@hotwired/stimulus": "^3.2.2"
+    "@hotwired/stimulus": "^3.2.2",
+    "react-router-dom": "^7.9.5"
   },
   "devDependencies": {
     "esbuild": "^0.25.11"
