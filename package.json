@@ -12,8 +12,8 @@
   "scripts": {
     "build": "esbuild app/javascript/*.* --bundle --outdir=app/assets/builds --loader:.js=jsx",
     "build:watch": "esbuild app/javascript/*.* --bundle --outdir=app/assets/builds --loader:.js=jsx --watch",
-    "build:css": "postcss ./app/javascript/stylesheets/application.css -o ./app/assets/stylesheets/application.css --minify",
-    "build:css:watch": "postcss ./app/javascript/stylesheets/application.css -o ./app/assets/stylesheets/application.css --watch"
+    "build:css": "postcss ./app/javascript/stylesheets/application.css -o ./app/assets/builds/application.css --minify",
+    "build:css:watch": "postcss ./app/javascript/stylesheets/application.css -o ./app/assets/builds/application.css --watch"
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.1.16",
