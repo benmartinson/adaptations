@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import BookAuthors from "./BookAuthors";
 
 export default function Book() {
   const { id } = useParams();
@@ -16,6 +17,7 @@ export default function Book() {
   return (
     <div>
       <h1>{book.title}</h1>
+      <BookAuthors authors={book.authors}/>
       <p><strong>Year:</strong> {book.year}</p>
       <p>{book.description}</p>
     </div>

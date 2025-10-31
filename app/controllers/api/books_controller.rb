@@ -5,7 +5,8 @@ module Api
     end
 
     def show
-      render json: Book.find(params[:id])
+      book = Book.includes(:authors).find(params[:id])
+      render json: book.as_json(include: { authors: { only: [:id, :full_name] } })
     end
   end
 end
