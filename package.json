@@ -1,15 +1,22 @@
 {
-  "name": "app",
-  "private": true,
+  "name": "goodreads",
+  "packageManager": "yarn@4.10.3",
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.16",
+    "autoprefixer": "^10.4.21",
+    "esbuild": "^0.25.11",
+    "postcss": "^8.5.6",
+    "postcss-cli": "^10.1.0",
+    "tailwindcss": "^4.1.16"
+  },
   "scripts": {
     "build": "esbuild app/javascript/*.* --bundle --outdir=app/assets/builds --loader:.js=jsx",
-    "build:watch": "esbuild app/javascript/*.* --bundle --outdir=app/assets/builds --loader:.js=jsx --watch"
+    "build:watch": "esbuild app/javascript/*.* --bundle --outdir=app/assets/builds --loader:.js=jsx --watch",
+    "build:css": "postcss ./app/javascript/stylesheets/application.css -o ./app/assets/stylesheets/application.css --minify",
+    "build:css:watch": "postcss ./app/javascript/stylesheets/application.css -o ./app/assets/stylesheets/application.css --watch"
   },
   "dependencies": {
-    "@hotwired/stimulus": "^3.2.2",
+    "@tailwindcss/postcss": "^4.1.16",
     "react-router-dom": "^7.9.5"
-  },
-  "devDependencies": {
-    "esbuild": "^0.25.11"
   }
 }

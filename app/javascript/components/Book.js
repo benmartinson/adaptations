@@ -8,17 +8,19 @@ export default function Book() {
 
   useEffect(() => {
     fetch(`/api/books/${id}`)
-      .then(res => res.json())
-      .then(data => setBook(data));
+      .then((res) => res.json())
+      .then((data) => setBook(data));
   }, [id]);
 
   if (!book) return <p>Loading...</p>;
 
   return (
     <div>
-      <h1>{book.title}</h1>
-      <BookAuthors authors={book.authors}/>
-      <p><strong>Year:</strong> {book.year}</p>
+      <h1 className="text-2xl font-bold">{book.title}</h1>
+      <BookAuthors authors={book.authors} />
+      <p>
+        <strong>Year:</strong> {book.year}
+      </p>
       <p>{book.description}</p>
     </div>
   );
