@@ -1,1 +1,6 @@
 @import "tailwindcss";
+
+@theme {
+  --font-fancy: "Lora", "Libre Baskerville", "Georgia", serif;
+  --font-body: "Proxima Nova", "Montserrat", Arial, sans-serif;
+}

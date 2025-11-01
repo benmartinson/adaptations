@@ -17,21 +17,26 @@ export default function Book() {
 
   return (
     <PageFrame>
-      {book.image_url && (
-        <img
-          src={book.image_url}
-          alt={book.title}
-          className="w-full max-w-md mb-4 rounded-lg shadow-lg"
-        />
-      )}
-      <h1 className="text-2xl font-bold text-blue-600">{book.title}</h1>
-      <div className="flex flex-col items-center border-2 border-red-500">
-        <BookAuthors authors={book.authors} />
+      <div className="col-span-3 self-start sticky top-10 ">
+        {book.image_url && (
+          <img
+            src={book.image_url}
+            alt={book.title}
+            className="w-[210px] h-[320px] m-auto [border-radius:0_6%_6%_0_/4%] drop-shadow-md"
+          />
+        )}
       </div>
-      <p>
-        <strong>Year:</strong> {book.year}
-      </p>
-      <p>{book.description}</p>
+      <div className="col-span-9">
+        <h1 className="font-fancy text-[36px] leading-[46px] font-[600]">
+          {book.title}
+        </h1>
+        <BookAuthors authors={book.authors} />
+        <div className="font-body grid grid-cols-9 gap-6">
+          <div className="col-span-7">
+            <p>{book.description}</p>
+          </div>
+        </div>
+      </div>
     </PageFrame>
   );
 }

@@ -20,7 +20,6 @@ class BookSerializer
 
   def image_url
     return nil unless @book.image.attached?
-    variant = @book.image.variant(resize_to_limit: [200, 300]).processed
-    url_for(variant)
+    url_for(@book.image)
   end
 end
