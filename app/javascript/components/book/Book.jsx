@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import BookAuthors from "./BookAuthors";
-import PageFrame from "./PageFrame";
+import PageFrame from "../PageFrame";
+import BookGenres from "./BookGenres";
 
 export default function Book() {
   const { id } = useParams();
@@ -31,11 +32,12 @@ export default function Book() {
           {book.title}
         </h1>
         <BookAuthors authors={book.authors} />
-        <div className="font-body grid grid-cols-9 gap-6">
+        <div className="font-body grid grid-cols-9 gap-6 mt-3">
           <div className="col-span-7">
             <p>{book.description}</p>
           </div>
         </div>
+        <BookGenres genres={book.genres} />
       </div>
     </PageFrame>
   );

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_10_31_201359) do
+ActiveRecord::Schema[8.1].define(version: 2025_11_01_194409) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -58,6 +58,15 @@ ActiveRecord::Schema[8.1].define(version: 2025_10_31_201359) do
     t.datetime "updated_at", null: false
   end
 
+  create_table "book_genres", force: :cascade do |t|
+    t.integer "book_id", null: false
+    t.datetime "created_at", null: false
+    t.integer "genre_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["book_id"], name: "index_book_genres_on_book_id"
+    t.index ["genre_id"], name: "index_book_genres_on_genre_id"
+  end
+
   create_table "books", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.text "description"
@@ -66,8 +75,17 @@ ActiveRecord::Schema[8.1].define(version: 2025_10_31_201359) do
     t.integer "year"
   end
 
+  create_table "genres", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "description"
+    t.string "name"
+    t.datetime "updated_at", null: false
+  end
+
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "author_books", "authors"
   add_foreign_key "author_books", "books"
+  add_foreign_key "book_genres", "books"
+  add_foreign_key "book_genres", "genres"
 end

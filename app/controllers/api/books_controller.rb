@@ -5,7 +5,7 @@ module Api
     end
 
     def show
-      book = Book.includes(:authors).find(params[:id])
+      book = Book.includes(:authors, :genres).find(params[:id])
       render json: BookSerializer.new(book).as_json
     end
   end

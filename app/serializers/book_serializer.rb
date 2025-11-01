@@ -12,6 +12,7 @@ class BookSerializer
       year: @book.year,
       description: @book.description,
       authors: @book.authors.map { |a| { id: a.id, full_name: a.full_name } },
+      genres: @book.genres.map { |g| { id: g.id, name: g.name } },
       image_url: image_url
     }
   end
