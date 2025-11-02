@@ -1,0 +1,21 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  book: one
+  isbn: MyString
+  publisher: MyString
+  publication_date: 2025-11-01
+  format: MyString
+  primary_edition: 1
+  description: MyString
+  language: MyString
+
+two:
+  book: two
+  isbn: MyString
+  publisher: MyString
+  publication_date: 2025-11-01
+  format: MyString
+  primary_edition: 1
+  description: MyString
+  language: MyString

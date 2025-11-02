@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_11_01_194409) do
+ActiveRecord::Schema[8.1].define(version: 2025_11_02_184244) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -70,9 +70,25 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_01_194409) do
   create_table "books", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.text "description"
+    t.string "setting"
     t.string "title"
     t.datetime "updated_at", null: false
     t.integer "year"
+  end
+
+  create_table "editions", force: :cascade do |t|
+    t.string "asin"
+    t.integer "book_id", null: false
+    t.datetime "created_at", null: false
+    t.string "description"
+    t.string "format"
+    t.string "isbn"
+    t.string "language"
+    t.integer "primary_edition"
+    t.date "publication_date"
+    t.string "publisher"
+    t.datetime "updated_at", null: false
+    t.index ["book_id"], name: "index_editions_on_book_id"
   end
 
   create_table "genres", force: :cascade do |t|
@@ -88,4 +104,5 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_01_194409) do
   add_foreign_key "author_books", "books"
   add_foreign_key "book_genres", "books"
   add_foreign_key "book_genres", "genres"
+  add_foreign_key "editions", "books"
 end
