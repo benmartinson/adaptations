@@ -8,7 +8,7 @@ import BookEditions from "./BookEditions";
 export default function Book() {
   const { id } = useParams();
   const [book, setBook] = useState(null);
-  const primaryEdition = book?.primary_edition;
+  const edition = book?.edition;
 
   useEffect(() => {
     fetch(`/api/books/${id}`)
@@ -29,7 +29,7 @@ export default function Book() {
 
   return (
     <PageFrame>
-      <div className="col-span-3 self-start sticky top-10">
+      <div className="col-span-3 self-start sticky top-20">
         {book.image_url && (
           <img
             src={book.image_url}
@@ -45,12 +45,12 @@ export default function Book() {
         <BookAuthors authors={book.authors} />
         <div className="font-body grid grid-cols-9 gap-6 mt-3">
           <div className="col-span-7">
-            <p>{primaryEdition.description || book.description}</p>
+            <p>{edition.description || book.description}</p>
           </div>
         </div>
         <BookGenres genres={book.genres} />
         <div className="mt-3 text-[#707070] text-[14px] leading-[18px] font-body">
-          <div className="">{primaryEdition.format}</div>
+          <div className="">{edition.format}</div>
           <div className="mt-2">First published {book.year}</div>
         </div>
         <div className="text-[#707070] mt-3">
@@ -61,14 +61,14 @@ export default function Book() {
           This edition
         </h4>
         <div className="text-[#707070] mt-3">
-          {labelValue("Format", primaryEdition.format)}
+          {labelValue("Format", edition.format)}
           {labelValue(
             "Published",
-            `${primaryEdition.publication_date} by ${primaryEdition.publisher}`
+            `${edition.publication_date} by ${edition.publisher}`
           )}
-          {labelValue("ISBN", primaryEdition.isbn)}
-          {labelValue("ASIN", primaryEdition.asin)}
-          {labelValue("Language", primaryEdition.language)}
+          {labelValue("ISBN", edition.isbn)}
+          {labelValue("ASIN", edition.asin)}
+          {labelValue("Language", edition.language)}
         </div>
         <BookEditions editions={book.editions} />
       </div>

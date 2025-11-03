@@ -1,9 +1,9 @@
 class BookSerializer
   include Rails.application.routes.url_helpers
 
-  def initialize(book)
+  def initialize(book, edition)
     @book = book
-    @primary_edition = book.primary_edition
+    @edition = edition
   end
 
   def as_json(*)
@@ -16,19 +16,19 @@ class BookSerializer
       authors: @book.authors.map { |a| { id: a.id, full_name: a.full_name } },
       genres: @book.genres.map { |g| { id: g.id, name: g.name } },
       editions: @book.editions
-        .filter { |e| e.primary_edition == 0 }
+        .filter { |e| e.id != @edition.id }
         .map { |e| { id: e.id, format: e.format, publication_date: e.publication_date, publisher: e.publisher, image_url: image_url(e) } },
-      primary_edition: primary_edition_attributes,
-      image_url: image_url(@primary_edition)
+      edition: edition_attributes,
+      image_url: image_url(@edition)
     }
   end
 
   private
 
-  def primary_edition_attributes
-    return nil unless @primary_edition
+  def edition_attributes
+    return nil unless @edition
     
-    @primary_edition.slice(:id, :format, :publication_date, :publisher, :isbn, :language, :description, :asin)
+    @edition.slice(:id, :format, :publication_date, :publisher, :isbn, :language, :description, :asin)
   end
 
   def image_url(edition)
