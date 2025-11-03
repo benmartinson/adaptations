@@ -42,7 +42,7 @@ export default function Book() {
         <h1 className="font-fancy text-[36px] leading-[46px] font-[600]">
           {book.title}
         </h1>
-        <BookAuthors authors={book.authors} />
+        <BookAuthors authors={book.authors} contributors={book.contributors} />
         <div className="font-body grid grid-cols-9 gap-6 mt-3">
           <div className="col-span-7">
             <p>{edition.description || book.description}</p>

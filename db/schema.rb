@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_11_02_184244) do
+ActiveRecord::Schema[8.1].define(version: 2025_11_03_202558) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -76,6 +76,16 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_02_184244) do
     t.integer "year"
   end
 
+  create_table "contributors", force: :cascade do |t|
+    t.integer "author_id", null: false
+    t.datetime "created_at", null: false
+    t.integer "edition_id", null: false
+    t.string "role_description"
+    t.datetime "updated_at", null: false
+    t.index ["author_id"], name: "index_contributors_on_author_id"
+    t.index ["edition_id"], name: "index_contributors_on_edition_id"
+  end
+
   create_table "editions", force: :cascade do |t|
     t.string "asin"
     t.integer "book_id", null: false
@@ -104,5 +114,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_02_184244) do
   add_foreign_key "author_books", "books"
   add_foreign_key "book_genres", "books"
   add_foreign_key "book_genres", "genres"
+  add_foreign_key "contributors", "authors"
+  add_foreign_key "contributors", "editions"
   add_foreign_key "editions", "books"
 end
