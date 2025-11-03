@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_11_03_202558) do
+ActiveRecord::Schema[8.1].define(version: 2025_11_03_231730) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -73,7 +73,9 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_03_202558) do
     t.string "setting"
     t.string "title"
     t.datetime "updated_at", null: false
+    t.string "work_id"
     t.integer "year"
+    t.index ["work_id"], name: "index_books_on_work_id", unique: true
   end
 
   create_table "contributors", force: :cascade do |t|

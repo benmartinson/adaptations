@@ -1,20 +1,33 @@
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import BookAuthors from "./BookAuthors";
 import PageFrame from "../PageFrame";
 import BookGenres from "./BookGenres";
 import BookEditions from "./BookEditions";
 
 export default function Book() {
-  const { id } = useParams();
+  const { work_id: workId, edition_id: editionId } = useParams();
+  const navigate = useNavigate();
   const [book, setBook] = useState(null);
   const edition = book?.edition;
 
   useEffect(() => {
-    fetch(`/api/books/${id}`)
+    const url = editionId
+      ? `/api/books/${workId}/edition/${editionId}`
+      : `/api/books/${workId}`;
+
+    fetch(url)
       .then((res) => res.json())
-      .then((data) => setBook(data));
-  }, [id]);
+      .then((data) => {
+        setBook(data);
+        // If no edition_id was in the URL but we got an edition, update the URL
+        if (!editionId && data.edition?.id) {
+          navigate(`/books/${workId}/edition/${data.edition.id}`, {
+            replace: true,
+          });
+        }
+      });
+  }, [workId, editionId, navigate]);
 
   if (!book) return <p>Loading...</p>;
 
