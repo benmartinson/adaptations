@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_11_03_231730) do
+ActiveRecord::Schema[8.1].define(version: 2025_11_04_174406) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -110,6 +110,25 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_03_231730) do
     t.datetime "updated_at", null: false
   end
 
+  create_table "movie_books", force: :cascade do |t|
+    t.integer "book_id", null: false
+    t.datetime "created_at", null: false
+    t.integer "movie_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["book_id"], name: "index_movie_books_on_book_id"
+    t.index ["movie_id"], name: "index_movie_books_on_movie_id"
+  end
+
+  create_table "movies", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "rating"
+    t.date "release_date"
+    t.integer "runtime"
+    t.string "synopsis"
+    t.string "title"
+    t.datetime "updated_at", null: false
+  end
+
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "author_books", "authors"
@@ -119,4 +138,6 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_03_231730) do
   add_foreign_key "contributors", "authors"
   add_foreign_key "contributors", "editions"
   add_foreign_key "editions", "books"
+  add_foreign_key "movie_books", "books"
+  add_foreign_key "movie_books", "movies"
 end

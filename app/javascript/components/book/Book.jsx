@@ -4,11 +4,14 @@ import BookAuthors from "./BookAuthors";
 import PageFrame from "../PageFrame";
 import BookGenres from "./BookGenres";
 import BookEditions from "./BookEditions";
+import moment from "moment";
+import MoviesBasedOn from "./MoviesBasedOn";
 
 export default function Book() {
   const { work_id: workId, edition_id: editionId } = useParams();
   const navigate = useNavigate();
   const [book, setBook] = useState(null);
+  const [imageError, setImageError] = useState(false);
   const edition = book?.edition;
 
   useEffect(() => {
@@ -20,6 +23,7 @@ export default function Book() {
       .then((res) => res.json())
       .then((data) => {
         setBook(data);
+        setImageError(false); // Reset image error when book changes
         // If no edition_id was in the URL but we got an edition, update the URL
         if (!editionId && data.edition?.id) {
           navigate(`/books/${workId}/edition/${data.edition.id}`, {
@@ -43,12 +47,37 @@ export default function Book() {
   return (
     <PageFrame>
       <div className="col-span-3 self-start sticky top-20">
-        {book.image_url && (
-          <img
-            src={book.image_url}
-            alt={book.title}
-            className="w-[210px] h-[320px] m-auto [border-radius:0_6%_6%_0_/4%] drop-shadow-md"
-          />
+        {book.image_url && edition.isbn && (
+          <>
+            {!imageError ? (
+              <img
+                src={`https://covers.openlibrary.org/b/isbn/${edition.isbn}-L.jpg?default=false`}
+                alt={book.title}
+                className="w-[210px] h-[320px] m-auto [border-radius:0_6%_6%_0_/4%] drop-shadow-md"
+                onError={() => setImageError(true)}
+              />
+            ) : (
+              <div className="w-[210px] h-[320px] m-auto [border-radius:0_6%_6%_0_/4%] drop-shadow-md bg-gray-200 flex items-center justify-center border-2 border-dashed border-gray-400">
+                <div className="text-center text-gray-500">
+                  <svg
+                    className="w-16 h-16 mx-auto mb-2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                    />
+                  </svg>
+                  <p className="text-sm">Image not available</p>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
       <div className="col-span-9">
@@ -70,6 +99,7 @@ export default function Book() {
           {labelValue("Original Title", book.title)}
           {labelValue("Setting", book.setting)}
         </div>
+        <MoviesBasedOn movies={book.movies} />
         <h4 className="font-fancy text-[14px] leading-[20px] font-[600] font-bold mt-6">
           This edition
         </h4>
@@ -77,13 +107,15 @@ export default function Book() {
           {labelValue("Format", edition.format)}
           {labelValue(
             "Published",
-            `${edition.publication_date} by ${edition.publisher}`
+            `${moment(edition.publication_date).format("MMMM D, YYYY")} by ${
+              edition.publisher
+            }`
           )}
           {labelValue("ISBN", edition.isbn)}
           {labelValue("ASIN", edition.asin)}
           {labelValue("Language", edition.language)}
         </div>
-        <BookEditions editions={book.editions} />
+        <BookEditions editions={book.editions} workId={workId} />
       </div>
     </PageFrame>
   );

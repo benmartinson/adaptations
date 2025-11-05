@@ -1,5 +1,5 @@
 {
-  "name": "goodreads",
+  "name": "Stories",
   "packageManager": "yarn@4.10.3",
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.16",

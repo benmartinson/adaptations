@@ -1,0 +1,15 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  release_date: 2025-11-04
+  synopsis: MyString
+  title: MyString
+  runtime: 1
+  rating: MyString
+
+two:
+  release_date: 2025-11-04
+  synopsis: MyString
+  title: MyString
+  runtime: 1
+  rating: MyString

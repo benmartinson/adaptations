@@ -7,7 +7,7 @@ module Api
     def show
       work_id = params[:work_id]
       edition_id = params[:edition_id]
-      book = Book.includes(:authors, :genres).find_by(work_id: work_id)
+      book = Book.includes(:authors, :genres, :movies).find_by(work_id: work_id)
       
       if book.nil?
         render json: { error: "Book not found" }, status: :not_found
