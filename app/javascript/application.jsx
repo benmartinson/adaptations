@@ -11,8 +11,7 @@ root.render(
     <Navbar />
     <Routes>
       <Route path="/books" element={<BookList />} />
-      <Route path="/books/:work_id/edition/:edition_id" element={<Book />} />
-      <Route path="/books/:work_id" element={<Book />} />
+      <Route path="/books/:isbn" element={<Book />} />
     </Routes>
   </BrowserRouter>
 );

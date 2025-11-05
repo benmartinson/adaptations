@@ -8,30 +8,22 @@ import moment from "moment";
 import MoviesBasedOn from "./MoviesBasedOn";
 
 export default function Book() {
-  const { work_id: workId, edition_id: editionId } = useParams();
+  const { isbn } = useParams();
   const navigate = useNavigate();
   const [book, setBook] = useState(null);
   const [imageError, setImageError] = useState(false);
   const edition = book?.edition;
 
   useEffect(() => {
-    const url = editionId
-      ? `/api/books/${workId}/edition/${editionId}`
-      : `/api/books/${workId}`;
+    const url = `/api/books/${isbn}`;
 
     fetch(url)
       .then((res) => res.json())
       .then((data) => {
         setBook(data);
-        setImageError(false); // Reset image error when book changes
-        // If no edition_id was in the URL but we got an edition, update the URL
-        if (!editionId && data.edition?.id) {
-          navigate(`/books/${workId}/edition/${data.edition.id}`, {
-            replace: true,
-          });
-        }
+        setImageError(false);
       });
-  }, [workId, editionId, navigate]);
+  }, [navigate]);
 
   if (!book) return <p>Loading...</p>;
 
@@ -115,7 +107,7 @@ export default function Book() {
           {labelValue("ASIN", edition.asin)}
           {labelValue("Language", edition.language)}
         </div>
-        <BookEditions editions={book.editions} workId={workId} />
+        <BookEditions editions={book.editions} />
       </div>
     </PageFrame>
   );

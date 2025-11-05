@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import moment from "moment";
 import { useNavigate } from "react-router-dom";
 
-export default function BookEditions({ editions, workId }) {
+export default function BookEditions({ editions }) {
   const navigate = useNavigate();
   const [imageError, setImageError] = useState({});
   console.log({ editions, imageError });
@@ -16,7 +16,11 @@ export default function BookEditions({ editions, workId }) {
           <div
             key={edition.id}
             className="group"
-            onClick={() => navigate(`/books/${workId}/edition/${edition.id}`)}
+            onClick={() => {
+              if (edition.isbn) {
+                navigate(`/books/${edition.isbn}`);
+              }
+            }}
           >
             {edition.isbn && !imageError[edition.id] && (
               <img
