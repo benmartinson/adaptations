@@ -6,16 +6,31 @@ module Api
 
     def show
       isbn = params[:isbn]
-      edition = Edition.includes(:book, contributors: :author).find_by(isbn: isbn)
+      # edition = Edition.includes(:book, contributors: :author).find_by(isbn: isbn)
+      edition = nil
       
-      if edition.nil?
-        render json: { error: "Edition not found" }, status: :not_found
+      if edition.present?
+        book = Book.includes(:authors, :genres, :movies).find(edition.book_id)
+        render json: BookSerializer.new(book, edition).as_json
         return
       end
-      
-      book = Book.includes(:authors, :genres, :movies).find(edition.book_id)
-      
-      render json: BookSerializer.new(book, edition).as_json
+
+      # If not found locally, fetch from Open Library API
+      begin
+        importer = OpenLibraryBookImporter.new(isbn)
+        result = importer.import
+        book = result[:book]
+        edition = result[:edition]
+
+        # Use activejob to save the book and edition
+        # SaveBookJob.perform_later(book, edition)
+
+        render json: BookSerializer.new(book, edition).as_json
+      rescue OpenLibraryBookImporter::ImportError => e
+        render json: { error: e.message }, status: :not_found
+      rescue StandardError => e
+        render json: { error: "Failed to import book: #{e.message}" }, status: :internal_server_error
+      end
     end
   end
 end

@@ -13,6 +13,7 @@ export default function Book() {
   const [book, setBook] = useState(null);
   const [imageError, setImageError] = useState(false);
   const edition = book?.edition;
+  console.log({ book, edition });
 
   useEffect(() => {
     const url = `/api/books/${isbn}`;
@@ -39,7 +40,7 @@ export default function Book() {
   return (
     <PageFrame>
       <div className="col-span-3 self-start sticky top-20">
-        {book.image_url && edition.isbn && (
+        {edition.isbn && (
           <>
             {!imageError ? (
               <img
@@ -91,7 +92,7 @@ export default function Book() {
           {labelValue("Original Title", book.title)}
           {labelValue("Setting", book.setting)}
         </div>
-        <MoviesBasedOn movies={book.movies} />
+        {/* <MoviesBasedOn movies={book.movies} /> */}
         <h4 className="font-fancy text-[14px] leading-[20px] font-[600] font-bold mt-6">
           This edition
         </h4>
@@ -104,7 +105,6 @@ export default function Book() {
             }`
           )}
           {labelValue("ISBN", edition.isbn)}
-          {labelValue("ASIN", edition.asin)}
           {labelValue("Language", edition.language)}
         </div>
         <BookEditions editions={book.editions} />
