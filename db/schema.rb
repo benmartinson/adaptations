@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_11_04_174406) do
+ActiveRecord::Schema[8.1].define(version: 2025_11_05_200819) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -51,9 +51,9 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_04_174406) do
   create_table "authors", force: :cascade do |t|
     t.string "bio_description"
     t.string "birth_country"
-    t.integer "birth_year"
+    t.string "birth_date"
     t.datetime "created_at", null: false
-    t.integer "death_year"
+    t.string "death_date"
     t.string "full_name"
     t.datetime "updated_at", null: false
   end
@@ -70,11 +70,11 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_04_174406) do
   create_table "books", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.text "description"
+    t.string "first_published"
     t.string "setting"
     t.string "title"
     t.datetime "updated_at", null: false
     t.string "work_id"
-    t.integer "year"
     t.index ["work_id"], name: "index_books_on_work_id", unique: true
   end
 

@@ -2,14 +2,14 @@
 
 one:
   full_name: MyString
-  birth_year: 1
+  birth_date: "1990"
   birth_country: MyString
   bio_description: MyString
-  death_year: 1
+  death_date: "2020"
 
 two:
   full_name: MyString
-  birth_year: 1
+  birth_date: "1990"
   birth_country: MyString
   bio_description: MyString
-  death_year: 1
+  death_date: "2020"

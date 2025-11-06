@@ -78,21 +78,20 @@ export default function Book() {
           {book.title}
         </h1>
         <BookAuthors authors={book.authors} contributors={book.contributors} />
-        <div className="font-body grid grid-cols-9 gap-6 mt-3">
+        <div className="font-body grid grid-cols-9 gap-6 mt-3 max-h-[200px] overflow-y-auto">
           <div className="col-span-7">
             <p>{edition.description || book.description}</p>
           </div>
         </div>
         <BookGenres genres={book.genres} />
-        <div className="mt-3 text-[#707070] text-[14px] leading-[18px] font-body">
+        {/* <div className="mt-3 text-[#707070] text-[14px] leading-[18px] font-body">
           <div className="">{edition.format}</div>
-          <div className="mt-2">First published {book.year}</div>
+          <div className="mt-2">First published {book.first_published}</div>
         </div>
         <div className="text-[#707070] mt-3">
           {labelValue("Original Title", book.title)}
           {labelValue("Setting", book.setting)}
-        </div>
-        {/* <MoviesBasedOn movies={book.movies} /> */}
+        </div> */}
         <h4 className="font-fancy text-[14px] leading-[20px] font-[600] font-bold mt-6">
           This edition
         </h4>
@@ -107,7 +106,7 @@ export default function Book() {
           {labelValue("ISBN", edition.isbn)}
           {labelValue("Language", edition.language)}
         </div>
-        <BookEditions editions={book.editions} />
+        <BookEditions work_id={book.work_id} initialEditions={book.editions} />
       </div>
     </PageFrame>
   );

@@ -1,11 +1,23 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import moment from "moment";
 import { useNavigate } from "react-router-dom";
 
-export default function BookEditions({ editions }) {
+export default function BookEditions({ work_id, initialEditions }) {
   const navigate = useNavigate();
+  const [editions, setEditions] = useState(initialEditions);
   const [imageError, setImageError] = useState({});
-  console.log({ editions, imageError });
+
+  useEffect(() => {
+    const url = `/api/books/${work_id}/editions`;
+
+    fetch(url)
+      .then((res) => res.json())
+      .then((data) => {
+        setEditions(data);
+      });
+  }, []);
+  console.log({ editions });
+
   return (
     <div>
       <h4 className="font-fancy text-[14px] leading-[20px] font-[600] font-bold mt-6">
@@ -54,7 +66,7 @@ export default function BookEditions({ editions }) {
               </div>
             )}
             <div className="text-[#707070] text-[14px] leading-[18px] font-body mt-2 w-[150px] max-w-[150px]">
-              <div className="">{edition.format.split(",")[1]}</div>
+              <div className="">{edition.format}</div>
               <div className="line-break  ">{edition.publisher}</div>
               <div className="">
                 {moment(edition.publication_date).format("YYYY")}

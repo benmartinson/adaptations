@@ -9,8 +9,9 @@ class BookSerializer
   def as_json(*)
     {
       id: @book.id,
+      work_id: @book.work_id,
       title: @book.title,
-      year: @book.year,
+      first_published: @book.first_published,
       setting: @book.setting,
       description: @book.description,
       authors: @book.authors.map { |a| { id: a.id, full_name: a.full_name } },

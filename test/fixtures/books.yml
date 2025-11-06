@@ -2,10 +2,10 @@
 
 one:
   title: MyString
-  year: 1
+  first_published: "2020"
   description: MyText
 
 two:
   title: MyString
-  year: 1
+  first_published: "2020"
   description: MyText

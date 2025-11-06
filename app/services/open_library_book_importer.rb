@@ -10,13 +10,13 @@ class OpenLibraryBookImporter
   def import
     edition_data = fetch_edition_data
     work_id = extract_work_id(edition_data)
-    author_data = extract_author_data(edition_data)
     work_data = fetch_work_data(work_id)
 
-    book = build_book(edition_data, work_id)
+    book = build_book(edition_data, work_data, work_id)
     edition = build_edition(edition_data, book)
+    extract_author_data(edition_data, book)
     associate_genres(work_data, book)
-
+    
     { book: book, edition: edition }
   rescue HTTParty::Error, JSON::ParserError => e
     raise ImportError, "Failed to fetch book data: #{e.message}"
@@ -47,10 +47,10 @@ class OpenLibraryBookImporter
     work_id.to_s.gsub(/^\/works\//, "")
   end
 
-  def extract_author_data(edition_data)
+  def extract_author_data(edition_data, book)
     authors = edition_data["authors"] || []
     authors.map do |author|
-      author_key = author["key"]
+      author_key = author["key"].split("/").last
       return nil unless author_key.present?
 
       response = HTTParty.get("#{BASE_URL}/authors/#{author_key}.json")
@@ -61,7 +61,13 @@ class OpenLibraryBookImporter
       author_data = response.parsed_response
       return nil unless author_data.present?
 
-      author_data["personal_name"]
+      author = Author.find_or_create_by(
+        full_name: author_data["name"],
+        bio_description: author_data["bio"],
+        birth_date: author_data["birth_date"]&.to_s,
+        death_date: author_data["death_date"]&.to_s
+      )
+      book.authors << author unless book.authors.include?(author)
     end
   end
 
@@ -77,16 +83,15 @@ class OpenLibraryBookImporter
     response.parsed_response || {}
   end
 
-  def build_book(edition_data, work_id)
-    description = edition_data["description"]
+  def build_book(edition_data, work_data, work_id)
+    description = work_data["description"]
     description = description.is_a?(Hash) ? description["value"] : description
 
     Book.new(
       work_id: work_id,
       title: edition_data["title"],
-      year: parse_year(edition_data["publish_date"]),
+      first_published: parse_first_published(edition_data["publish_date"]),
       description: description,
-      setting: "England" # TODO: Extract from data or make configurable
     )
   end
 
@@ -118,26 +123,13 @@ class OpenLibraryBookImporter
     end
   end
 
-  def parse_year(publish_date)
+  def parse_first_published(publish_date)
     return nil unless publish_date.present?
-    
-    # Handle various date formats
-    case publish_date
-    when Integer
-      publish_date
-    when String
-      # Try to extract year from string like "2023" or "January 2023"
-      year_match = publish_date.match(/\b(\d{4})\b/)
-      year_match ? year_match[1].to_i : nil
-    else
-      nil
-    end
+    publish_date.to_s
   end
 
   def parse_date(publish_date)
     return nil unless publish_date.present?
-    
-    # Try to parse as date
     Date.parse(publish_date.to_s) rescue nil
   end
 

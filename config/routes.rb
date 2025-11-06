@@ -1,6 +1,7 @@
 Rails.application.routes.draw do
   namespace :api do
     get 'books/:isbn', to: 'books#show'
+    get 'books/:work_id/editions', to: 'books#editions'
     # resources :books, only: [:index, :show]
   end
 

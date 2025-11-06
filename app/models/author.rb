@@ -3,8 +3,8 @@ class Author < ApplicationRecord
   include ActiveModel::Attributes
 
   attribute :full_name, :string
-  attribute :birth_year, :integer 
-  attribute :death_year, :integer
+  attribute :birth_date, :string 
+  attribute :death_date, :string
   attribute :birth_country, :string 
   attribute :bio_description, :string 
 
