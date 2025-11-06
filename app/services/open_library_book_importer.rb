@@ -1,4 +1,6 @@
 class OpenLibraryBookImporter
+  include OpenLibraryUtils
+  
   BASE_URL = "https://openlibrary.org"
 
   class ImportError < StandardError; end
@@ -12,11 +14,15 @@ class OpenLibraryBookImporter
     work_id = extract_work_id(edition_data)
     work_data = fetch_work_data(work_id)
 
-    book = build_book(edition_data, work_data, work_id)
+    book = Book.find_by(work_id: work_id)
+    if book.nil?
+      book = build_book(edition_data, work_data, work_id)
+      extract_author_data(edition_data, book)
+      associate_genres(work_data, book)
+      # book.save
+    end
+
     edition = build_edition(edition_data, book)
-    extract_author_data(edition_data, book)
-    associate_genres(work_data, book)
-    
     { book: book, edition: edition }
   rescue HTTParty::Error, JSON::ParserError => e
     raise ImportError, "Failed to fetch book data: #{e.message}"
@@ -100,14 +106,18 @@ class OpenLibraryBookImporter
     description = edition_data["description"]
     description = description.is_a?(Hash) ? description["value"] : description
     language_key = edition_data["languages"]&.first&.dig("key")
-    language = language_key ? language_key.split("/").last.upcase : nil
+    language = language_from_key(language_key)
+    format = edition_data["number_of_pages"] ? "#{edition_data["number_of_pages"]} pages" : nil
+    format = "#{format}, #{edition_data["physical_format"]}" if edition_data["physical_format"].present?
+    publish_date = normalize_date(edition_data["publish_date"])
+    publisher = edition_data["publishers"]&.first
 
     Edition.new(
       isbn: isbn,
       description: description,
-      publisher: edition_data["publishers"]&.first,
-      publication_date: parse_date(edition_data["publish_date"]),
-      format: format_string(edition_data["number_of_pages"]),
+      publisher: publisher,
+      publication_date: publish_date,
+      format: format,
       primary_edition: 1,
       language: language,
       book: book
@@ -130,7 +140,8 @@ class OpenLibraryBookImporter
 
   def parse_date(publish_date)
     return nil unless publish_date.present?
-    Date.parse(publish_date.to_s) rescue nil
+    normalized = normalize_date(publish_date)
+    Date.parse(normalized.to_s) rescue nil
   end
 
   def format_string(pages)

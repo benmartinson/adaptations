@@ -36,6 +36,7 @@ export default function Book() {
       </div>
     );
   };
+  console.log({ edition });
 
   return (
     <PageFrame>
@@ -106,7 +107,11 @@ export default function Book() {
           {labelValue("ISBN", edition.isbn)}
           {labelValue("Language", edition.language)}
         </div>
-        <BookEditions work_id={book.work_id} initialEditions={book.editions} />
+        <BookEditions
+          work_id={book.work_id}
+          initialEditions={book.editions}
+          currentEditionIsbn={edition.isbn}
+        />
       </div>
     </PageFrame>
   );
