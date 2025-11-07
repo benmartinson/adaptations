@@ -5,14 +5,28 @@ class OpenLibraryEditionImporter
 
   class ImportError < StandardError; end
 
-  def initialize(work_id)
+  def initialize(work_id, book_id)
     @work_id = work_id
-    @book_id = Book.find_by(work_id: work_id).id
+    @book_id = book_id
   end
 
   def import
     editions_data = fetch_edition_data
-    editions = editions_data.first(3).map { |edition_data| build_edition(edition_data) }
+    # prioritize editions using points system (higher = better)
+    # Format: +3 points, Description: +2 points, English: +1 point
+    editions = editions_data.sort_by { |edition_data|
+      language_key = edition_data["languages"]&.first&.dig("key")
+      is_english = language_key == "/languages/eng"
+      has_format = edition_data["physical_format"] && edition_data["number_of_pages"].present?
+      has_description = edition_data["description"]&.dig("value").present?
+      
+      points = 0
+      points += 3 if has_format
+      points += 2 if has_description
+      points += 1 if is_english
+      -points # negate for descending order
+    }.first(3).map { |edition_data| build_edition(edition_data) }
+
     { editions: editions }
   end
 

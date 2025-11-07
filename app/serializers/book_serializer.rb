@@ -11,6 +11,7 @@ class BookSerializer
       id: @book.id,
       work_id: @book.work_id,
       title: @book.title,
+      series: @book.series,
       first_published: @book.first_published,
       setting: @book.setting,
       description: @book.description,

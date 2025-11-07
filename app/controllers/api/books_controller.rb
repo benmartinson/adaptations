@@ -34,13 +34,14 @@ module Api
 
     def editions
       work_id = params[:work_id]
-      book_id = Book.find_by(work_id: work_id).id
-      found_editions = Edition.where(book_id: book_id)
+      book = Book.find_by(work_id: work_id)
+      book_id = book.id if book.present?
+      found_editions = book_id.present? ? Edition.where(book_id: book_id) : []
 
-      if found_editions.present? && found_editions.length > 5
+      if found_editions.any? && found_editions.length > 5
         render json: found_editions.first(3)
       else
-        importer = OpenLibraryEditionImporter.new(work_id)
+        importer = OpenLibraryEditionImporter.new(work_id, book_id)
         imported_editions = importer.import
         render json: found_editions + imported_editions[:editions].first(5 - found_editions.length)
       end

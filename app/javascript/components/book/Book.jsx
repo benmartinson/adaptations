@@ -75,6 +75,11 @@ export default function Book() {
         )}
       </div>
       <div className="col-span-9">
+        {book.series && (
+          <div className="font-fancy italic text-[20px] leading-[28px] text-[#707070] mb-2">
+            {book.series}
+          </div>
+        )}
         <h1 className="font-fancy text-[36px] leading-[46px] font-[600]">
           {book.title}
         </h1>

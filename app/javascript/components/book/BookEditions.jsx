@@ -71,7 +71,7 @@ export default function BookEditions({
                 </div>
               )}
               <div className="text-[#707070] text-[14px] leading-[18px] font-body mt-2 w-[150px] max-w-[150px]">
-                <div className="">{edition.format}</div>
+                <div className="">{edition.format?.split(",").last}</div>
                 <div className="line-break  ">{edition.publisher}</div>
                 <div className="">
                   {moment(edition.publication_date).format("YYYY")}

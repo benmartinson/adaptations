@@ -17,7 +17,7 @@ class OpenLibraryBookImporter
     book = Book.find_by(work_id: work_id)
     if book.nil?
       book = build_book(edition_data, work_data, work_id)
-      extract_author_data(edition_data, book)
+      extract_authors(work_data, book)
       associate_genres(work_data, book)
       # book.save
     end
@@ -53,10 +53,10 @@ class OpenLibraryBookImporter
     work_id.to_s.gsub(/^\/works\//, "")
   end
 
-  def extract_author_data(edition_data, book)
-    authors = edition_data["authors"] || []
+  def extract_authors(work_data, book)
+    authors = work_data["authors"] || []
     authors.map do |author|
-      author_key = author["key"].split("/").last
+      author_key = author["author"]["key"].split("/").last
       return nil unless author_key.present?
 
       response = HTTParty.get("#{BASE_URL}/authors/#{author_key}.json")
@@ -67,14 +67,17 @@ class OpenLibraryBookImporter
       author_data = response.parsed_response
       return nil unless author_data.present?
 
-      author = Author.find_or_create_by(
-        full_name: author_data["name"],
+      author_name = author_data["personal_name"] || author_data["name"]
+      return nil unless author_name.present?
+
+      author = Author.new(
+        full_name: author_name,
         bio_description: author_data["bio"],
         birth_date: author_data["birth_date"]&.to_s,
         death_date: author_data["death_date"]&.to_s
       )
       book.authors << author unless book.authors.include?(author)
-    end
+    end.filter { |author| author.present? }
   end
 
   def fetch_work_data(work_id)
@@ -92,10 +95,11 @@ class OpenLibraryBookImporter
   def build_book(edition_data, work_data, work_id)
     description = work_data["description"]
     description = description.is_a?(Hash) ? description["value"] : description
-
+    
     Book.new(
       work_id: work_id,
       title: edition_data["title"],
+      series: edition_data["series"]&.first,
       first_published: parse_first_published(edition_data["publish_date"]),
       description: description,
     )
