@@ -18,7 +18,12 @@ class OpenLibraryEditionImporter
       language_key = edition_data["languages"]&.first&.dig("key")
       is_english = language_key == "/languages/eng"
       has_format = edition_data["physical_format"] && edition_data["number_of_pages"].present?
-      has_description = edition_data["description"]&.dig("value").present?
+      description = edition_data["description"]
+      has_description = if description.is_a?(Hash)
+        description["value"].present?
+      else
+        description.present?
+      end
       
       points = 0
       points += 3 if has_format

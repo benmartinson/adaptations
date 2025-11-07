@@ -6,7 +6,7 @@ module Api
 
     def show
       isbn = params[:isbn]
-      edition = Edition.includes(:book, contributors: :author).find_by(isbn: isbn)
+      edition = Edition.includes(:book, edition_contributors: :author).find_by(isbn: isbn)
       
       if edition.present?
         book = Book.includes(:authors, :genres, :movies).find(edition.book_id)

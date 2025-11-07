@@ -17,12 +17,18 @@ class OpenLibraryBookImporter
     book = Book.find_by(work_id: work_id)
     if book.nil?
       book = build_book(edition_data, work_data, work_id)
-      extract_authors(work_data, book)
+      extract_authors(edition_data, book)
       associate_genres(work_data, book)
       # book.save
     end
 
-    edition = build_edition(edition_data, book)
+    edition = Edition.find_by(isbn: @isbn)
+    if edition.nil?
+      edition = build_edition(edition_data, book)
+      extract_contributors(edition_data, edition)
+      # edition.save
+    end
+
     { book: book, edition: edition }
   rescue HTTParty::Error, JSON::ParserError => e
     raise ImportError, "Failed to fetch book data: #{e.message}"
@@ -53,10 +59,58 @@ class OpenLibraryBookImporter
     work_id.to_s.gsub(/^\/works\//, "")
   end
 
-  def extract_authors(work_data, book)
-    authors = work_data["authors"] || []
+  def extract_contributors(edition_data, edition)
+    # Handle two formats:
+    # 1. "contributors": [{"role": "Translator", "name": "Javier Altayó"}]
+    # 2. "contributions": ["Arthur C. Clarke (Introduction)"]
+    contributors = []
+    if edition_data["contributors"].present?
+      edition_data["contributors"].each do |contributor|
+        next unless contributor.is_a?(Hash)
+        
+        contributor_name = contributor["name"]
+        next unless contributor_name.present?
+
+        contributors << EditionContributor.new(
+          name: contributor_name,
+          role: contributor["role"]
+        )
+      end
+    end
+    
+    if edition_data["contributions"].present?
+      edition_data["contributions"].each do |contribution|
+        next unless contribution.is_a?(String)
+        
+        # Parse format: "Name (Role)" or just "Name"
+        match = contribution.match(/^(.+?)\s*\(([^)]+)\)$/)
+        if match
+          # Has role in parentheses
+          name = match[1].strip
+          role = match[2].strip
+        else
+          name = contribution.strip
+          role = nil
+        end
+        
+        next unless name.present?
+        
+        contributors << EditionContributor.new(
+          name: name,
+          role: role
+        )
+      end
+    end
+    
+    contributors.each do |contributor|
+      edition.edition_contributors << contributor unless edition.edition_contributors.any? { |ec| ec.name == contributor.name && ec.role == contributor.role }
+    end
+  end
+
+  def extract_authors(edition_data, book)
+    authors = edition_data["authors"] || []
     authors.map do |author|
-      author_key = author["author"]["key"].split("/").last
+      author_key = author["key"].split("/").last
       return nil unless author_key.present?
 
       response = HTTParty.get("#{BASE_URL}/authors/#{author_key}.json")

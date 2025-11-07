@@ -4,10 +4,10 @@ export default function BookAuthors({ authors, contributors }) {
   // Combine both arrays to handle commas properly across all authors
   const allAuthors = [
     ...authors.map((author) => ({ type: "author", data: author })),
-    // ...contributors.map((contributor) => ({
-    //   type: "contributor",
-    //   data: contributor,
-    // })),
+    ...contributors.map((contributor) => ({
+      type: "contributor",
+      data: contributor,
+    })),
   ];
 
   console.log({ allAuthors });
@@ -21,10 +21,8 @@ export default function BookAuthors({ authors, contributors }) {
               item.data.full_name
             ) : (
               <>
-                {item.data.full_name}{" "}
-                <span className="text-[#707070]">
-                  ({item.data.role_description})
-                </span>
+                {item.data.name}{" "}
+                <span className="text-[#707070]">({item.data.role})</span>
               </>
             )}
             {!isLast && <span>, </span>}
