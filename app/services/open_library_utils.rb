@@ -111,5 +111,57 @@ module OpenLibraryUtils
     format = "#{format}#{physical_format}" if physical_format.present?
     format
   end
+
+  def get_priority_genres(subjects)
+    priority_genres = [
+      "Science Fiction",
+      "Fantasy",
+      "Mystery",
+      "Thriller",
+      "Horror",
+      "Romance",
+      "Young Adult",
+      "Children's",
+      "Graphic Novel",
+      "Warfare",
+      "Western",
+      "Adventure",
+      "Dystopian",
+      "Post-apocalyptic",
+      "Cyberpunk",
+      "Steampunk",
+      "Space Opera",
+      "Space Travel",
+      "War",
+      "Military",
+      "Politics",
+      "Religion",
+      "Spirituality",
+      "Philosophy",
+      "Psychology",
+      "Sociology",
+      "Economics",
+      "Business",
+      "Finance",
+      "Technology",
+      "Science",
+      "Math",
+      "Physics",
+      "Chemistry",
+      "Biology",
+      "Geology",
+      "Astronomy",
+      "Medicine",
+      "Space Warfare",
+      "Space Travel",
+      "Space Exploration",
+      "Space Science",
+      "Fiction",
+      "Non-fiction",
+    ]
+    # Capitalize all the words of the subject 
+    subjects = subjects.map { |subject| subject.split(" ").map(&:capitalize).join(" ") }
+    priority_genres.select { |genre| subjects.include?(genre) }
+  end
 end
 
