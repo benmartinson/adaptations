@@ -82,6 +82,9 @@ module OpenLibraryUtils
   end
 
   def language_from_key(key)
+    if key.blank?
+      return nil
+    end
     lang_key = key.split("/").last
     language_map = {
       "eng" => "English",
@@ -97,6 +100,16 @@ module OpenLibraryUtils
     language = language_map[lang_key] if language_map[lang_key].present?
     language = lang_key.upcase if language.blank?
     language
+  end
+
+  def get_format(edition_data)
+    physical_format = edition_data["physical_format"].present? ? edition_data["physical_format"].capitalize : nil
+    number_of_pages = edition_data["number_of_pages"]
+
+    format = number_of_pages.present? ? "#{number_of_pages} pages" : nil
+    format = "#{format}, " if format.present? && physical_format.present?
+    format = "#{format}#{physical_format}" if physical_format.present?
+    format
   end
 end
 

@@ -17,16 +17,17 @@ class OpenLibraryBookImporter
     book = Book.find_by(work_id: work_id)
     if book.nil?
       book = build_book(edition_data, work_data, work_id)
-      extract_authors(edition_data, book)
       associate_genres(work_data, book)
-      # book.save
+      book.save
     end
+
+    extract_authors(edition_data, work_data, book) unless book.authors.any?
 
     edition = Edition.find_by(isbn: @isbn)
     if edition.nil?
       edition = build_edition(edition_data, book)
       extract_contributors(edition_data, edition)
-      # edition.save
+      edition.save
     end
 
     { book: book, edition: edition }
@@ -107,10 +108,14 @@ class OpenLibraryBookImporter
     end
   end
 
-  def extract_authors(edition_data, book)
+  def extract_authors(edition_data, work_data, book)
     authors = edition_data["authors"] || []
+    is_work_authors = authors.empty?
+    if is_work_authors
+      authors = work_data["authors"] || []
+    end
     authors.map do |author|
-      author_key = author["key"].split("/").last
+      author_key = is_work_authors ? author["author"]["key"].split("/").last : author["key"].split("/").last
       return nil unless author_key.present?
 
       response = HTTParty.get("#{BASE_URL}/authors/#{author_key}.json")
@@ -160,18 +165,16 @@ class OpenLibraryBookImporter
   end
 
   def build_edition(edition_data, book)
-    isbn = edition_data["isbn_13"]&.first || edition_data["isbn_10"]&.first || @isbn
     description = edition_data["description"]
     description = description.is_a?(Hash) ? description["value"] : description
     language_key = edition_data["languages"]&.first&.dig("key")
     language = language_from_key(language_key)
-    format = edition_data["number_of_pages"] ? "#{edition_data["number_of_pages"]} pages" : nil
-    format = "#{format}, #{edition_data["physical_format"]}" if edition_data["physical_format"].present?
+    format = get_format(edition_data)
     publish_date = normalize_date(edition_data["publish_date"])
     publisher = edition_data["publishers"]&.first
 
     Edition.new(
-      isbn: isbn,
+      isbn: @isbn,
       description: description,
       publisher: publisher,
       publication_date: publish_date,
