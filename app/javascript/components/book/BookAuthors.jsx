@@ -1,6 +1,8 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 
 export default function BookAuthors({ authors, contributors }) {
+  const navigate = useNavigate();
   // Combine both arrays to handle commas properly across all authors
   const allAuthors = [
     ...authors.map((author) => ({ type: "author", data: author })),
@@ -18,7 +20,12 @@ export default function BookAuthors({ authors, contributors }) {
         return (
           <span key={index} className="">
             {item.type === "author" ? (
-              item.data.full_name
+              <span
+                className="cursor-pointer underline"
+                onClick={() => navigate(`/author/${item.data.slug}`)}
+              >
+                {item.data.full_name}
+              </span>
             ) : (
               <>
                 {item.data.name}{" "}

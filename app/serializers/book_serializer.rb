@@ -15,7 +15,7 @@ class BookSerializer
       first_published: @book.first_published,
       setting: @book.setting,
       description: @book.description,
-      authors: @book.authors.map { |a| { id: a.id, full_name: a.full_name } },
+      authors: @book.authors.map { |a| { id: a.id, full_name: a.full_name, slug: a.slug } },
       contributors: @edition.edition_contributors.map { |c| { id: c.id, name: c.name, role: c.role } },
       genres: @book.genres.map { |g| { id: g.id, name: g.name } },
         editions: @book.editions

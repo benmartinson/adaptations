@@ -1,6 +1,6 @@
 class OpenLibraryBookImporter
   include OpenLibraryUtils
-  
+
   BASE_URL = "https://openlibrary.org"
 
   class ImportError < StandardError; end
@@ -25,7 +25,7 @@ class OpenLibraryBookImporter
 
     edition = Edition.find_by(isbn: @isbn)
     if edition.nil?
-      edition = build_edition(edition_data, book)
+      edition = build_edition(edition_data, work_data, book)
       extract_contributors(edition_data, edition)
       edition.save
     end
@@ -109,32 +109,19 @@ class OpenLibraryBookImporter
   end
 
   def extract_authors(edition_data, work_data, book)
+    if book.authors.any?
+      return
+    end
     authors = edition_data["authors"] || []
-    is_work_authors = authors.empty?
-    if is_work_authors
+    use_work_authors = authors.empty?
+    if use_work_authors
       authors = work_data["authors"] || []
     end
+
     authors.map do |author|
-      author_key = is_work_authors ? author["author"]["key"].split("/").last : author["key"].split("/").last
+      author_key = use_work_authors ? author["author"]["key"].split("/").last : author["key"].split("/").last
       return nil unless author_key.present?
-
-      response = HTTParty.get("#{BASE_URL}/authors/#{author_key}.json")
-      unless response.success?
-        raise ImportError, "Author not found for author_key: #{author_key}"
-      end
-
-      author_data = response.parsed_response
-      return nil unless author_data.present?
-
-      author_name = author_data["personal_name"] || author_data["name"]
-      return nil unless author_name.present?
-
-      author = Author.new(
-        full_name: author_name,
-        bio_description: author_data["bio"],
-        birth_date: author_data["birth_date"]&.to_s,
-        death_date: author_data["death_date"]&.to_s
-      )
+      author = OpenLibraryAuthorImporter.new(author_key: author_key).import
       book.authors << author unless book.authors.include?(author)
     end.filter { |author| author.present? }
   end
@@ -154,7 +141,7 @@ class OpenLibraryBookImporter
   def build_book(edition_data, work_data, work_id)
     description = work_data["description"]
     description = description.is_a?(Hash) ? description["value"] : description
-    
+
     Book.new(
       work_id: work_id,
       title: edition_data["title"],
@@ -164,8 +151,8 @@ class OpenLibraryBookImporter
     )
   end
 
-  def build_edition(edition_data, book)
-    description = edition_data["description"]
+  def build_edition(edition_data, work_data, book)
+    description = edition_data["description"] || work_data["description"]
     description = description.is_a?(Hash) ? description["value"] : description
     language_key = edition_data["languages"]&.first&.dig("key")
     language = language_from_key(language_key)
