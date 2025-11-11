@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import BookList from "./components/BookList";
 import Book from "./components/book/Book";
+import Author from "./components/author/Author";
 import Navbar from "./components/Navbar";
 
 const root = createRoot(document.getElementById("react-root"));
@@ -12,6 +13,7 @@ root.render(
     <Routes>
       <Route path="/books" element={<BookList />} />
       <Route path="/books/:isbn" element={<Book />} />
+      <Route path="/author/:slug" element={<Author />} />
     </Routes>
   </BrowserRouter>
 );

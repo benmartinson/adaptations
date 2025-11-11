@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_11_07_190627) do
+ActiveRecord::Schema[8.1].define(version: 2025_11_11_005035) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -55,7 +55,9 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_07_190627) do
     t.datetime "created_at", null: false
     t.string "death_date"
     t.string "full_name"
+    t.string "slug"
     t.datetime "updated_at", null: false
+    t.index ["slug"], name: "index_authors_on_slug", unique: true
   end
 
   create_table "book_genres", force: :cascade do |t|
