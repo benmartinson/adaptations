@@ -17,7 +17,7 @@ class OpenLibraryAuthorImporter
   def import
     author_key = @author_key || get_author_key(@slug)
     author_data = get_author_data(author_key)
-    build_author(author_data)
+    build_author(author_data, author_key)
   end
 
   def get_author_key(slug)
@@ -44,17 +44,19 @@ class OpenLibraryAuthorImporter
     response.parsed_response
   end
 
-  def build_author(author_data)
+  def build_author(author_data, author_key)
     bio = author_data["bio"]
     bio = bio.is_a?(Hash) ? bio["value"] : bio
-    
+    bio = get_revised_description(bio)
+
     Author.find_or_create_by(
       full_name: author_data["personal_name"] || author_data["name"],
       bio_description: bio,
       birth_date: author_data["birth_date"]&.to_s,
       death_date: author_data["death_date"]&.to_s,
       slug: @slug,
-      photo_ids: author_data["photos"] || []
+      photo_ids: author_data["photos"] || [],
+      author_key: author_key
     )
   end
 end

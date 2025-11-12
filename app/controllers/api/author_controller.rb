@@ -20,6 +20,22 @@ module Api
         end
       end
     end
+
+    def books
+      author = Author.friendly.find(params[:slug])
+      author_key = author.author_key
+      raise "Author key not found" unless author_key.present?
+
+      books = author.books.includes(:authors, :genres, :movies).first(3)
+      if books.any? && books.length > 1
+        render json: books
+      else
+        importer = OpenLibraryAuthorBooksImporter.new(author_key: author_key)
+        books = importer.import
+        author.books << books
+        render json: books
+      end
+    end
   end
 
 end

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_11_11_183819) do
+ActiveRecord::Schema[8.1].define(version: 2025_11_11_233821) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -49,6 +49,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_11_183819) do
   end
 
   create_table "authors", force: :cascade do |t|
+    t.string "author_key"
     t.string "bio_description"
     t.string "birth_country"
     t.string "birth_date"
@@ -58,6 +59,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_11_183819) do
     t.json "photo_ids", default: []
     t.string "slug"
     t.datetime "updated_at", null: false
+    t.index ["author_key"], name: "index_authors_on_author_key", unique: true
     t.index ["slug"], name: "index_authors_on_slug", unique: true
   end
 

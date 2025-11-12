@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import PageFrame from "../PageFrame";
 import Label from "../common/Label";
 import ImageNotFound from "../common/ImageNotFound";
+import moment from "moment";
 
 export default function Author() {
   const { slug } = useParams();
@@ -39,7 +40,10 @@ export default function Author() {
         <h1 className="font-fancy text-[36px] leading-[46px] font-[600]">
           {author.full_name}
         </h1>
-        <Label label="Born" value={author.birth_date} />
+        <Label
+          label="Born"
+          value={moment(author.birth_date).format("MMMM D, YYYY")}
+        />
         {author.death_date && <Label label="Died" value={author.death_date} />}
         <div className="font-body grid grid-cols-9 gap-6 mt-3 max-h-[200px] overflow-y-auto">
           <div className="col-span-7">

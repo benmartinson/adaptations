@@ -163,5 +163,27 @@ module OpenLibraryUtils
     subjects = subjects.map { |subject| subject.split(" ").map(&:capitalize).join(" ") }
     priority_genres.select { |genre| subjects.include?(genre) }
   end
+
+  def get_revised_description(description)
+    return nil unless description.present?
+    
+    # Remove markdown-style links like [*The Name of the Wind*][1], keeping just the text
+    cleaned = description.gsub(/\[\*(.*?)\*\]\[.*?\]/, '\1')
+    
+    # Remove all sentences starting from (and including) the first sentence containing "(source)"
+    all_sentences = cleaned.split(".").map(&:strip).reject(&:empty?)
+    source_index = all_sentences.index { |sentence| sentence.match?(/\(.*[Ss]ource.*\)/) }
+    
+    sentences = if source_index
+      all_sentences[0...source_index]
+    else
+      all_sentences
+    end
+    
+    # Join sentences back together with spaces after periods
+    result = sentences.join(". ").strip
+    result += "." unless result.empty? || result.end_with?(".")
+    result
+  end
 end
 
