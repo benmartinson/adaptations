@@ -54,8 +54,8 @@ export default function Author() {
         <div className="text-[#707070] mt-3">
           {/* <Label label="Birth Country" value={author.birth_country} /> */}
         </div>
+        <AuthorBooks slug={slug} />
       </div>
-      <AuthorBooks slug={slug} />
     </PageFrame>
   );
 }

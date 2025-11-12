@@ -25,18 +25,18 @@ class OpenLibraryAuthorBooksImporter
         title: work["title"],
       }
     }
-    imported_books = works_data.map do |work_data|
-      book = Book.find_by(work_id: work_data[:work_id])
-      book_id = book.id if book.present?
-      next if book.present? && book.authors.find_by(author_key: @author_key).present? && book.editions.any?
+    # imported_books = works_data.map do |work_data|
+    #   book = Book.find_by(work_id: work_data[:work_id])
+    #   book_id = book.id if book.present?
+    #   next if book.present? && book.authors.find_by(author_key: @author_key).present? && book.editions.any?
 
-      importer = OpenLibraryBookImporter.new(work_id: work_data[:work_id])
-      result = importer.import
-      book = result[:book]
-      edition = result[:edition]
-      { book: book, edition: edition }
-    end.filter { |result| result.present? }
+    #   importer = OpenLibraryBookImporter.new(work_id: work_data[:work_id])
+    #   result = importer.import
+    #   book = result[:book]
+    #   edition = result[:edition]
+    #   { book: book, edition: edition }
+    # end.filter { |result| result.present? }
 
-    imported_books
+    works_data
   end
 end

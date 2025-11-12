@@ -19,6 +19,8 @@ gem "jbuilder"
 # HTTP client library
 gem "httparty"
 
+gem "ruby-gemini-api"
+
 gem "friendly_id", "~> 5.4.0"
 
 # Use Active Model has_secure_password [https://guides.rubyonrails.org/active_model_basics.html#securepassword]
