@@ -4,6 +4,7 @@ import PageFrame from "../PageFrame";
 import Label from "../common/Label";
 import ImageNotFound from "../common/ImageNotFound";
 import moment from "moment";
+import AuthorBooks from "./AuthorBooks";
 
 export default function Author() {
   const { slug } = useParams();
@@ -54,6 +55,7 @@ export default function Author() {
           {/* <Label label="Birth Country" value={author.birth_country} /> */}
         </div>
       </div>
+      <AuthorBooks slug={slug} />
     </PageFrame>
   );
 }

@@ -185,5 +185,21 @@ module OpenLibraryUtils
     result += "." unless result.empty? || result.end_with?(".")
     result
   end
+
+  def parse_first_published(publish_date)
+    return nil unless publish_date.present?
+    publish_date.to_s
+  end
+
+  def parse_date(publish_date)
+    return nil unless publish_date.present?
+    normalized = normalize_date(publish_date)
+    Date.parse(normalized.to_s) rescue nil
+  end
+
+  def format_string(pages)
+    return nil unless pages.present?
+    "#{pages} pages"
+  end
 end
 

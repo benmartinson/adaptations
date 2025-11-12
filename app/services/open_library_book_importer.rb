@@ -5,14 +5,26 @@ class OpenLibraryBookImporter
 
   class ImportError < StandardError; end
 
-  def initialize(isbn)
+  def initialize(isbn: nil, work_id: nil)
     @isbn = isbn
+    @work_id = work_id
+
+    if @isbn.nil? && @work_id.nil?
+      raise ArgumentError, "Either isbn or work_id must be provided"
+    end
   end
 
   def import
-    edition_data = fetch_edition_data
-    work_id = extract_work_id(edition_data)
-    work_data = fetch_work_data(work_id)
+    if @isbn.present?
+      edition_data = fetch_edition_data
+      work_id = extract_work_id(edition_data)
+      work_data = fetch_work_data(work_id)
+    else
+      work_data = fetch_work_data(@work_id)
+      primary_edition = OpenLibraryEditionImporter.new(@work_id, nil).import[:editions].first
+      @isbn = primary_edition.isbn
+      edition_data = fetch_edition_data
+    end
 
     book = Book.find_by(work_id: work_id)
     if book.nil?
@@ -121,7 +133,10 @@ class OpenLibraryBookImporter
     authors.map do |author|
       author_key = use_work_authors ? author["author"]["key"].split("/").last : author["key"].split("/").last
       return nil unless author_key.present?
-      author = OpenLibraryAuthorImporter.new(author_key: author_key).import
+      author = Author.find_by(author_key: author_key)
+      if author.nil?
+        author = OpenLibraryAuthorImporter.new(author_key: author_key).import
+      end
       book.authors << author unless book.authors.include?(author)
     end.filter { |author| author.present? }
   end
@@ -141,7 +156,6 @@ class OpenLibraryBookImporter
   def build_book(edition_data, work_data, work_id)
     description = work_data["description"]
     description = description.is_a?(Hash) ? description["value"] : description
-
     Book.new(
       work_id: work_id,
       title: edition_data["title"],
@@ -183,22 +197,6 @@ class OpenLibraryBookImporter
       genre = Genre.find_or_create_by(name: genre_name)
       book.genres << genre unless book.genres.include?(genre)
     end
-  end
-
-  def parse_first_published(publish_date)
-    return nil unless publish_date.present?
-    publish_date.to_s
-  end
-
-  def parse_date(publish_date)
-    return nil unless publish_date.present?
-    normalized = normalize_date(publish_date)
-    Date.parse(normalized.to_s) rescue nil
-  end
-
-  def format_string(pages)
-    return nil unless pages.present?
-    "#{pages} pages"
   end
 end
 

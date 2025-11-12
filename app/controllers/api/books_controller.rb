@@ -16,7 +16,7 @@ module Api
 
       # If not found locally, fetch from Open Library API
       begin
-        importer = OpenLibraryBookImporter.new(isbn)
+        importer = OpenLibraryBookImporter.new(isbn: isbn)
         result = importer.import
         book = result[:book]
         edition = result[:edition]

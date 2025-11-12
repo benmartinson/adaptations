@@ -71,6 +71,7 @@ class OpenLibraryEditionImporter
       publication_date: publish_date,
       format: format,
     )
+
     if edition_data["should_save"] && Edition.find_by(isbn: isbn).nil?
       description = edition_data["description"]
       description = description.is_a?(Hash) ? description["value"] : description

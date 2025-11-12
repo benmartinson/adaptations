@@ -54,7 +54,6 @@ class OpenLibraryAuthorImporter
       bio_description: bio,
       birth_date: author_data["birth_date"]&.to_s,
       death_date: author_data["death_date"]&.to_s,
-      slug: @slug,
       photo_ids: author_data["photos"] || [],
       author_key: author_key
     )

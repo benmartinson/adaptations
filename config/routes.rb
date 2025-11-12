@@ -4,6 +4,7 @@ Rails.application.routes.draw do
     get 'books/:work_id/editions', to: 'books#editions'
     # get 'authors', to: 'author#index'
     get 'authors/:slug', to: 'author#show'
+    get 'authors/:slug/books', to: 'author#books'
   end
 
   root "pages#index"

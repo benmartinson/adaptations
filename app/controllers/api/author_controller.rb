@@ -30,9 +30,8 @@ module Api
       if books.any? && books.length > 1
         render json: books
       else
-        importer = OpenLibraryAuthorBooksImporter.new(author_key: author_key)
+        importer = OpenLibraryAuthorBooksImporter.new(author_key)
         books = importer.import
-        author.books << books
         render json: books
       end
     end
