@@ -8,15 +8,15 @@ class ServiceProcedure
     @service_adapter.get_request_url(request_name, params)
   end
 
-  def run_request_procedure(request_name, data)
-    @service_adapter.run_request_procedure(request_name, data)
+  def run_request_procedure(request_name, data, params)
+    @service_adapter.run_request_procedure(request_name, data, params)
   end
 
   def run_service(request_name, params)
     url = get_request_url(request_name, params)
     response = run_request(url)
     data = response.clone
-    run_request_procedure(request_name, data)
+    run_request_procedure(request_name, data, params)
   end
 
   private
