@@ -1,2 +1,0 @@
-class ApiService < ApplicationRecord
-end

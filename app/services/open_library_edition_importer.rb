@@ -89,7 +89,6 @@ class OpenLibraryEditionImporter
     
     image_url = "https://covers.openlibrary.org/b/isbn/#{isbn}-L.jpg?default=false"
     
-    # Use HEAD request to check if image exists (more efficient than GET)
     response = HTTParty.head(image_url, timeout: 2)
     response.success?
   rescue HTTParty::Error, Net::ReadTimeout, Net::OpenTimeout, SocketError

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_11_13_010659) do
+ActiveRecord::Schema[8.1].define(version: 2025_11_13_191933) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -37,23 +37,6 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_13_010659) do
     t.bigint "blob_id", null: false
     t.string "variation_digest", null: false
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
-  end
-
-  create_table "api_requests", force: :cascade do |t|
-    t.integer "api_service_id", null: false
-    t.datetime "created_at", null: false
-    t.integer "order"
-    t.json "params"
-    t.datetime "updated_at", null: false
-    t.string "url"
-    t.index ["api_service_id"], name: "index_api_requests_on_api_service_id"
-  end
-
-  create_table "api_services", force: :cascade do |t|
-    t.string "base_url"
-    t.datetime "created_at", null: false
-    t.string "name"
-    t.datetime "updated_at", null: false
   end
 
   create_table "author_books", force: :cascade do |t|
@@ -161,31 +144,8 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_13_010659) do
     t.datetime "updated_at", null: false
   end
 
-  create_table "procedure_fields", force: :cascade do |t|
-    t.datetime "created_at", null: false
-    t.string "from"
-    t.string "from_type"
-    t.boolean "is_Param"
-    t.integer "request_procedure_id", null: false
-    t.string "to"
-    t.string "to_type"
-    t.string "transform"
-    t.datetime "updated_at", null: false
-    t.index ["request_procedure_id"], name: "index_procedure_fields_on_request_procedure_id"
-  end
-
-  create_table "request_procedures", force: :cascade do |t|
-    t.integer "api_request_id", null: false
-    t.datetime "created_at", null: false
-    t.integer "order"
-    t.string "procedure_type"
-    t.datetime "updated_at", null: false
-    t.index ["api_request_id"], name: "index_request_procedures_on_api_request_id"
-  end
-
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
-  add_foreign_key "api_requests", "api_services"
   add_foreign_key "author_books", "authors"
   add_foreign_key "author_books", "books"
   add_foreign_key "book_genres", "books"
@@ -196,6 +156,4 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_13_010659) do
   add_foreign_key "editions", "books"
   add_foreign_key "movie_books", "books"
   add_foreign_key "movie_books", "movies"
-  add_foreign_key "procedure_fields", "request_procedures"
-  add_foreign_key "request_procedures", "api_requests"
 end
