@@ -49,29 +49,47 @@ class ServiceProcedure
     procedure_fields = ProcedureField.where(request_procedure_id: procedure.id)
     return if procedure_fields.empty?
     if procedure.procedure_type == "map"
-      nested_keys = procedure_fields.first.from.split('/')
-      response_clone = response.clone
-      begin
-        nested_keys.each_with_index do |key, index|
-          response_clone = response_clone[key] unless index == nested_keys.length - 1
-        end
-      rescue StandardError => e
-        raise "Bad path: #{procedure_fields.first.from}"
-      end
-      values_to_map = response_clone
-      mapped_values = values_to_map.map do |value|
-        object_to_map = {}
-        procedure_fields.each do |field|
-          key = field.from.split('/').last
-          
+      values_to_map = get_and_check_nested_path(response, procedure_fields)
+      return run_map_procedure(values_to_map, procedure, procedure_fields)
+    end
+  end
+
+  def eval_transform(transform_expr, value, key)
+    return nil unless value&.dig(key).present?
+    if transform_expr.start_with?('.')
+      eval("value[key]#{transform_expr}", binding)
+    else
+      value[key].send(eval(transform_expr))
+    end
+  end
+
+  def run_map_procedure(values_to_map, procedure, procedure_fields)
+    mapped_values = values_to_map.map do |value|
+      object_to_map = {}
+      procedure_fields.each do |field|
+        key = field.from.split('/').last
+        
+        if field["transform"].present? 
+          object_to_map[field.to] = eval_transform(field["transform"], value, key)
+        else
           object_to_map[field.to] = value[key]
-          object_to_map[field.to] = value[key].split('/').last if field.to == "work_id"
-          object_to_map[field.to] = value[key].first if field.to == "cover_id" && value[key].is_a?(Array)
         end
-        object_to_map
       end
-      fake = 4
+      object_to_map
     end
     mapped_values
+  end
+
+  def get_and_check_nested_path(response, procedure_fields)
+    nested_keys = procedure_fields.first.from.split('/')
+    response_clone = response.clone
+    begin
+      nested_keys.each_with_index do |key, index|
+        response_clone = response_clone[key] unless index == nested_keys.length - 1
+      end
+    rescue StandardError => e
+      raise "Bad path: #{procedure_fields.first.from}"
+    end
+    response_clone
   end
 end 
