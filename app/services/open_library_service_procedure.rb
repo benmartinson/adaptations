@@ -3,6 +3,16 @@ class OpenLibraryServiceProcedure
 
   def get_request_url(request_name, params)
     case request_name
+    when "WorkData"
+      if params[:work_id].blank?
+        raise "Work ID is required"
+      end
+      "https://openlibrary.org/works/#{params[:work_id]}.json"
+    when "IsbnEditionData"
+      if params[:isbn].blank?
+        raise "ISBN is required"
+      end
+      "https://openlibrary.org/isbn/#{params[:isbn]}.json"
     when "AuthorData"
       if params[:author_key].blank?
         raise "Author key is required"
@@ -25,6 +35,10 @@ class OpenLibraryServiceProcedure
 
   def run_request_procedure(request_name, data, params)
     case request_name
+    when "WorkData"
+        work_data_procedure(data, params)
+    when "IsbnEditionData"
+      isbn_edition_data_procedure(data, params)
     when "AuthorData"
       author_data_procedure(data, params)
     when "AuthorBooks"
@@ -37,6 +51,28 @@ class OpenLibraryServiceProcedure
   end
 
   private
+
+  def work_data_procedure(data, params)
+    data["description"] = data["description"].is_a?(Hash) ? data["description"]["value"] : data["description"]
+    data
+  end
+
+  def isbn_edition_data_procedure(data, params)
+    work_id = data["works"]&.first&.dig("key") || data["key"]
+    if work_id.present?
+      work_id = work_id.to_s.gsub(/^\/works\//, "")
+    else
+      work_id = nil
+    end
+    data["work_id"] = work_id
+    data["series"] = data["series"]&.first
+    data["first_published"] = parse_first_published(data["publish_date"])
+    data["language"] = language_from_key(data["languages"]&.first&.dig("key"))
+    data["format"] = get_format(data)
+    data["publication_date"] = normalize_date(data["publish_date"])
+    data["publisher"] = data["publishers"]&.first
+    data
+  end
 
   def author_books_procedure(data)
     works = data["entries"]
@@ -58,7 +94,7 @@ class OpenLibraryServiceProcedure
     unless author_data.present?
       raise "Author not found for slug: #{params[:slug]}"
     end
-    author_data["author_key"].first
+    author_data["author_key"]&.first ||author_data["key"]
   end
 
   def author_data_procedure(data, params)
@@ -66,12 +102,11 @@ class OpenLibraryServiceProcedure
     bio = bio.is_a?(Hash) ? bio["value"] : bio
     bio = get_revised_description(bio)
     {
-      author_key: data["author_key"].first,
-      full_name: data["author_name"].first,
+      full_name: data["name"],
       bio: bio,
-      birth_date: data["birth_date"].first,
-      death_date: data["death_date"].first,
-      photo_ids: data["photos"].first,
+      birth_date: data["birth_date"],
+      death_date: data["death_date"],
+      photo_ids: data["photos"],
     }
   end
 end

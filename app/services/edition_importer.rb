@@ -1,8 +1,5 @@
-class OpenLibraryEditionImporter  
+class EditionImporter  
   include OpenLibraryUtils
-  
-  BASE_URL = "https://openlibrary.org"
-
   class ImportError < StandardError; end
 
   def initialize(work_id, book_id)

@@ -1,4 +1,7 @@
 module OpenLibraryUtils
+
+  BASE_URL = "https://openlibrary.org"
+
   # Normalizes a date string to 'yyyy-mm-dd' format
   # Handles formats like:
   # - "2024" -> "2024-01-01"

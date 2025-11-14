@@ -1,8 +1,5 @@
-class OpenLibraryAuthorImporter
+class AuthorImporter
   include OpenLibraryUtils
-
-  BASE_URL = "https://openlibrary.org"
-
   class ImportError < StandardError; end
 
   def initialize(slug: nil, author_key: nil)
@@ -23,7 +20,7 @@ class OpenLibraryAuthorImporter
 
   def build_author(author_data, author_key)
     Author.find_or_create_by(
-      author_key: author_data[:author_key],
+      author_key: author_key,
       full_name: author_data[:full_name],
       bio_description: author_data[:bio],
       birth_date: author_data[:birth_date],

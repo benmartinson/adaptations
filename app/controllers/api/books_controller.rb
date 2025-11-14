@@ -6,26 +6,28 @@ module Api
 
     def show
       isbn = params[:isbn]
-      edition = Edition.includes(:book, edition_contributors: :author).find_by(isbn: isbn)
-      book = Book.includes(:authors, :genres, :movies).find(edition.book_id) if edition.present?
-      if edition.present? && book.present? && book.authors.any? && book.genres.any?
-        book = Book.includes(:authors, :genres, :movies).find(edition.book_id)
-        render json: BookSerializer.new(book, edition).as_json
-        return
-      end
+      edition = Edition.find_by(isbn: isbn)
+      book = Book.find(edition.book_id) if edition.present?
 
-      # If not found locally, fetch from Open Library API
-      begin
-        importer = OpenLibraryBookImporter.new(isbn: isbn)
+      if edition.nil? || book.nil?
+        importer = BookImporter.new(isbn: isbn)
         result = importer.import
         book = result[:book]
-        edition = result[:edition]
-        render json: BookSerializer.new(book, edition).as_json
-      rescue OpenLibraryBookImporter::ImportError => e
-        render json: { error: e.message }, status: :not_found
-      rescue StandardError => e
-        render json: { error: "Failed to import book: #{e.message}" }, status: :internal_server_error
       end
+
+      if book.genres.empty?
+        book_genre_importer = BookGenreImporter.new(book.work_id)
+        book_genre_importer.import
+      end
+
+      if book.authors.empty?
+        edition_authors_importer = EditionAuthorsImporter.new(isbn)
+        edition_authors_importer.import
+      end
+
+      edition = Edition.includes(:book, edition_contributors: :author).find_by(isbn: isbn)
+      book = Book.includes(:authors, :genres, :movies).find(edition.book_id)
+      render json: BookSerializer.new(book, edition).as_json
     end
 
     def editions
@@ -37,7 +39,7 @@ module Api
       if found_editions.any? && found_editions.length > 1
         render json: found_editions.first(3)
       else
-        importer = OpenLibraryEditionImporter.new(work_id, book_id)
+        importer = EditionImporter.new(work_id, book_id)
         imported_editions_result = importer.import
         imported_editions = imported_editions_result[:editions].filter { |edition| edition.isbn.present? }
         render json: imported_editions.first(3)
