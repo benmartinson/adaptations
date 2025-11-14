@@ -10,7 +10,7 @@ module Api
       book = Book.find(edition.book_id) if edition.present?
 
       if edition.nil? || book.nil?
-        importer = BookImporter.new(isbn: isbn)
+        importer = BookImporter.new(isbn)
         result = importer.import
         book = result[:book]
       end

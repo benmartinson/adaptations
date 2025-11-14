@@ -43,6 +43,16 @@ export default function VerticalCardList({ title, items, onItemClick }) {
                   {item.secondLineText}
                 </div>
               )}
+              {item.thirdLineText && (
+                <div className="text-[#707070] text-[12px] leading-[16px] font-body mt-1">
+                  {item.thirdLineText}
+                </div>
+              )}
+              {item.fourthLineText && (
+                <div className="text-[#707070] text-[12px] leading-[16px] font-body mt-1">
+                  {item.fourthLineText}
+                </div>
+              )}
             </div>
           </div>
         ))}

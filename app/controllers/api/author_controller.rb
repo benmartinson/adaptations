@@ -20,13 +20,14 @@ module Api
       author_key = author.author_key
       raise "Author key not found" unless author_key.present?
 
-      books = author.books.includes(:authors, :genres, :movies).first(3)
-      if books.any? && books.length > 1
-        render json: books
+      books = author.books.includes(:authors, :genres, :editions)
+      if books.any?
+        render json: books.as_json(include: { genres: { only: [:id, :name] }, editions: { only: [:id, :format, :publication_date, :publisher, :isbn, :language, :description, :asin] } })
       else
         importer = AuthorBooksImporter.new(author_key, author.full_name)
-        books = importer.import
-        render json: books
+        result = importer.import
+        books = author.books.includes(:authors, :genres)
+        render json: books.as_json(include: { genres: { only: [:id, :name] }, editions: { only: [:id, :format, :publication_date, :publisher, :isbn, :language, :description, :asin] } })
       end
     end
   end

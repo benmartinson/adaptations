@@ -10,6 +10,7 @@ class BookSerializer
     {
       id: @book.id,
       work_id: @book.work_id,
+      cover_id: @book.cover_id,
       title: @book.title,
       series: @book.series,
       first_published: @book.first_published,
@@ -32,7 +33,7 @@ class BookSerializer
   def edition_attributes(edition)
     return nil unless edition
     
-    edition.slice(:id, :format, :publication_date, :publisher, :isbn, :language, :description, :asin)
+    edition.slice(:id, :format, :publication_date, :publisher, :isbn, :language, :description, :asin, :cover_id)
   end
 
   def image_url(record)

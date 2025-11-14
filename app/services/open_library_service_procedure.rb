@@ -3,6 +3,11 @@ class OpenLibraryServiceProcedure
 
   def get_request_url(request_name, params)
     case request_name
+    when "PrimaryEdition"
+      if params[:work_id].blank?
+        raise "Work ID is required"
+      end
+      "https://openlibrary.org/works/#{params[:work_id]}/editions.json"
     when "WorkData"
       if params[:work_id].blank?
         raise "Work ID is required"
@@ -35,6 +40,8 @@ class OpenLibraryServiceProcedure
 
   def run_request_procedure(request_name, data, params)
     case request_name
+    when "PrimaryEdition"
+      primary_edition_procedure(data, params)
     when "WorkData"
         work_data_procedure(data, params)
     when "IsbnEditionData"
@@ -52,8 +59,20 @@ class OpenLibraryServiceProcedure
 
   private
 
+  def primary_edition_procedure(data, params)
+    primary_edition = oldest_entry(data["entries"])
+    {
+      isbn: primary_edition["isbn_13"]&.first,
+      publish_date: primary_edition["publish_date"],
+      language: language_from_key(primary_edition["languages"]&.first&.dig("key")),
+      format: get_format(primary_edition),
+      publisher: primary_edition["publishers"]&.first,
+    }
+  end
+
   def work_data_procedure(data, params)
     data["description"] = data["description"].is_a?(Hash) ? data["description"]["value"] : data["description"]
+    data["cover_id"] = data["covers"]&.first || nil
     data
   end
 
@@ -65,6 +84,7 @@ class OpenLibraryServiceProcedure
       work_id = nil
     end
     data["work_id"] = work_id
+    data["cover_id"] = data["covers"]&.first || nil
     data["series"] = data["series"]&.first
     data["first_published"] = parse_first_published(data["publish_date"])
     data["language"] = language_from_key(data["languages"]&.first&.dig("key"))

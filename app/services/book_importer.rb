@@ -2,7 +2,7 @@ class BookImporter
   include OpenLibraryUtils
   class ImportError < StandardError; end
 
-  def initialize(isbn: nil)
+  def initialize(isbn)
     @isbn = isbn
     @service_procedure = ServiceProcedure.new("OpenLibrary")
 
@@ -12,10 +12,6 @@ class BookImporter
   end
 
   def import
-    # if !@isbn.present?
-    #   primary_edition = EditionImporter.new(@work_id, nil).import[:editions].first
-    #   @isbn = primary_edition.isbn
-    # end
     edition_data = @service_procedure.run_service("IsbnEditionData", {isbn: @isbn})
     @work_id = edition_data["work_id"]
     work_data = @service_procedure.run_service("WorkData", {work_id: @work_id}) 
@@ -46,6 +42,7 @@ class BookImporter
       series: edition_data["series"],
       first_published: edition_data["first_published"],
       description: description,
+      cover_id: work_data["cover_id"],
     )
   end
 
@@ -59,7 +56,8 @@ class BookImporter
       format: edition_data["format"],
       primary_edition: 1,
       language: edition_data["language"],
-      book: book
+      book: book,
+      cover_id: edition_data["cover_id"],
     )
   end
 end

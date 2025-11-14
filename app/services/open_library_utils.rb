@@ -204,5 +204,52 @@ module OpenLibraryUtils
     return nil unless pages.present?
     "#{pages} pages"
   end
+
+  def oldest_entry(entries)
+    primary = nil
+    oldest  = nil
+  
+    entries.each do |entry|
+      raw = entry["publish_date"]
+      next if raw.blank?
+  
+      parsed_date, is_full = parse_publish_date_with_flag(raw)
+      next if parsed_date.nil?
+  
+      if primary.nil?
+        primary = entry
+        oldest  = [parsed_date, is_full]
+        next
+      end
+  
+      current_date, current_full = oldest
+  
+      # Comparison rules:
+      # 1. Earlier year wins (Date compares naturally)
+      # 2. If same date (same year defaulted to Jan 1),
+      #    prefer full date over year-only
+      if parsed_date < current_date ||
+         (parsed_date == current_date && is_full && !current_full)
+        primary = entry
+        oldest  = [parsed_date, is_full]
+      end
+    end
+  
+    primary
+  end
+
+  def parse_publish_date_with_flag(str)
+    # Year-only e.g. "2007"
+    if str.match?(/^\d{4}$/)
+      return [Date.new(str.to_i, 1, 1), false]
+    end
+  
+    # Full date e.g. "April 1, 2007"
+    date = Date.parse(str)
+    return [date, true]
+  
+  rescue ArgumentError
+    [nil, false]
+  end
 end
 

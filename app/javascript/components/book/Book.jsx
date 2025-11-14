@@ -29,6 +29,15 @@ export default function Book() {
 
   if (!book) return <p>Loading...</p>;
 
+  let imageUrl = null;
+  if (edition.cover_id) {
+    imageUrl = `https://covers.openlibrary.org/b/id/${edition.cover_id}-L.jpg`;
+  } else if (edition.isbn) {
+    imageUrl = `https://covers.openlibrary.org/b/isbn/${edition.isbn}-L.jpg`;
+  } else if (book.cover_id) {
+    imageUrl = `https://covers.openlibrary.org/b/id/${book.cover_id}-L.jpg`;
+  }
+
   return (
     <PageFrame>
       <div className="col-span-3 self-start sticky top-20">
@@ -36,7 +45,7 @@ export default function Book() {
           <>
             {!imageError ? (
               <img
-                src={`https://covers.openlibrary.org/b/isbn/${edition.isbn}-L.jpg?default=false`}
+                src={imageUrl}
                 alt={book.title}
                 className="w-[210px] h-[320px] m-auto [border-radius:0_6%_6%_0_/4%] drop-shadow-md"
                 onError={() => setImageError(true)}
