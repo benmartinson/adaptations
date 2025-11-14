@@ -34,7 +34,7 @@ export default function AuthorBooks({ slug }) {
       secondLineText: `Published ${
         moment(primaryEdition.publication_date).format("YYYY") || "-"
       }`,
-      thirdLineText: primaryEdition.publisher,
+      // thirdLineText: primaryEdition.publisher,
     };
   });
 

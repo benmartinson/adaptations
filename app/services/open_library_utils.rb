@@ -1,5 +1,5 @@
 module OpenLibraryUtils
-
+  require 'active_support/core_ext/string/inflections'
   BASE_URL = "https://openlibrary.org"
 
   # Normalizes a date string to 'yyyy-mm-dd' format
@@ -163,8 +163,8 @@ module OpenLibraryUtils
       "Non-fiction",
     ]
     # Capitalize all the words of the subject 
-    subjects = subjects.map { |subject| subject.split(" ").map(&:capitalize).join(" ") }
-    priority_genres.select { |genre| subjects.include?(genre) }
+    subjects = subjects.map { |subject| subject.titleize }
+    priority_genres.select { |genre| subjects.any? { |subject| subject.include?(genre) } }
   end
 
   def get_revised_description(description)

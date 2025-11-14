@@ -1,36 +1,37 @@
 class OpenLibraryServiceProcedure
   include OpenLibraryUtils
+  require 'active_support/core_ext/string/inflections'
 
   def get_request_url(request_name, params)
     case request_name
     when "PrimaryEdition"
       if params[:work_id].blank?
-        raise "Work ID is required"
+        raise "Work ID is required for PrimaryEdition"
       end
       "https://openlibrary.org/works/#{params[:work_id]}/editions.json"
     when "WorkData"
       if params[:work_id].blank?
-        raise "Work ID is required"
+        raise "Work ID is required for WorkData"
       end
       "https://openlibrary.org/works/#{params[:work_id]}.json"
     when "IsbnEditionData"
       if params[:isbn].blank?
-        raise "ISBN is required"
+        raise "ISBN is required for IsbnEditionData"
       end
       "https://openlibrary.org/isbn/#{params[:isbn]}.json"
     when "AuthorData"
       if params[:author_key].blank?
-        raise "Author key is required"
+        raise "Author key is required for AuthorData"
       end
       "https://openlibrary.org/authors/#{params[:author_key]}.json"
     when "AuthorBooks"
       if params[:author_key].blank?
-        raise "Author key is required"
+        raise "Author key is required for AuthorBooks"
       end
       "https://openlibrary.org/authors/#{params[:author_key]}/works.json"
     when "SearchAuthorFromSlug"
       if params[:slug].blank?
-        raise "Slug is required"
+        raise "Slug is required for SearchAuthorFromSlug"
       end
       "https://openlibrary.org/search/authors.json?q=#{params[:slug]}&limit=3"
     else
@@ -60,19 +61,33 @@ class OpenLibraryServiceProcedure
   private
 
   def primary_edition_procedure(data, params)
-    primary_edition = oldest_entry(data["entries"])
+    if data["entries"].blank?
+      return nil
+    end
+    all_entries = data["entries"].clone
+    valid_entries = data["entries"].filter { |entry|
+      entry["publish_date"].present?
+      entry["languages"]&.first&.dig("key") == "/languages/eng"
+      entry["covers"].present?
+      entry["publishers"].present?
+      entry["isbn_13"].present?
+    }
+    valid_entries = valid_entries.length > 0 ? valid_entries : all_entries
+    primary_edition = oldest_entry(valid_entries)
     {
-      isbn: primary_edition["isbn_13"]&.first,
-      publish_date: primary_edition["publish_date"],
-      language: language_from_key(primary_edition["languages"]&.first&.dig("key")),
-      format: get_format(primary_edition),
-      publisher: primary_edition["publishers"]&.first,
+      "isbn" => primary_edition["isbn_13"]&.first,
+      "publish_date" => primary_edition["publish_date"],
+      "language" => language_from_key(primary_edition["languages"]&.first&.dig("key")),
+      "format" => get_format(primary_edition),
+      "publisher" => primary_edition["publishers"]&.first,
     }
   end
 
   def work_data_procedure(data, params)
     data["description"] = data["description"].is_a?(Hash) ? data["description"]["value"] : data["description"]
+    data["title"] = data["title"].titleize
     data["cover_id"] = data["covers"]&.first || nil
+    data["work_id"] = params[:work_id]
     data
   end
 
@@ -84,6 +99,7 @@ class OpenLibraryServiceProcedure
       work_id = nil
     end
     data["work_id"] = work_id
+    data["title"] = data["title"].titleize
     data["cover_id"] = data["covers"]&.first || nil
     data["series"] = data["series"]&.first
     data["first_published"] = parse_first_published(data["publish_date"])
@@ -95,7 +111,7 @@ class OpenLibraryServiceProcedure
   end
 
   def author_books_procedure(data)
-    works = data["entries"]
+    works = data["entries"][0]
     works.filter { |work|
       work["covers"].present? 
     }.map { |work| 

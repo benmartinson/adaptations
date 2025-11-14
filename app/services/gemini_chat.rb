@@ -6,7 +6,7 @@ class GeminiChat
 
     response = client.generate_content(
       prompt,
-      model: "gemini-2.5-flash-lite"
+      model: "gemini-2.5-flash"
     )
 
     if response.valid?

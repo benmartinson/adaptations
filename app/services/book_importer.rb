@@ -37,8 +37,8 @@ class BookImporter
   def build_book(edition_data, work_data)
     description = work_data["description"] || edition_data["description"] || ""
     Book.new(
-      work_id: edition_data["work_id"],
-      title: edition_data["title"],
+      work_id: work_data["work_id"],
+      title: work_data["title"],
       series: edition_data["series"],
       first_published: edition_data["first_published"],
       description: description,

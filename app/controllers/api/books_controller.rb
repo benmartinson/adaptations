@@ -16,7 +16,7 @@ module Api
       end
 
       if book.genres.empty?
-        book_genre_importer = BookGenreImporter.new(book.work_id)
+        book_genre_importer = BookGenreImporter.new(book[:work_id])
         book_genre_importer.import
       end
 
