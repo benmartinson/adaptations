@@ -5,6 +5,9 @@ Rails.application.routes.draw do
     # get 'authors', to: 'author#index'
     get 'authors/:slug', to: 'author#show'
     get 'authors/:slug/books', to: 'author#books'
+
+    get 'try_api', to: 'try_api#index'
+    post 'try_api', to: 'try_api#index'
   end
 
   root "pages#index"
