@@ -35,7 +35,7 @@ class RubySandbox
       ]
 
       stdout, stderr, status = Open3.capture3(*cmd)
-      unless status.success?
+      if !status.success? && status.exitstatus >= 125
         raise("Docker run failed (#{status.exitstatus}): #{stderr.presence || stdout}")
       end
 
