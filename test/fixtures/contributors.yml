@@ -1,11 +1,15 @@
 # Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
 
 one:
-  author: one
-  edition: one
+  author_id: <%= ActiveRecord::FixtureSet.identify(:one) %>
+  edition_id: <%= ActiveRecord::FixtureSet.identify(:one) %>
   role_description: MyString
+  created_at: <%= Time.current %>
+  updated_at: <%= Time.current %>
 
 two:
-  author: two
-  edition: two
+  author_id: <%= ActiveRecord::FixtureSet.identify(:two) %>
+  edition_id: <%= ActiveRecord::FixtureSet.identify(:two) %>
   role_description: MyString
+  created_at: <%= Time.current %>
+  updated_at: <%= Time.current %>

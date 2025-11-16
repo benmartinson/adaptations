@@ -2,9 +2,15 @@
   "name": "Stories",
   "packageManager": "yarn@4.10.3",
   "devDependencies": {
+    "@babel/core": "^7.26.0",
+    "@babel/preset-env": "^7.26.0",
+    "@babel/preset-react": "^7.25.9",
     "@tailwindcss/postcss": "^4.1.16",
     "autoprefixer": "^10.4.21",
+    "babel-jest": "^29.7.0",
     "esbuild": "^0.25.11",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
     "postcss": "^8.5.6",
     "postcss-cli": "^10.1.0",
     "tailwindcss": "^4.1.16"
@@ -13,11 +19,16 @@
     "build": "esbuild app/javascript/*.* --bundle --outdir=app/assets/builds --loader:.js=jsx",
     "build:watch": "esbuild app/javascript/*.* --bundle --outdir=app/assets/builds --loader:.js=jsx --watch",
     "build:css": "postcss ./app/javascript/stylesheets/application.css -o ./app/assets/builds/application.css --minify",
-    "build:css:watch": "postcss ./app/javascript/stylesheets/application.css -o ./app/assets/builds/application.css --watch"
+    "build:css:watch": "postcss ./app/javascript/stylesheets/application.css -o ./app/assets/builds/application.css --watch",
+    "test:js": "jest",
+    "test:js:watch": "jest --watch"
   },
   "dependencies": {
+    "@rails/actioncable": "^8.0.0",
     "@tailwindcss/postcss": "^4.1.16",
     "moment": "^2.30.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "react-router-dom": "^7.9.5"
   }
 }

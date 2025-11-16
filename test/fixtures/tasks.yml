@@ -1,0 +1,22 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+basic:
+  kind: code_workflow
+  status: pending
+  tokens_prompt: 0
+  tokens_completion: 0
+  tokens_total: 0
+  input_payload:
+    instructions: "Fixture instructions"
+  metadata: {}
+
+running:
+  kind: code_workflow
+  status: running
+  tokens_prompt: 10
+  tokens_completion: 5
+  tokens_total: 15
+  input_payload:
+    instructions: "Another fixture"
+  metadata:
+    phase: "testing"

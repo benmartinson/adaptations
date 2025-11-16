@@ -8,7 +8,15 @@ Rails.application.routes.draw do
 
     get 'try_api', to: 'try_api#index'
     post 'try_api', to: 'try_api#index'
+
+    resources :tasks, only: %i[index show create] do
+      member do
+        post :cancel
+      end
+    end
   end
+
+  mount ActionCable.server => "/cable"
 
   root "pages#index"
   get "*path", to: "pages#index", constraints: ->(req) { !req.xhr? && req.format.html? }

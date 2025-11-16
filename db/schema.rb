@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_11_14_182449) do
+ActiveRecord::Schema[8.1].define(version: 2025_11_16_184934) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -144,6 +144,28 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_14_182449) do
     t.string "synopsis"
     t.string "title"
     t.datetime "updated_at", null: false
+  end
+
+  create_table "tasks", force: :cascade do |t|
+    t.datetime "cancelled_at"
+    t.datetime "created_at", null: false
+    t.text "error_message"
+    t.datetime "finished_at"
+    t.json "input_payload", default: {}
+    t.string "job_id"
+    t.string "kind", default: "code_workflow", null: false
+    t.datetime "last_progress_at"
+    t.json "metadata", default: {}
+    t.json "output_payload", default: {}
+    t.datetime "started_at"
+    t.string "status", default: "pending", null: false
+    t.integer "tokens_completion", default: 0, null: false
+    t.integer "tokens_prompt", default: 0, null: false
+    t.integer "tokens_total", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.index ["created_at"], name: "index_tasks_on_created_at"
+    t.index ["kind"], name: "index_tasks_on_kind"
+    t.index ["status"], name: "index_tasks_on_status"
   end
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
