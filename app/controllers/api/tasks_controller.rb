@@ -75,8 +75,6 @@ module Api
 
     def enqueue_job(task)
       job_class = "CodeWorkflowJob".safe_constantize
-      return unless job_class
-
       job = job_class.perform_later(task.id)
       task.update!(job_id: job.job_id) if job.respond_to?(:job_id)
     end

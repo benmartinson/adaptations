@@ -3,44 +3,26 @@ import moment from "moment";
 import useTaskProgress from "../../hooks/useTaskProgress";
 import { normalizeArray, safeParse } from "./payloadUtils";
 
-const DEFAULT_INSTRUCTIONS =
-  "Transform the Open Library data into a compact hash with work_id, cover_id, and title.";
+const DEFAULT_INSTRUCTIONS = "";
 
-const DEFAULT_EXAMPLES = [
-  {
-    label: "Sample entry",
-    input: {
-      entries: [
-        {
-          key: "/works/OL44337192W",
-          covers: [9003030],
-          title: "Fabeldieren & Waar Ze Te Vinden"
-        }
-      ]
-    }
-  }
-];
-
-const DEFAULT_TESTS = [
-  {
-    name: "Extract key fields",
-    input: {
-      entries: [
-        {
-          key: "/works/OL44337192W",
-          covers: [9003030],
-          title: "Fabeldieren & Waar Ze Te Vinden"
-        }
-      ]
+const DEFAULT_FROM_RESPONSE = {
+  entries: [
+    {
+      key: "/works/OL44337192W",
+      covers: [9003030],
+      title: "Fabeldieren & Waar Ze Te Vinden",
     },
-    expected_output: [
-      {
-        work_id: "OL44337192W",
-        cover_id: 9003030,
-        title: "Fabeldieren & Waar Ze Te Vinden"
-      }
-    ]
-  }
+  ],
+};
+
+const DEFAULT_TO_RESPONSE = [
+  [
+    {
+      work_id: "OL44337192W",
+      cover_id: 9003030,
+      title: "Fabeldieren & Waar Ze Te Vinden",
+    },
+  ],
 ];
 
 const STATUS_COLORS = {
@@ -50,16 +32,16 @@ const STATUS_COLORS = {
   failed: "bg-red-100 text-red-900",
   cancelled: "bg-gray-200 text-gray-700",
   passed: "bg-emerald-100 text-emerald-900",
-  error: "bg-red-100 text-red-900"
+  error: "bg-red-100 text-red-900",
 };
 
 export default function TaskRunner() {
   const [instructions, setInstructions] = useState(DEFAULT_INSTRUCTIONS);
-  const [examplesJson, setExamplesJson] = useState(
-    JSON.stringify(DEFAULT_EXAMPLES, null, 2)
+  const [fromResponse, setFromResponse] = useState(
+    JSON.stringify(DEFAULT_FROM_RESPONSE, null, 2)
   );
-  const [testsJson, setTestsJson] = useState(
-    JSON.stringify(DEFAULT_TESTS, null, 2)
+  const [toResponse, setToResponse] = useState(
+    JSON.stringify(DEFAULT_TO_RESPONSE, null, 2)
   );
   const [tasks, setTasks] = useState([]);
   const [selectedTaskId, setSelectedTaskId] = useState(null);
@@ -74,7 +56,7 @@ export default function TaskRunner() {
     error: progressError,
     latestCode,
     testResults,
-    requestStop
+    requestStop,
   } = useTaskProgress(selectedTaskId);
 
   useEffect(() => {
@@ -126,27 +108,27 @@ export default function TaskRunner() {
     setFormError(null);
     setSubmitting(true);
     try {
-      const examples = normalizeArray(safeParse(examplesJson));
-      const testCases = normalizeArray(safeParse(testsJson));
+      const examples = normalizeArray(safeParse(fromResponse));
+      const testCases = normalizeArray(safeParse(toResponse));
 
       const response = await fetch("/api/tasks", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           task: {
             kind: "code_workflow",
             input_payload: {
               instructions,
-              examples,
-              test_cases: testCases
+              from_response: fromResponse,
+              to_response: toResponse,
             },
             metadata: {
-              source: "web-ui"
-            }
-          }
-        })
+              source: "web-ui",
+            },
+          },
+        }),
       });
 
       if (!response.ok) {
@@ -172,8 +154,8 @@ export default function TaskRunner() {
       await fetch(`/api/tasks/${selectedTaskId}/cancel`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
-        }
+          "Content-Type": "application/json",
+        },
       });
       await loadTasks();
     } catch (error) {
@@ -221,8 +203,8 @@ export default function TaskRunner() {
               </label>
               <textarea
                 className="w-full mt-1 rounded-lg border border-gray-300 p-3 font-mono text-sm h-48 focus:ring-2 focus:ring-blue-500"
-                value={examplesJson}
-                onChange={(event) => setExamplesJson(event.target.value)}
+                value={fromResponse}
+                onChange={(event) => setFromResponse(event.target.value)}
               />
             </div>
             <div>
@@ -231,8 +213,8 @@ export default function TaskRunner() {
               </label>
               <textarea
                 className="w-full mt-1 rounded-lg border border-gray-300 p-3 font-mono text-sm h-48 focus:ring-2 focus:ring-blue-500"
-                value={testsJson}
-                onChange={(event) => setTestsJson(event.target.value)}
+                value={toResponse}
+                onChange={(event) => setToResponse(event.target.value)}
               />
             </div>
           </div>
@@ -459,4 +441,3 @@ function StatusBadge({ status }) {
     </span>
   );
 }
-

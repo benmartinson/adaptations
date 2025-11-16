@@ -60,7 +60,7 @@ export default function useTaskProgress(taskId) {
             const next = [...prev, payload];
             return next.slice(-MAX_EVENTS);
           });
-        }
+        },
       }
     );
 
@@ -81,6 +81,7 @@ export default function useTaskProgress(taskId) {
   }, [taskId]);
 
   const latestCode = useMemo(() => {
+    console.log("snapshot", snapshot);
     return (
       snapshot?.metadata?.latest_code ||
       snapshot?.output?.code ||
@@ -109,7 +110,7 @@ export default function useTaskProgress(taskId) {
     error,
     latestCode,
     testResults,
-    requestStop
+    requestStop,
   };
 }
 
@@ -124,9 +125,10 @@ export function mergeSnapshot(previous, incoming) {
     tokens: incoming.tokens || previous.tokens,
     metadata: incoming.metadata || previous.metadata,
     input_payload: incoming.input_payload || previous.input_payload,
-    output_payload: incoming.output_payload || previous.output_payload || previous.output,
+    output_payload:
+      incoming.output_payload || previous.output_payload || previous.output,
     output: incoming.output || previous.output,
-    test_results: incoming.test_results || previous.test_results
+    test_results: incoming.test_results || previous.test_results,
   };
 }
 
@@ -137,8 +139,6 @@ export function normalizePayload(payload) {
 
   return {
     ...payload,
-    timestamp: payload.timestamp || new Date().toISOString()
+    timestamp: payload.timestamp || new Date().toISOString(),
   };
 }
-
-

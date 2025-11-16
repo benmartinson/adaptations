@@ -5,6 +5,7 @@ class CodeWorkflowJob < ApplicationJob
     Rails.logger.warn("[CodeWorkflowJob] Task not found, skipping job")
   end
   rescue_from(StandardError) do |error|
+    binding.pry
     handle_failure(error)
   end
 
@@ -23,31 +24,39 @@ class CodeWorkflowJob < ApplicationJob
     task.mark_running!
     broadcast_event(phase: "starting", message: "Starting code workflow")
 
-    instructions = fetch_instructions
-    broadcast_event(phase: "planning", message: "Planning solution", instructions: instructions)
+    # instructions = fetch_instructions
+    # broadcast_event(phase: "planning", message: "Planning solution", instructions: instructions)
 
-    code_prompt = build_prompt(instructions)
-    raw_response = generate_code_response(code_prompt)
-    code_body = sanitize_code(raw_response)
-
-    task.record_progress!(metadata: { "phase" => "code_generation", "latest_code" => code_body })
+    task.record_progress!(metadata: { "phase" => "code_generation", "latest_code" => "Generating..." })
     broadcast_event(
       phase: "code_generation",
-      message: "Generated initial implementation",
-      code: code_body
+      message: "Generated code",
     )
 
+    code_prompt = build_prompt()
+    raw_response = generate_code_response(code_prompt)
+    code_body = sanitize_code(raw_response)
+    from_response = task.input_payload.fetch("from_response", [])
+
+    # return handle_cancellation! if cancellation_requested?
+
+    # test_results = execute_test_suite(code_body)
+    # task.record_progress!(metadata: { "phase" => "testing", "test_results" => test_results })
+
     return handle_cancellation! if cancellation_requested?
 
-    test_results = execute_test_suite(code_body)
-    task.record_progress!(metadata: { "phase" => "testing", "test_results" => test_results })
+    broadcast_event(
+      phase: "executing_code",
+      message: "Executing code",
+      code: code_body,
+    )
 
-    return handle_cancellation! if cancellation_requested?
-
+    response = execute_code(code_body, from_response)
+    binding.pry
     task.mark_completed!(
       output: {
         "code" => code_body,
-        "tests" => test_results,
+        "tests" => response,
         "instructions" => instructions
       }
     )
@@ -55,7 +64,7 @@ class CodeWorkflowJob < ApplicationJob
     broadcast_event(
       phase: "completed",
       message: "Workflow completed successfully",
-      output: task.output_payload,
+      output: response,
       final: true
     )
   end
@@ -65,57 +74,24 @@ class CodeWorkflowJob < ApplicationJob
     payload["instructions"].presence || "Write a Ruby function that transforms the provided input data."
   end
 
-  def build_prompt(instructions)
-    examples = task.input_payload.fetch("examples", [])
-    tests = task.input_payload.fetch("test_cases", [])
+  def build_prompt()
+    from_response = task.input_payload.fetch("from_response", [])
+    to_response = task.input_payload.fetch("to_response", [])
 
-    <<~PROMPT
-      You are an expert Ruby engineer. You will receive instructions that describe
-      a transformation that should be implemented as pure Ruby code. Return only
-      executable Ruby, avoid extraneous prose. 
-      The main parent method should be named transformation_procedure and take a single parameter called data.
-
-      Instructions:
-      #{instructions}
-
-      Example inputs:
-      #{examples.to_json}
-
-      Tests to satisfy:
-      #{tests.to_json}
-    PROMPT
+    "Can you write a ruby data transformation: def transformation_procedure(data) ...something... end 
+        Where the 'data' param is a list of records in this data format: #{from_response} 
+        And transforms the data into a list of records in this format: #{to_response}
+        This is important: only return the code, no other text or comments."
   end
 
   def generate_code_response(prompt)
-    response =
-      if gemini_available?
-        GeminiChat.new.generate_response(prompt)
-      else
-        fallback_code
-      end
-
-    record_token_usage(prompt: prompt, completion: response)
+    response = GeminiChat.new.generate_response(prompt)
+    binding.pry
+    # record_token_usage(prompt: prompt, completion: response)
     response
   end
 
-  def gemini_available?
-    ENV["GEMINI_API_KEY"].present?
-  end
-
-  def fallback_code
-    sample = task.input_payload["sample_code"]
-    return sample if sample.present?
-
-    <<~RUBY
-      def transformation_procedure(data)
-        data
-      end
-    RUBY
-  end
-
   def sanitize_code(response)
-    return fallback_code if response.blank?
-
     code = response.dup
     code = code.gsub("\\n", "\n")
     code = code.gsub(/```ruby?\s*/i, "")
