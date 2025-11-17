@@ -1,9 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import moment from "moment";
 import useTaskProgress from "../../hooks/useTaskProgress";
-import { normalizeArray, safeParse } from "./payloadUtils";
-
-const DEFAULT_INSTRUCTIONS = "";
+import AttributeSelector from "./AttributeSelector";
 
 const DEFAULT_FROM_RESPONSE = {
   entries: [
@@ -16,13 +14,11 @@ const DEFAULT_FROM_RESPONSE = {
 };
 
 const DEFAULT_TO_RESPONSE = [
-  [
-    {
-      work_id: "OL44337192W",
-      cover_id: 9003030,
-      title: "Fabeldieren & Waar Ze Te Vinden",
-    },
-  ],
+  {
+    work_id: "OL44337192W",
+    cover_id: 9003030,
+    title: "Fabeldieren & Waar Ze Te Vinden",
+  },
 ];
 
 const STATUS_COLORS = {
@@ -36,13 +32,14 @@ const STATUS_COLORS = {
 };
 
 export default function TaskRunner() {
-  const [instructions, setInstructions] = useState(DEFAULT_INSTRUCTIONS);
-  const [fromResponse, setFromResponse] = useState(
-    JSON.stringify(DEFAULT_FROM_RESPONSE, null, 2)
+  const [apiEndpoint, setApiEndpoint] = useState(
+    "https://openlibrary.org/works/OL27965224W/editions.json"
   );
+  const [fromResponse, setFromResponse] = useState({});
   const [toResponse, setToResponse] = useState(
     JSON.stringify(DEFAULT_TO_RESPONSE, null, 2)
   );
+  const [fetchingEndpoint, setFetchingEndpoint] = useState(false);
   const [tasks, setTasks] = useState([]);
   const [selectedTaskId, setSelectedTaskId] = useState(null);
   const [formError, setFormError] = useState(null);
@@ -103,14 +100,40 @@ export default function TaskRunner() {
     }
   }
 
+  async function handleFetchEndpoint() {
+    if (!apiEndpoint) {
+      setFormError("Please provide an API endpoint.");
+      return;
+    }
+
+    setFormError(null);
+    setFetchingEndpoint(true);
+    try {
+      const response = await fetch(apiEndpoint);
+      if (!response.ok) {
+        throw new Error("Unable to fetch from endpoint");
+      }
+
+      const text = await response.text();
+      try {
+        const data = JSON.parse(text);
+        setFromResponse(data);
+      } catch {
+        setFromResponse(text);
+      }
+    } catch (error) {
+      console.error(error);
+      setFormError(error.message);
+    } finally {
+      setFetchingEndpoint(false);
+    }
+  }
+
   async function handleSubmit(event) {
     event.preventDefault();
     setFormError(null);
     setSubmitting(true);
     try {
-      const examples = normalizeArray(safeParse(fromResponse));
-      const testCases = normalizeArray(safeParse(toResponse));
-
       const response = await fetch("/api/tasks", {
         method: "POST",
         headers: {
@@ -120,7 +143,6 @@ export default function TaskRunner() {
           task: {
             kind: "code_workflow",
             input_payload: {
-              instructions,
               from_response: fromResponse,
               to_response: toResponse,
             },
@@ -167,19 +189,8 @@ export default function TaskRunner() {
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-8">
-      <header>
-        <h1 className="text-3xl font-semibold mb-2">
-          Code Workflow Playground
-        </h1>
-        <p className="text-gray-600">
-          Launch a long-running code generation task, stream its progress, and
-          cancel it at any time.
-        </p>
-      </header>
-
       <section className="bg-white shadow rounded-2xl p-6 space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold">New workflow</h2>
           {formError && (
             <span className="text-sm text-red-600">{formError}</span>
           )}
@@ -187,29 +198,41 @@ export default function TaskRunner() {
         <form className="space-y-4" onSubmit={handleSubmit}>
           <div>
             <label className="block text-sm font-medium text-gray-700">
-              Instructions
+              Api Endpoint
             </label>
-            <textarea
-              className="w-full mt-1 rounded-lg border border-gray-300 p-3 focus:ring-2 focus:ring-blue-500"
-              rows={3}
-              value={instructions}
-              onChange={(event) => setInstructions(event.target.value)}
-            />
+            <div className="mt-1 flex gap-3">
+              <input
+                type="url"
+                className="flex-1 rounded-lg border border-gray-300 p-3 focus:ring-2 focus:ring-blue-500"
+                placeholder="https://example.com/api/endpoint"
+                value={apiEndpoint}
+                onChange={(event) => setApiEndpoint(event.target.value)}
+              />
+              <button
+                type="button"
+                onClick={handleFetchEndpoint}
+                className="px-4 py-2 rounded-lg bg-gray-900 text-white font-semibold hover:bg-gray-800 disabled:opacity-50"
+                disabled={!apiEndpoint || fetchingEndpoint}
+              >
+                {fetchingEndpoint ? "Fetching..." : "Get Response"}
+              </button>
+            </div>
           </div>
+          <AttributeSelector data={fromResponse} />
           <div className="grid md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700">
-                Examples (JSON)
+                From response (JSON)
               </label>
               <textarea
                 className="w-full mt-1 rounded-lg border border-gray-300 p-3 font-mono text-sm h-48 focus:ring-2 focus:ring-blue-500"
-                value={fromResponse}
+                value={JSON.stringify(fromResponse, null, 2)}
                 onChange={(event) => setFromResponse(event.target.value)}
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">
-                Test cases (JSON)
+                To response (JSON)
               </label>
               <textarea
                 className="w-full mt-1 rounded-lg border border-gray-300 p-3 font-mono text-sm h-48 focus:ring-2 focus:ring-blue-500"
@@ -249,21 +272,6 @@ export default function TaskRunner() {
       </section>
 
       <section className="bg-white shadow rounded-2xl p-6 space-y-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <h2 className="text-xl font-semibold">Active task</h2>
-          {activeStatus && (
-            <span
-              className={`text-xs font-semibold px-2 py-1 rounded-full ${STATUS_COLORS[activeStatus]}`}
-            >
-              {activeStatus.toUpperCase()}
-            </span>
-          )}
-          {latestPhase && (
-            <span className="text-xs font-medium bg-gray-100 px-2 py-1 rounded-full">
-              Phase: {latestPhase}
-            </span>
-          )}
-        </div>
         {!activeTask && (
           <p className="text-sm text-gray-500">
             Launch a workflow or pick one from the list below to see details.
@@ -271,29 +279,6 @@ export default function TaskRunner() {
         )}
         {activeTask && (
           <>
-            <dl className="grid md:grid-cols-4 gap-4">
-              <TokenCard
-                label="Prompt tokens"
-                value={activeTask.tokens?.prompt || 0}
-              />
-              <TokenCard
-                label="Completion tokens"
-                value={activeTask.tokens?.completion || 0}
-              />
-              <TokenCard
-                label="Total tokens"
-                value={activeTask.tokens?.total || 0}
-              />
-              <TokenCard
-                label="Updated"
-                value={
-                  activeTask.last_progress_at
-                    ? moment(activeTask.last_progress_at).fromNow()
-                    : "—"
-                }
-              />
-            </dl>
-
             <div>
               <h3 className="text-lg font-semibold mb-2">Latest code</h3>
               <pre className="bg-gray-900 text-green-200 rounded-xl p-4 overflow-x-auto text-sm">
@@ -378,44 +363,13 @@ export default function TaskRunner() {
                       {event.tokens.completion} / total {event.tokens.total}
                     </p>
                   )}
+                  {event.output && (
+                    <p className="text-sm text-gray-700 mt-1">
+                      {JSON.stringify(event.output, null, 2)}
+                    </p>
+                  )}
                 </li>
               ))}
-          </ul>
-        </section>
-
-        <section className="bg-white shadow rounded-2xl p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold">Recent tasks</h2>
-            <button
-              onClick={loadTasks}
-              className="text-sm text-blue-600 hover:text-blue-700"
-            >
-              Refresh
-            </button>
-          </div>
-          <ul className="space-y-2">
-            {tasks.map((task) => (
-              <li key={task.id}>
-                <button
-                  onClick={() => setSelectedTaskId(task.id)}
-                  className={`w-full text-left border rounded-xl px-3 py-2 flex items-center justify-between ${
-                    task.id === selectedTaskId
-                      ? "border-blue-500 bg-blue-50"
-                      : "border-gray-200 hover:border-gray-300"
-                  }`}
-                >
-                  <div>
-                    <p className="font-medium text-sm">Task #{task.id}</p>
-                    <p className="text-xs text-gray-500">
-                      {task.created_at
-                        ? moment(task.created_at).fromNow()
-                        : "—"}
-                    </p>
-                  </div>
-                  <StatusBadge status={task.status} />
-                </button>
-              </li>
-            ))}
           </ul>
         </section>
       </div>

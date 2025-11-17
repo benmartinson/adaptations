@@ -24,9 +24,6 @@ class CodeWorkflowJob < ApplicationJob
     task.mark_running!
     broadcast_event(phase: "starting", message: "Starting code workflow")
 
-    # instructions = fetch_instructions
-    # broadcast_event(phase: "planning", message: "Planning solution", instructions: instructions)
-
     task.record_progress!(metadata: { "phase" => "code_generation", "latest_code" => "Generating..." })
     broadcast_event(
       phase: "code_generation",
@@ -36,28 +33,39 @@ class CodeWorkflowJob < ApplicationJob
     code_prompt = build_prompt()
     raw_response = generate_code_response(code_prompt)
     code_body = sanitize_code(raw_response)
-    from_response = task.input_payload.fetch("from_response", [])
-
-    # return handle_cancellation! if cancellation_requested?
+    from_response_payload =   {
+      "entries": [
+        {
+          "key": "/works/OL44337192W",
+          "covers": [
+            9003030
+          ],
+          "title": "Fabeldieren & Waar Ze Te Vinden"
+        }
+      ]
+    }
 
     # test_results = execute_test_suite(code_body)
     # task.record_progress!(metadata: { "phase" => "testing", "test_results" => test_results })
 
     return handle_cancellation! if cancellation_requested?
 
+    task.record_progress!(metadata: { "phase" => "executing_code", "latest_code" => code_body })
     broadcast_event(
       phase: "executing_code",
       message: "Executing code",
       code: code_body,
+      metadata: {
+        "latest_code" => code_body,
+      }
     )
 
-    response = execute_code(code_body, from_response)
-    binding.pry
+    response = execute_code(code_body, from_response_payload)
     task.mark_completed!(
       output: {
         "code" => code_body,
-        "tests" => response,
-        "instructions" => instructions
+        "response" => response,
+        "from_response" => from_response_payload,
       }
     )
 
@@ -65,13 +73,8 @@ class CodeWorkflowJob < ApplicationJob
       phase: "completed",
       message: "Workflow completed successfully",
       output: response,
-      final: true
+      final: true,
     )
-  end
-
-  def fetch_instructions
-    payload = task.input_payload || {}
-    payload["instructions"].presence || "Write a Ruby function that transforms the provided input data."
   end
 
   def build_prompt()
@@ -86,7 +89,6 @@ class CodeWorkflowJob < ApplicationJob
 
   def generate_code_response(prompt)
     response = GeminiChat.new.generate_response(prompt)
-    binding.pry
     # record_token_usage(prompt: prompt, completion: response)
     response
   end
