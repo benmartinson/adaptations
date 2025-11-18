@@ -1,7 +1,9 @@
-function StepCard({
+import React from "react";
+export default function StepCard({
   stepNumber,
   title,
   isActive,
+  currentStep,
   children,
   onNext = () => {},
   nextLabel = "Next",
@@ -18,7 +20,7 @@ function StepCard({
         </p>
         <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
       </div>
-      {!isActive && (
+      {!isActive && currentStep > stepNumber && (
         <button
           type="button"
           onClick={onGoToStep}

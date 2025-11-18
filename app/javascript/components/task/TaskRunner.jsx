@@ -4,23 +4,33 @@ import useTaskProgress from "../../hooks/useTaskProgress";
 import AttributeSelector from "./AttributeSelector";
 import StepCard from "./StepCard";
 
-// const DEFAULT_FROM_RESPONSE = {
-//   entries: [
-//     {
-//       key: "/works/OL44337192W",
-//       covers: [9003030],
-//       title: "Fabeldieren & Waar Ze Te Vinden",
-//     },
-//   ],
-// };
+function setNestedValue(target, path, nextValue) {
+  if (!Array.isArray(path) || path.length === 0) return nextValue;
 
-// const DEFAULT_TO_RESPONSE = [
-//   {
-//     work_id: "OL44337192W",
-//     cover_id: 9003030,
-//     title: "Fabeldieren & Waar Ze Te Vinden",
-//   },
-// ];
+  const [{ name, type }, ...rest] = path;
+  const normalizedType = (type || "").toLowerCase();
+  const base = Array.isArray(target) ? [...target] : { ...(target || {}) };
+
+  if (normalizedType === "array") {
+    const existingArray = Array.isArray(base[name]) ? [...base[name]] : [];
+
+    if (rest.length === 0) {
+      base[name] = [nextValue];
+      return base;
+    }
+
+    const nextValueInArray = setNestedValue(existingArray[0], rest, nextValue);
+    base[name] = [nextValueInArray];
+    return base;
+  }
+
+  const currentChild = base[name];
+  base[name] =
+    rest.length === 0
+      ? nextValue
+      : setNestedValue(currentChild, rest, nextValue);
+  return base;
+}
 
 export default function TaskRunner() {
   const [apiEndpoint, setApiEndpoint] = useState(
@@ -28,9 +38,7 @@ export default function TaskRunner() {
   );
   const [fromResponse, setFromResponse] = useState({});
   const [selectedFromResponse, setSelectedFromResponse] = useState({});
-  const [toResponse, setToResponse] = useState(
-    JSON.stringify(DEFAULT_TO_RESPONSE, null, 2)
-  );
+  const [toResponse, setToResponse] = useState({});
   const [currentStep, setCurrentStep] = useState(1);
   const [fetchingEndpoint, setFetchingEndpoint] = useState(false);
   const [tasks, setTasks] = useState([]);
@@ -38,6 +46,7 @@ export default function TaskRunner() {
   const [formError, setFormError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [stopPending, setStopPending] = useState(false);
+  const [selectedPaths, setSelectedPaths] = useState([]);
 
   const {
     snapshot,
@@ -65,6 +74,10 @@ export default function TaskRunner() {
       return [snapshot, ...filtered].slice(0, 15);
     });
   }, [snapshot]);
+
+  useEffect(() => {
+    console.log({ selectedFromResponse, toResponse });
+  }, [selectedFromResponse, toResponse]);
 
   const activeTask = useMemo(() => {
     if (snapshot && snapshot.id === selectedTaskId) {
@@ -185,6 +198,22 @@ export default function TaskRunner() {
     }
   }
 
+  function setTransformedData(
+    path,
+    value,
+    transformedValue,
+    transformDescription
+  ) {
+    setSelectedFromResponse((prev) => setNestedValue(prev, path, value));
+    setToResponse((prev) => setNestedValue(prev, path, transformedValue));
+    console.log({
+      path,
+      value,
+      transformedValue,
+      result: setNestedValue({}, path, transformedValue),
+    });
+  }
+
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-8">
       <form className="space-y-4" onSubmit={handleSubmit}>
@@ -197,6 +226,7 @@ export default function TaskRunner() {
         <StepCard
           stepNumber={1}
           title="Choose the API Endpoint"
+          currentStep={currentStep}
           isActive={currentStep === 1}
           onNext={() => setCurrentStep(2)}
           onGoToStep={() => setCurrentStep(1)}
@@ -228,19 +258,21 @@ export default function TaskRunner() {
         <StepCard
           stepNumber={2}
           title="Select Data"
+          currentStep={currentStep}
           isActive={currentStep === 2}
           onNext={() => setCurrentStep(3)}
           onGoToStep={() => setCurrentStep(2)}
         >
           <AttributeSelector
             data={selectedFromResponse}
-            setData={setSelectedFromResponse}
+            setTransformedData={setTransformedData}
           />
         </StepCard>
 
         <StepCard
           stepNumber={3}
           title="Build Transformer"
+          currentStep={currentStep}
           isActive={currentStep === 3}
           onGoToStep={() => setCurrentStep(3)}
           nextLabel={submitting ? "Launching..." : "Launch workflow"}

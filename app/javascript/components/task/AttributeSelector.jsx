@@ -1,6 +1,10 @@
 import React, { useState } from "react";
 
-export default function AttributeSelector({ data, setData }) {
+export default function AttributeSelector({
+  data,
+  pathToItem = [],
+  setTransformedData,
+}) {
   const attributes = Object.keys(data);
 
   if (attributes.length === 0) return null;
@@ -11,17 +15,22 @@ export default function AttributeSelector({ data, setData }) {
           key={attribute}
           attribute={attribute}
           data={data}
+          pathToItem={pathToItem}
+          setTransformedData={setTransformedData}
         />
       ))}
     </div>
   );
 }
 
-function AttributeSelectorItem({ attribute, data }) {
+function AttributeSelectorItem({
+  attribute,
+  data,
+  pathToItem,
+  setTransformedData,
+}) {
   const [isSelected, setIsSelected] = useState(false);
-  const [transformedValue, setTransformedValue] = useState(
-    JSON.stringify(data[attribute], null, 2)
-  );
+  const [transformedValue, setTransformedValue] = useState(data[attribute]);
   const [transformDescription, setTransformDescription] = useState("");
 
   const [error, setError] = useState(null);
@@ -35,11 +44,10 @@ function AttributeSelectorItem({ attribute, data }) {
   const isBoolean = typeof value === "boolean";
   const isNull = value === null;
   const isUndefined = value === undefined;
-  if (attribute === "entries") {
-    console.log({ isArray, value });
-  }
 
   const hasNestedAttributes = isObject || isArray;
+  const isLeaf = !hasNestedAttributes;
+
   const showNestedAttributes = isSelected && hasNestedAttributes;
   const showDetailInputs = isSelected && !hasNestedAttributes;
   const showExample = isString || isNumber || isBoolean;
@@ -51,18 +59,46 @@ function AttributeSelectorItem({ attribute, data }) {
     );
   }
 
+  function handleBlur() {
+    if (attribute === "entries") {
+      console.log({ isLeaf, isArray, value });
+    }
+    if (isSelected && isLeaf) {
+      console.log("saving response blur");
+      saveResponse();
+    }
+  }
+
+  function saveResponse() {
+    const path = [...pathToItem, { name: attribute, type }];
+    const value = data[attribute];
+
+    setTransformedData(path, value, transformedValue, transformDescription);
+  }
+
+  function handleSelect() {
+    setIsSelected((prev) => {
+      const newIsSelected = !prev;
+      console.log("saving response select", { newIsSelected, isLeaf });
+      if (newIsSelected && isLeaf) {
+        console.log("saving response");
+        saveResponse();
+      }
+      return newIsSelected;
+    });
+  }
+
   return (
     <div className="mt-1">
       <div
         key={attribute}
         className="flex gap-2 justify-start items-center cursor-pointer"
-        onClick={() => setIsSelected(!isSelected)}
       >
         <input
           type="checkbox"
           className="cursor-pointer"
           checked={isSelected}
-          onChange={() => setIsSelected(!isSelected)}
+          onClick={() => handleSelect()}
         />
         <label className="text-sm font-medium text-gray-700 cursor-pointer">
           {attribute}
@@ -71,7 +107,11 @@ function AttributeSelectorItem({ attribute, data }) {
       </div>
       {showNestedAttributes && (
         <div className="ml-4">
-          <AttributeSelector data={value} />
+          <AttributeSelector
+            data={value}
+            pathToItem={[...pathToItem, { name: attribute, type }]}
+            setTransformedData={setTransformedData}
+          />
         </div>
       )}
       {showDetailInputs && (
@@ -91,12 +131,13 @@ function AttributeSelectorItem({ attribute, data }) {
                 type="text"
                 className="w-20 border border-gray-300 rounded-md p-2 h-6 w-full"
                 disabled
-                value={JSON.stringify(value, null, 2)}
+                value={value}
+                onBlur={() => handleBlur()}
               />
             </div>
             <div className="flex gap-1 h-6 flex items-center">
               <span className="text-xs text-gray-500 w-30">
-                Transforms into:{" "}
+                Transforms into:
               </span>
               <input
                 type="text"
@@ -110,13 +151,14 @@ function AttributeSelectorItem({ attribute, data }) {
                 className="text-xs text-gray-500 w-30"
                 title="Describe how the value transforms, in psuedo-code or natural language"
               >
-                Describe:{" "}
+                Describe:
               </span>
               <input
                 type="text"
                 className="w-20 border border-gray-300 rounded-md p-2 h-6 w-full"
                 value={transformDescription}
                 onChange={(e) => setTransformDescription(e.target.value)}
+                onBlur={() => handleBlur()}
               />
             </div>
           </div>
