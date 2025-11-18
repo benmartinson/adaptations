@@ -1,14 +1,17 @@
 import React, { useState } from "react";
 
-export default function AttributeSelector({ data }) {
+export default function AttributeSelector({ data, setData }) {
   const attributes = Object.keys(data);
-  console.log({ attributes, data });
 
   if (attributes.length === 0) return null;
   return (
-    <div className="">
+    <div className="mt-1">
       {attributes.map((attribute) => (
-        <AttributeSelectorItem attribute={attribute} data={data} />
+        <AttributeSelectorItem
+          key={attribute}
+          attribute={attribute}
+          data={data}
+        />
       ))}
     </div>
   );
@@ -49,7 +52,7 @@ function AttributeSelectorItem({ attribute, data }) {
   }
 
   return (
-    <>
+    <div className="mt-1">
       <div
         key={attribute}
         className="flex gap-2 justify-start items-center cursor-pointer"
@@ -120,6 +123,6 @@ function AttributeSelectorItem({ attribute, data }) {
         </div>
       )}
       {error && <div className="text-red-500">{error}</div>}
-    </>
+    </div>
   );
 }

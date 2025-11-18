@@ -2,43 +2,36 @@ import React, { useEffect, useMemo, useState } from "react";
 import moment from "moment";
 import useTaskProgress from "../../hooks/useTaskProgress";
 import AttributeSelector from "./AttributeSelector";
+import StepCard from "./StepCard";
 
-const DEFAULT_FROM_RESPONSE = {
-  entries: [
-    {
-      key: "/works/OL44337192W",
-      covers: [9003030],
-      title: "Fabeldieren & Waar Ze Te Vinden",
-    },
-  ],
-};
+// const DEFAULT_FROM_RESPONSE = {
+//   entries: [
+//     {
+//       key: "/works/OL44337192W",
+//       covers: [9003030],
+//       title: "Fabeldieren & Waar Ze Te Vinden",
+//     },
+//   ],
+// };
 
-const DEFAULT_TO_RESPONSE = [
-  {
-    work_id: "OL44337192W",
-    cover_id: 9003030,
-    title: "Fabeldieren & Waar Ze Te Vinden",
-  },
-];
-
-const STATUS_COLORS = {
-  pending: "bg-amber-100 text-amber-900",
-  running: "bg-blue-100 text-blue-900",
-  completed: "bg-emerald-100 text-emerald-900",
-  failed: "bg-red-100 text-red-900",
-  cancelled: "bg-gray-200 text-gray-700",
-  passed: "bg-emerald-100 text-emerald-900",
-  error: "bg-red-100 text-red-900",
-};
+// const DEFAULT_TO_RESPONSE = [
+//   {
+//     work_id: "OL44337192W",
+//     cover_id: 9003030,
+//     title: "Fabeldieren & Waar Ze Te Vinden",
+//   },
+// ];
 
 export default function TaskRunner() {
   const [apiEndpoint, setApiEndpoint] = useState(
     "https://openlibrary.org/works/OL27965224W/editions.json"
   );
   const [fromResponse, setFromResponse] = useState({});
+  const [selectedFromResponse, setSelectedFromResponse] = useState({});
   const [toResponse, setToResponse] = useState(
     JSON.stringify(DEFAULT_TO_RESPONSE, null, 2)
   );
+  const [currentStep, setCurrentStep] = useState(1);
   const [fetchingEndpoint, setFetchingEndpoint] = useState(false);
   const [tasks, setTasks] = useState([]);
   const [selectedTaskId, setSelectedTaskId] = useState(null);
@@ -59,6 +52,11 @@ export default function TaskRunner() {
   useEffect(() => {
     loadTasks();
   }, []);
+
+  useEffect(() => {
+    if (!fromResponse) return;
+    setSelectedFromResponse(fromResponse);
+  }, [fromResponse]);
 
   useEffect(() => {
     if (!snapshot) return;
@@ -189,18 +187,25 @@ export default function TaskRunner() {
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-8">
-      <section className="bg-white shadow rounded-2xl p-6 space-y-4">
-        <div className="flex items-center justify-between">
-          {formError && (
-            <span className="text-sm text-red-600">{formError}</span>
-          )}
-        </div>
-        <form className="space-y-4" onSubmit={handleSubmit}>
-          <div>
+      <form className="space-y-4" onSubmit={handleSubmit}>
+        {formError && (
+          <div className="bg-red-50 border border-red-200 text-sm text-red-700 rounded-xl px-4 py-3">
+            {formError}
+          </div>
+        )}
+
+        <StepCard
+          stepNumber={1}
+          title="Choose the API Endpoint"
+          isActive={currentStep === 1}
+          onNext={() => setCurrentStep(2)}
+          onGoToStep={() => setCurrentStep(1)}
+        >
+          <div className="space-y-3">
             <label className="block text-sm font-medium text-gray-700">
               Api Endpoint
             </label>
-            <div className="mt-1 flex gap-3">
+            <div className="flex flex-col gap-3 md:flex-row">
               <input
                 type="url"
                 className="flex-1 rounded-lg border border-gray-300 p-3 focus:ring-2 focus:ring-blue-500"
@@ -218,16 +223,53 @@ export default function TaskRunner() {
               </button>
             </div>
           </div>
-          <AttributeSelector data={fromResponse} />
+        </StepCard>
+
+        <StepCard
+          stepNumber={2}
+          title="Select Data"
+          isActive={currentStep === 2}
+          onNext={() => setCurrentStep(3)}
+          onGoToStep={() => setCurrentStep(2)}
+        >
+          <AttributeSelector
+            data={selectedFromResponse}
+            setData={setSelectedFromResponse}
+          />
+        </StepCard>
+
+        <StepCard
+          stepNumber={3}
+          title="Build Transformer"
+          isActive={currentStep === 3}
+          onGoToStep={() => setCurrentStep(3)}
+          nextLabel={submitting ? "Launching..." : "Launch workflow"}
+          nextDisabled={submitting}
+          isSubmit
+          footerContent={
+            <div className="flex flex-wrap items-center gap-3">
+              {isCancelable && (
+                <button
+                  type="button"
+                  onClick={handleStop}
+                  className="px-4 py-2 rounded-lg bg-red-500 text-white font-semibold hover:bg-red-600 disabled:opacity-50"
+                  disabled={stopPending}
+                >
+                  {stopPending ? "Stopping..." : "Stop task"}
+                </button>
+              )}
+            </div>
+          }
+        >
           <div className="grid md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700">
                 From response (JSON)
               </label>
               <textarea
-                className="w-full mt-1 rounded-lg border border-gray-300 p-3 font-mono text-sm h-48 focus:ring-2 focus:ring-blue-500"
-                value={JSON.stringify(fromResponse, null, 2)}
-                onChange={(event) => setFromResponse(event.target.value)}
+                className="w-full mt-1 rounded-lg border border-gray-300 p-3 font-mono text-sm h-96 focus:ring-2 focus:ring-blue-500"
+                value={JSON.stringify(selectedFromResponse, null, 2)}
+                disabled
               />
             </div>
             <div>
@@ -235,41 +277,14 @@ export default function TaskRunner() {
                 To response (JSON)
               </label>
               <textarea
-                className="w-full mt-1 rounded-lg border border-gray-300 p-3 font-mono text-sm h-48 focus:ring-2 focus:ring-blue-500"
+                className="w-full mt-1 rounded-lg border border-gray-300 p-3 font-mono text-sm h-96 focus:ring-2 focus:ring-blue-500"
                 value={toResponse}
-                onChange={(event) => setToResponse(event.target.value)}
+                disabled
               />
             </div>
           </div>
-          <div className="flex gap-3">
-            <button
-              type="submit"
-              className="px-6 py-2 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 disabled:opacity-50"
-              disabled={submitting}
-            >
-              {submitting ? "Launching..." : "Launch workflow"}
-            </button>
-            {isCancelable && (
-              <button
-                type="button"
-                onClick={handleStop}
-                className="px-4 py-2 rounded-lg bg-red-500 text-white font-semibold hover:bg-red-600 disabled:opacity-50"
-                disabled={stopPending}
-              >
-                {stopPending ? "Stopping..." : "Stop task"}
-              </button>
-            )}
-            <div className="ml-auto flex items-center gap-2 text-sm text-gray-500">
-              <span
-                className={`h-2 w-2 rounded-full ${
-                  connected ? "bg-emerald-500" : "bg-gray-400"
-                }`}
-              />
-              {connected ? "Live connection" : "Offline"}
-            </div>
-          </div>
-        </form>
-      </section>
+        </StepCard>
+      </form>
 
       <section className="bg-white shadow rounded-2xl p-6 space-y-4">
         {!activeTask && (
@@ -302,7 +317,6 @@ export default function TaskRunner() {
                   >
                     <div className="flex items-center justify-between">
                       <span className="font-medium">{result.name}</span>
-                      <StatusBadge status={result.status} />
                     </div>
                     {result.error && (
                       <p className="text-sm text-red-600 mt-1">
@@ -374,24 +388,5 @@ export default function TaskRunner() {
         </section>
       </div>
     </div>
-  );
-}
-
-function TokenCard({ label, value }) {
-  return (
-    <div className="border border-gray-200 rounded-xl p-3">
-      <dt className="text-xs text-gray-500">{label}</dt>
-      <dd className="text-lg font-semibold">{value}</dd>
-    </div>
-  );
-}
-
-function StatusBadge({ status }) {
-  if (!status) return null;
-  const styles = STATUS_COLORS[status] || "bg-gray-200 text-gray-700";
-  return (
-    <span className={`text-xs font-semibold px-2 py-1 rounded-full ${styles}`}>
-      {status.toUpperCase()}
-    </span>
   );
 }
