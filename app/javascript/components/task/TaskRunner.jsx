@@ -37,8 +37,9 @@ export default function TaskRunner() {
     "https://openlibrary.org/works/OL27965224W/editions.json"
   );
   const [fromResponse, setFromResponse] = useState({});
-  const [selectedFromResponse, setSelectedFromResponse] = useState({});
-  const [toResponse, setToResponse] = useState({});
+  const [toResponse, setToResponse] = useState(null);
+  const [toResponseText, setToResponseText] = useState("");
+  const [toResponseJsonError, setToResponseJsonError] = useState(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [fetchingEndpoint, setFetchingEndpoint] = useState(false);
   const [tasks, setTasks] = useState([]);
@@ -46,7 +47,6 @@ export default function TaskRunner() {
   const [formError, setFormError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [stopPending, setStopPending] = useState(false);
-  const [selectedPaths, setSelectedPaths] = useState([]);
 
   const {
     snapshot,
@@ -54,6 +54,7 @@ export default function TaskRunner() {
     connected,
     error: progressError,
     latestCode,
+    responseJson,
     testResults,
     requestStop,
   } = useTaskProgress(selectedTaskId);
@@ -63,9 +64,11 @@ export default function TaskRunner() {
   }, []);
 
   useEffect(() => {
-    if (!fromResponse) return;
-    setSelectedFromResponse(fromResponse);
-  }, [fromResponse]);
+    console.log("responseJson", responseJson);
+    if (responseJson) {
+      setToResponse(responseJson);
+    }
+  }, [responseJson]);
 
   useEffect(() => {
     if (!snapshot) return;
@@ -76,8 +79,33 @@ export default function TaskRunner() {
   }, [snapshot]);
 
   useEffect(() => {
-    console.log({ selectedFromResponse, toResponse });
-  }, [selectedFromResponse, toResponse]);
+    if (toResponse === null) {
+      setToResponseText("");
+      return;
+    }
+    const stringified = JSON.stringify(toResponse, null, 2);
+    setToResponseText((prev) => {
+      return prev !== stringified ? stringified : prev;
+    });
+    setToResponseJsonError(null);
+  }, [toResponse]);
+
+  useEffect(() => {
+    if (!toResponseText) return;
+
+    const hasFromResponse =
+      fromResponse &&
+      (typeof fromResponse === "string"
+        ? fromResponse.length > 0
+        : Object.keys(fromResponse).length > 0);
+
+    if (hasFromResponse) {
+      setCurrentStep(2);
+    } else if (apiEndpoint && !fetchingEndpoint && !formError) {
+      handleFetchEndpoint();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [toResponseText, fromResponse, fetchingEndpoint, formError]);
 
   const activeTask = useMemo(() => {
     if (snapshot && snapshot.id === selectedTaskId) {
@@ -140,11 +168,25 @@ export default function TaskRunner() {
     }
   }
 
-  async function handleSubmit(event) {
+  async function handleSubmit(event, taskType = "code_workflow") {
     event.preventDefault();
     setFormError(null);
     setSubmitting(true);
     try {
+      if (toResponseJsonError) {
+        setSubmitting(false);
+        return;
+      }
+      // let parsedToResponse = toResponse;
+      // try {
+      //   parsedToResponse = JSON.parse(toResponseText);
+      //   setToResponse(parsedToResponse);
+      // } catch (error) {
+      //   setToResponseJsonError("Invalid JSON");
+      //   setSubmitting(false);
+      //   return;
+      // }
+
       const response = await fetch("/api/tasks", {
         method: "POST",
         headers: {
@@ -155,7 +197,7 @@ export default function TaskRunner() {
             kind: "code_workflow",
             input_payload: {
               from_response: fromResponse,
-              to_response: toResponse,
+              task_type: taskType,
             },
             metadata: {
               source: "web-ui",
@@ -198,20 +240,28 @@ export default function TaskRunner() {
     }
   }
 
-  function setTransformedData(
-    path,
-    value,
-    transformedValue,
-    transformDescription
-  ) {
+  function handleGenerate(event) {
+    handleSubmit(event, "transformed_response_generation");
+  }
+
+  function handleToResponseTextChange(value) {
+    setToResponseText(value);
+    // Validate JSON
+    if (value.trim() === "") {
+      setToResponseJsonError(null);
+      return;
+    }
+    try {
+      JSON.parse(value);
+      setToResponseJsonError(null);
+    } catch (error) {
+      setToResponseJsonError("Invalid JSON");
+    }
+  }
+
+  function setTransformedData(path, value, transformedValue) {
     setSelectedFromResponse((prev) => setNestedValue(prev, path, value));
     setToResponse((prev) => setNestedValue(prev, path, transformedValue));
-    console.log({
-      path,
-      value,
-      transformedValue,
-      result: setNestedValue({}, path, transformedValue),
-    });
   }
 
   return (
@@ -230,6 +280,7 @@ export default function TaskRunner() {
           isActive={currentStep === 1}
           onNext={() => setCurrentStep(2)}
           onGoToStep={() => setCurrentStep(1)}
+          nextDisabled={!apiEndpoint || !fromResponse}
         >
           <div className="space-y-3">
             <label className="block text-sm font-medium text-gray-700">
@@ -257,26 +308,15 @@ export default function TaskRunner() {
 
         <StepCard
           stepNumber={2}
-          title="Select Data"
+          title="Generate Transformed Data Format"
           currentStep={currentStep}
           isActive={currentStep === 2}
-          onNext={() => setCurrentStep(3)}
           onGoToStep={() => setCurrentStep(2)}
-        >
-          <AttributeSelector
-            data={selectedFromResponse}
-            setTransformedData={setTransformedData}
-          />
-        </StepCard>
-
-        <StepCard
-          stepNumber={3}
-          title="Build Transformer"
-          currentStep={currentStep}
-          isActive={currentStep === 3}
-          onGoToStep={() => setCurrentStep(3)}
+          generateLabel={submitting ? "Generating..." : "Generate"}
+          showGenerateButton={!toResponseText}
           nextLabel={submitting ? "Launching..." : "Launch workflow"}
           nextDisabled={submitting}
+          onGenerate={handleGenerate}
           isSubmit
           footerContent={
             <div className="flex flex-wrap items-center gap-3">
@@ -300,7 +340,7 @@ export default function TaskRunner() {
               </label>
               <textarea
                 className="w-full mt-1 rounded-lg border border-gray-300 p-3 font-mono text-sm h-96 focus:ring-2 focus:ring-blue-500"
-                value={JSON.stringify(selectedFromResponse, null, 2)}
+                value={JSON.stringify(fromResponse, null, 2)}
                 disabled
               />
             </div>
@@ -308,10 +348,18 @@ export default function TaskRunner() {
               <label className="block text-sm font-medium text-gray-700">
                 To response (JSON)
               </label>
+              {toResponseJsonError && (
+                <div className="mt-1 mb-1 bg-red-50 border border-red-200 text-sm text-red-700 rounded-lg px-3 py-2">
+                  {toResponseJsonError}
+                </div>
+              )}
               <textarea
                 className="w-full mt-1 rounded-lg border border-gray-300 p-3 font-mono text-sm h-96 focus:ring-2 focus:ring-blue-500"
-                value={toResponse}
-                disabled
+                value={toResponseText}
+                disabled={!toResponse}
+                // onChange={(event) =>
+                //   // handleToResponseTextChange(event.target.value)
+                // }
               />
             </div>
           </div>

@@ -5,20 +5,57 @@ class CodeWorkflowJob < ApplicationJob
     Rails.logger.warn("[CodeWorkflowJob] Task not found, skipping job")
   end
   rescue_from(StandardError) do |error|
-    binding.pry
     handle_failure(error)
   end
 
   def perform(task_id)
     @task = Task.find(task_id)
     return if @task.cancelled?
-
-    run_workflow
+    task_type = task.input_payload.fetch("task_type", "code_workflow")
+    if task_type == "transformed_response_generation"
+      run_transformed_response_generation
+    else
+      run_workflow
+    end
   end
 
   private
 
   attr_reader :task
+
+  def run_transformed_response_generation
+    from_response = task.input_payload.fetch("from_response", [])
+    to_response_example = "[{
+      \"header\": \"Some string value selected from the api response that works as a header\",
+      \"subheader\": \"Some string value selected from the api response that works as a subheader\",
+      \"image_url\": \"Some string value selected from the api response that works as a image url\",
+
+    }]"
+    prompt = "You are a assistant that helps create a data visualization from an api response. 
+    The user has selected an api endpoint and wants to create a data visualization from the response.
+    Here are the results returned from the api endpoint: #{from_response} \n\n\
+        We need data in this format, with these keys: #{to_response_example}\n\n
+      But you need to select the data from the api response that works for each key. 
+      If there is no data appropriate for a key, you can leave it blank. Only return the JSON response, no other text or comments."
+    raw_response = generate_code_response(prompt)
+    binding.pry
+    cleaned_response = extract_json(raw_response)
+    response_json = JSON.parse(cleaned_response)
+    task.mark_completed!(
+      output: {
+        "response_json" => response_json,
+      }
+    )
+    broadcast_event(
+      phase: "completed",
+      message: "Workflow completed successfully",
+      output: response_json,
+      final: true,
+      metadata: {
+        "response_json" => response_json,
+      }
+    ) 
+  end
 
   def run_workflow
     task.mark_running!
@@ -103,6 +140,19 @@ class CodeWorkflowJob < ApplicationJob
     code = heredoc_match[1] if heredoc_match
 
     code.strip
+  end
+
+  def extract_json(raw_response)
+    # Find the first occurrence of '[' or '{'
+    start_index = raw_response.index(/[\[{]/)
+    return raw_response.strip if start_index.nil?
+
+    # Find the last occurrence of ']' or '}'
+    end_index = raw_response.rindex(/[\]}]/)
+    return raw_response.strip if end_index.nil?
+
+    # Extract the substring between start and end (inclusive)
+    raw_response[start_index..end_index].strip
   end
 
   def execute_test_suite(code_body)

@@ -103,6 +103,15 @@ export default function useTaskProgress(taskId) {
     channelRef.current?.perform("stop");
   };
 
+  const responseJson = useMemo(() => {
+    return (
+      snapshot?.metadata?.response_json ||
+      snapshot?.output_payload?.response_json
+    );
+  }, [snapshot]);
+
+  // console.log("responseJson", responseJson);
+
   return {
     snapshot,
     events,
@@ -111,6 +120,7 @@ export default function useTaskProgress(taskId) {
     latestCode,
     testResults,
     requestStop,
+    responseJson,
   };
 }
 
