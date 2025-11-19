@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useParams } from "react-router-dom";
 import useTaskProgress from "../../hooks/useTaskProgress";
 import EndpointSelector from "./EndpointSelector";
 import TransformationConfigurator from "./TransformationConfigurator";
@@ -34,9 +35,8 @@ function setNestedValue(target, path, nextValue) {
 }
 
 export default function TaskRunner() {
-  const [apiEndpoint, setApiEndpoint] = useState(
-    "https://openlibrary.org/works/OL27965224W/editions.json"
-  );
+  const { task_id } = useParams();
+  const [apiEndpoint, setApiEndpoint] = useState("");
   const [fromResponse, setFromResponse] = useState({});
   const [toResponse, setToResponse] = useState(null);
   const [toResponseText, setToResponseText] = useState("");
@@ -44,7 +44,6 @@ export default function TaskRunner() {
   const [currentStep, setCurrentStep] = useState(1);
   const [fetchingEndpoint, setFetchingEndpoint] = useState(false);
   const [tasks, setTasks] = useState([]);
-  const [selectedTaskId, setSelectedTaskId] = useState(null);
   const [formError, setFormError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [stopPending, setStopPending] = useState(false);
@@ -58,7 +57,7 @@ export default function TaskRunner() {
     responseJson,
     testResults,
     requestStop,
-  } = useTaskProgress(selectedTaskId);
+  } = useTaskProgress(task_id);
 
   useEffect(() => {
     loadTasks();
@@ -77,6 +76,11 @@ export default function TaskRunner() {
       const filtered = prev.filter((task) => task.id !== snapshot.id);
       return [snapshot, ...filtered].slice(0, 15);
     });
+
+    // Load api_endpoint from snapshot if available
+    if (snapshot.api_endpoint && !apiEndpoint) {
+      setApiEndpoint(snapshot.api_endpoint);
+    }
   }, [snapshot]);
 
   useEffect(() => {
@@ -109,11 +113,11 @@ export default function TaskRunner() {
   }, [toResponseText, fromResponse, fetchingEndpoint, formError]);
 
   const activeTask = useMemo(() => {
-    if (snapshot && snapshot.id === selectedTaskId) {
+    if (snapshot && snapshot.id === task_id) {
       return snapshot;
     }
-    return tasks.find((task) => task.id === selectedTaskId) || snapshot;
-  }, [snapshot, tasks, selectedTaskId]);
+    return tasks.find((task) => task.id === task_id) || snapshot;
+  }, [snapshot, tasks, task_id]);
 
   const activeStatus = activeTask?.status;
   const isCancelable =
@@ -127,9 +131,6 @@ export default function TaskRunner() {
       }
       const data = await response.json();
       setTasks(data);
-      if (!selectedTaskId && data.length > 0) {
-        setSelectedTaskId(data[0].id);
-      }
     } catch (error) {
       console.error(error);
     }
@@ -191,6 +192,7 @@ export default function TaskRunner() {
         body: JSON.stringify({
           task: {
             kind: "code_workflow",
+            api_endpoint: apiEndpoint,
             input_payload: {
               from_response: fromResponse,
               task_type: taskType,
@@ -207,8 +209,9 @@ export default function TaskRunner() {
       }
 
       const task = await response.json();
-      setSelectedTaskId(task.id);
       setTasks((prev) => [task, ...prev].slice(0, 15));
+      // Redirect to the new task
+      window.location.href = `/task/${task.id}`;
     } catch (error) {
       console.error(error);
       setFormError(error.message);
@@ -218,11 +221,11 @@ export default function TaskRunner() {
   }
 
   async function handleStop() {
-    if (!selectedTaskId) return;
+    if (!task_id) return;
     setStopPending(true);
     try {
       requestStop();
-      await fetch(`/api/tasks/${selectedTaskId}/cancel`, {
+      await fetch(`/api/tasks/${task_id}/cancel`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

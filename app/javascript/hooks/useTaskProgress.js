@@ -104,10 +104,7 @@ export default function useTaskProgress(taskId) {
   };
 
   const responseJson = useMemo(() => {
-    return (
-      snapshot?.metadata?.response_json ||
-      snapshot?.output_payload?.response_json
-    );
+    return snapshot?.response_json;
   }, [snapshot]);
 
   // console.log("responseJson", responseJson);
@@ -139,6 +136,7 @@ export function mergeSnapshot(previous, incoming) {
       incoming.output_payload || previous.output_payload || previous.output,
     output: incoming.output || previous.output,
     test_results: incoming.test_results || previous.test_results,
+    response_json: incoming.response_json || previous.response_json,
   };
 }
 

@@ -38,9 +38,12 @@ class CodeWorkflowJob < ApplicationJob
       But you need to select the data from the api response that works for each key. 
       If there is no data appropriate for a key, you can leave it blank. Only return the JSON response, no other text or comments."
     raw_response = generate_code_response(prompt)
-    binding.pry
     cleaned_response = extract_json(raw_response)
     response_json = JSON.parse(cleaned_response)
+    
+    # Save response_json to task field
+    task.update!(response_json: response_json)
+    
     task.mark_completed!(
       output: {
         "response_json" => response_json,
@@ -50,10 +53,7 @@ class CodeWorkflowJob < ApplicationJob
       phase: "completed",
       message: "Workflow completed successfully",
       output: response_json,
-      final: true,
-      metadata: {
-        "response_json" => response_json,
-      }
+      final: true
     ) 
   end
 
