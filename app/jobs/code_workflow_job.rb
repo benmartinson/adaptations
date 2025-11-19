@@ -24,6 +24,9 @@ class CodeWorkflowJob < ApplicationJob
   attr_reader :task
 
   def run_transformed_response_generation
+    task.mark_running!
+    broadcast_event(phase: "starting", message: "Starting transformation generation")
+    
     from_response = task.input_payload.fetch("from_response", [])
     to_response_example = "[{
       \"header\": \"Some string value selected from the api response that works as a header\",
@@ -53,6 +56,7 @@ class CodeWorkflowJob < ApplicationJob
       phase: "completed",
       message: "Workflow completed successfully",
       output: response_json,
+      response_json: response_json,
       final: true
     ) 
   end

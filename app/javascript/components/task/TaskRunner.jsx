@@ -1,74 +1,23 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import useTaskProgress from "../../hooks/useTaskProgress";
-import EndpointSelector from "./EndpointSelector";
-import TransformationConfigurator from "./TransformationConfigurator";
-import TaskStatus from "./TaskStatus";
-import EventLog from "./EventLog";
-
-function setNestedValue(target, path, nextValue) {
-  if (!Array.isArray(path) || path.length === 0) return nextValue;
-
-  const [{ name, type }, ...rest] = path;
-  const normalizedType = (type || "").toLowerCase();
-  const base = Array.isArray(target) ? [...target] : { ...(target || {}) };
-
-  if (normalizedType === "array") {
-    const existingArray = Array.isArray(base[name]) ? [...base[name]] : [];
-
-    if (rest.length === 0) {
-      base[name] = [nextValue];
-      return base;
-    }
-
-    const nextValueInArray = setNestedValue(existingArray[0], rest, nextValue);
-    base[name] = [nextValueInArray];
-    return base;
-  }
-
-  const currentChild = base[name];
-  base[name] =
-    rest.length === 0
-      ? nextValue
-      : setNestedValue(currentChild, rest, nextValue);
-  return base;
-}
+import PreviewList from "./PreviewList";
+// import TaskStatus from "./TaskStatus";
+// import EventLog from "./EventLog";
 
 export default function TaskRunner() {
   const { task_id } = useParams();
   const [apiEndpoint, setApiEndpoint] = useState("");
   const [fromResponse, setFromResponse] = useState({});
-  const [toResponse, setToResponse] = useState(null);
-  const [toResponseText, setToResponseText] = useState("");
-  const [toResponseJsonError, setToResponseJsonError] = useState(null);
-  const [currentStep, setCurrentStep] = useState(1);
   const [fetchingEndpoint, setFetchingEndpoint] = useState(false);
   const [tasks, setTasks] = useState([]);
   const [formError, setFormError] = useState(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [stopPending, setStopPending] = useState(false);
 
-  const {
-    snapshot,
-    events,
-    connected,
-    error: progressError,
-    latestCode,
-    responseJson,
-    testResults,
-    requestStop,
-  } = useTaskProgress(task_id);
+  const { snapshot, responseJson } = useTaskProgress(task_id);
 
   useEffect(() => {
     loadTasks();
   }, []);
-
-  useEffect(() => {
-    console.log("responseJson", responseJson);
-    if (responseJson) {
-      setToResponse(responseJson);
-    }
-  }, [responseJson]);
 
   useEffect(() => {
     if (!snapshot) return;
@@ -83,35 +32,6 @@ export default function TaskRunner() {
     }
   }, [snapshot]);
 
-  useEffect(() => {
-    if (toResponse === null) {
-      setToResponseText("");
-      return;
-    }
-    const stringified = JSON.stringify(toResponse, null, 2);
-    setToResponseText((prev) => {
-      return prev !== stringified ? stringified : prev;
-    });
-    setToResponseJsonError(null);
-  }, [toResponse]);
-
-  useEffect(() => {
-    if (!toResponseText) return;
-
-    const hasFromResponse =
-      fromResponse &&
-      (typeof fromResponse === "string"
-        ? fromResponse.length > 0
-        : Object.keys(fromResponse).length > 0);
-
-    if (hasFromResponse) {
-      setCurrentStep(2);
-    } else if (apiEndpoint && !fetchingEndpoint && !formError) {
-      handleFetchEndpoint();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [toResponseText, fromResponse, fetchingEndpoint, formError]);
-
   const activeTask = useMemo(() => {
     if (snapshot && snapshot.id === task_id) {
       return snapshot;
@@ -119,9 +39,11 @@ export default function TaskRunner() {
     return tasks.find((task) => task.id === task_id) || snapshot;
   }, [snapshot, tasks, task_id]);
 
-  const activeStatus = activeTask?.status;
-  const isCancelable =
-    activeTask && ["pending", "running"].includes(activeStatus);
+  const isGenerating =
+    fetchingEndpoint ||
+    (activeTask &&
+      ["pending", "running"].includes(activeTask.status) &&
+      !responseJson);
 
   async function loadTasks() {
     try {
@@ -145,46 +67,24 @@ export default function TaskRunner() {
     setFormError(null);
     setFetchingEndpoint(true);
     try {
+      // Fetch the endpoint data
       const response = await fetch(apiEndpoint);
       if (!response.ok) {
         throw new Error("Unable to fetch from endpoint");
       }
 
       const text = await response.text();
+      let fetchedData;
       try {
-        const data = JSON.parse(text);
-        setFromResponse(data);
+        fetchedData = JSON.parse(text);
+        setFromResponse(fetchedData);
       } catch {
+        fetchedData = text;
         setFromResponse(text);
       }
-    } catch (error) {
-      console.error(error);
-      setFormError(error.message);
-    } finally {
-      setFetchingEndpoint(false);
-    }
-  }
 
-  async function handleSubmit(event, taskType = "code_workflow") {
-    event.preventDefault();
-    setFormError(null);
-    setSubmitting(true);
-    try {
-      if (toResponseJsonError) {
-        setSubmitting(false);
-        return;
-      }
-      // let parsedToResponse = toResponse;
-      // try {
-      //   parsedToResponse = JSON.parse(toResponseText);
-      //   setToResponse(parsedToResponse);
-      // } catch (error) {
-      //   setToResponseJsonError("Invalid JSON");
-      //   setSubmitting(false);
-      //   return;
-      // }
-
-      const response = await fetch("/api/tasks", {
+      // Automatically create the transformation task
+      const taskResponse = await fetch("/api/tasks", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -194,8 +94,8 @@ export default function TaskRunner() {
             kind: "code_workflow",
             api_endpoint: apiEndpoint,
             input_payload: {
-              from_response: fromResponse,
-              task_type: taskType,
+              from_response: fetchedData,
+              task_type: "transformed_response_generation",
             },
             metadata: {
               source: "web-ui",
@@ -204,80 +104,91 @@ export default function TaskRunner() {
         }),
       });
 
-      if (!response.ok) {
+      if (!taskResponse.ok) {
         throw new Error("Unable to create task");
       }
 
-      const task = await response.json();
+      const task = await taskResponse.json();
       setTasks((prev) => [task, ...prev].slice(0, 15));
       // Redirect to the new task
       window.location.href = `/task/${task.id}`;
     } catch (error) {
       console.error(error);
       setFormError(error.message);
-    } finally {
-      setSubmitting(false);
+      setFetchingEndpoint(false);
     }
-  }
-
-  async function handleStop() {
-    if (!task_id) return;
-    setStopPending(true);
-    try {
-      requestStop();
-      await fetch(`/api/tasks/${task_id}/cancel`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-      await loadTasks();
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setStopPending(false);
-    }
-  }
-
-  function handleGenerate(event) {
-    handleSubmit(event, "transformed_response_generation");
   }
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-8">
-      <form className="space-y-4" onSubmit={handleSubmit}>
+      <div className="flex justify-between items-center">
+        <Link
+          to="/tasks"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 transition-colors"
+        >
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M15 19l-7-7 7-7"
+            />
+          </svg>
+          All Tasks
+        </Link>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-4">
+        <h2 className="text-xl font-semibold text-gray-900">API Endpoint</h2>
+
         {formError && (
           <div className="bg-red-50 border border-red-200 text-sm text-red-700 rounded-xl px-4 py-3">
             {formError}
           </div>
         )}
 
-        <EndpointSelector
-          apiEndpoint={apiEndpoint}
-          setApiEndpoint={setApiEndpoint}
-          handleFetchEndpoint={handleFetchEndpoint}
-          fetchingEndpoint={fetchingEndpoint}
-          fromResponse={fromResponse}
-          currentStep={currentStep}
-          setCurrentStep={setCurrentStep}
-        />
+        <div className="space-y-3">
+          <label className="block text-sm font-medium text-gray-700">
+            Enter API Endpoint
+          </label>
+          <div className="flex flex-col gap-3 md:flex-row">
+            <input
+              type="url"
+              className="flex-1 rounded-lg border border-gray-300 p-3 focus:ring-2 focus:ring-blue-500"
+              placeholder="https://example.com/api/endpoint"
+              value={apiEndpoint}
+              onChange={(event) => setApiEndpoint(event.target.value)}
+              disabled={fetchingEndpoint}
+            />
+            <button
+              type="button"
+              onClick={handleFetchEndpoint}
+              className="px-4 py-2 rounded-lg bg-gray-900 text-white font-semibold hover:bg-gray-800 disabled:opacity-50"
+              disabled={!apiEndpoint || fetchingEndpoint}
+            >
+              {fetchingEndpoint ? "Fetching..." : "Get Response"}
+            </button>
+          </div>
 
-        <TransformationConfigurator
-          currentStep={currentStep}
-          setCurrentStep={setCurrentStep}
-          submitting={submitting}
-          toResponseText={toResponseText}
-          handleGenerate={handleGenerate}
-          isCancelable={isCancelable}
-          handleStop={handleStop}
-          stopPending={stopPending}
-          fromResponse={fromResponse}
-          toResponse={toResponse}
-          toResponseJsonError={toResponseJsonError}
-        />
-      </form>
+          {isGenerating && (
+            <div className="text-gray-500 text-sm">Generating...</div>
+          )}
+        </div>
+      </div>
 
-      <TaskStatus
+      {responseJson && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Preview</h2>
+          <PreviewList toResponseText={JSON.stringify(responseJson, null, 2)} />
+        </div>
+      )}
+
+      {/* <TaskStatus
         activeTask={activeTask}
         latestCode={latestCode}
         testResults={testResults}
@@ -286,7 +197,7 @@ export default function TaskRunner() {
 
       <div className="grid md:grid-cols-3 gap-6">
         <EventLog events={events} />
-      </div>
+      </div> */}
     </div>
   );
 }
