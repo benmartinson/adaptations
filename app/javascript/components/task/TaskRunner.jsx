@@ -2,12 +2,14 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import useTaskProgress from "../../hooks/useTaskProgress";
 import PreviewList from "./PreviewList";
+import { limitArraySizes } from "../../helpers";
 // import TaskStatus from "./TaskStatus";
 // import EventLog from "./EventLog";
 
 export default function TaskRunner() {
   const { task_id } = useParams();
   const [apiEndpoint, setApiEndpoint] = useState("");
+  const [dataDescription, setDataDescription] = useState("");
   const [fromResponse, setFromResponse] = useState({});
   const [fetchingEndpoint, setFetchingEndpoint] = useState(false);
   const [tasks, setTasks] = useState([]);
@@ -26,9 +28,12 @@ export default function TaskRunner() {
       return [snapshot, ...filtered].slice(0, 15);
     });
 
-    // Load api_endpoint from snapshot if available
+    // Load api_endpoint and data_description from snapshot if available
     if (snapshot.api_endpoint && !apiEndpoint) {
       setApiEndpoint(snapshot.api_endpoint);
+    }
+    if (snapshot.data_description && !dataDescription) {
+      setDataDescription(snapshot.data_description);
     }
   }, [snapshot]);
 
@@ -77,6 +82,8 @@ export default function TaskRunner() {
       let fetchedData;
       try {
         fetchedData = JSON.parse(text);
+        // Limit array sizes to reduce token usage
+        fetchedData = limitArraySizes(fetchedData, 10);
         setFromResponse(fetchedData);
       } catch {
         fetchedData = text;
@@ -93,6 +100,7 @@ export default function TaskRunner() {
           task: {
             kind: "code_workflow",
             api_endpoint: apiEndpoint,
+            data_description: dataDescription,
             input_payload: {
               from_response: fetchedData,
               task_type: "transformed_response_generation",
@@ -173,6 +181,24 @@ export default function TaskRunner() {
             >
               {fetchingEndpoint ? "Fetching..." : "Get Response"}
             </button>
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">
+              Data Description (Optional)
+            </label>
+            <textarea
+              className="w-full rounded-lg border border-gray-300 p-3 focus:ring-2 focus:ring-blue-500 resize-y"
+              placeholder="Describe the data returned by this endpoint to help the chatbot understand and transform it better..."
+              value={dataDescription}
+              onChange={(event) => setDataDescription(event.target.value)}
+              disabled={fetchingEndpoint}
+              rows={3}
+            />
+            <p className="text-xs text-gray-500">
+              Optional: Provide context about the data structure, field
+              meanings, or transformation goals.
+            </p>
           </div>
 
           {isGenerating && (

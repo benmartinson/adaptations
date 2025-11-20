@@ -28,18 +28,27 @@ class CodeWorkflowJob < ApplicationJob
     broadcast_event(phase: "starting", message: "Starting transformation generation")
     
     from_response = task.input_payload.fetch("from_response", [])
+    data_description = task.data_description
+    
     to_response_example = "[{
       \"header\": \"Some string value selected from the api response that works as a header\",
       \"subheader\": \"Some string value selected from the api response that works as a subheader\",
       \"image_url\": \"Some string value selected from the api response that works as a image url\",
 
     }]"
+    
     prompt = "You are a assistant that helps create a data visualization from an api response. 
-    The user has selected an api endpoint and wants to create a data visualization from the response.
-    Here are the results returned from the api endpoint: #{from_response} \n\n\
+    The user has selected an api endpoint and wants to create a data visualization from the response."
+    
+    if data_description.present?
+      prompt += "\n\nThe user provided this description of the data: #{data_description}"
+    end
+    
+    prompt += "\n\nHere are the results returned from the api endpoint: #{from_response} \n\n\
         We need data in this format, with these keys: #{to_response_example}\n\n
       But you need to select the data from the api response that works for each key. 
       If there is no data appropriate for a key, you can leave it blank. Only return the JSON response, no other text or comments."
+    
     raw_response = generate_code_response(prompt)
     cleaned_response = extract_json(raw_response)
     response_json = JSON.parse(cleaned_response)
