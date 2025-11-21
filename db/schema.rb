@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_11_20_203846) do
+ActiveRecord::Schema[8.1].define(version: 2025_11_20_231636) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -162,6 +162,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_20_203846) do
     t.json "response_json"
     t.datetime "started_at"
     t.string "status", default: "pending", null: false
+    t.string "system_tag"
     t.integer "tokens_completion", default: 0, null: false
     t.integer "tokens_prompt", default: 0, null: false
     t.integer "tokens_total", default: 0, null: false

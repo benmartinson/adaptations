@@ -9,6 +9,7 @@ import { limitArraySizes } from "../../helpers";
 export default function TaskRunner() {
   const { task_id } = useParams();
   const [apiEndpoint, setApiEndpoint] = useState("");
+  const [systemTag, setSystemTag] = useState("");
   const [dataDescription, setDataDescription] = useState("");
   const [fromResponse, setFromResponse] = useState({});
   const [fetchingEndpoint, setFetchingEndpoint] = useState(false);
@@ -28,9 +29,12 @@ export default function TaskRunner() {
       return [snapshot, ...filtered].slice(0, 15);
     });
 
-    // Load api_endpoint and data_description from snapshot if available
+    // Load api_endpoint, system_tag, and data_description from snapshot if available
     if (snapshot.api_endpoint && !apiEndpoint) {
       setApiEndpoint(snapshot.api_endpoint);
+    }
+    if (snapshot.system_tag && !systemTag) {
+      setSystemTag(snapshot.system_tag);
     }
     if (snapshot.data_description && !dataDescription) {
       setDataDescription(snapshot.data_description);
@@ -69,6 +73,16 @@ export default function TaskRunner() {
       return;
     }
 
+    if (!systemTag) {
+      setFormError("Please provide a System Tag.");
+      return;
+    }
+
+    if (/\s/.test(systemTag)) {
+      setFormError("System Tag must be one word with no spaces.");
+      return;
+    }
+
     setFormError(null);
     setFetchingEndpoint(true);
     try {
@@ -100,10 +114,13 @@ export default function TaskRunner() {
           task: {
             kind: "code_workflow",
             api_endpoint: apiEndpoint,
+            system_tag: systemTag,
             data_description: dataDescription,
             input_payload: {
               from_response: fetchedData,
               task_type: "transformed_response_generation",
+              system_tag: systemTag,
+              data_description: dataDescription,
             },
             metadata: {
               source: "web-ui",
@@ -177,10 +194,27 @@ export default function TaskRunner() {
               type="button"
               onClick={handleFetchEndpoint}
               className="px-4 py-2 rounded-lg bg-gray-900 text-white font-semibold hover:bg-gray-800 disabled:opacity-50"
-              disabled={!apiEndpoint || fetchingEndpoint}
+              disabled={!apiEndpoint || !systemTag || fetchingEndpoint}
             >
               {fetchingEndpoint ? "Fetching..." : "Get Response"}
             </button>
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">
+              System Tag <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              className="w-full rounded-lg border border-gray-300 p-3 focus:ring-2 focus:ring-blue-500"
+              value={systemTag}
+              onChange={(event) => setSystemTag(event.target.value)}
+              disabled={fetchingEndpoint}
+            />
+            <p className="text-xs text-gray-500">
+              Required: Request identifier tag that describes the request (e.g.,
+              "BooksByAuthor"). Must be one word with no spaces.
+            </p>
           </div>
 
           <div className="space-y-2">

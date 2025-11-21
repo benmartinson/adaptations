@@ -28,7 +28,8 @@ class CodeWorkflowJob < ApplicationJob
     broadcast_event(phase: "starting", message: "Starting transformation generation")
     
     from_response = task.input_payload.fetch("from_response", [])
-    data_description = task.data_description
+    system_tag = task.input_payload.fetch("system_tag", nil)
+    data_description = task.input_payload.fetch("data_description", nil)
     
     to_response_example = "[{
       \"header\": \"Some string value selected from the api response that works as a header\",
@@ -53,12 +54,18 @@ class CodeWorkflowJob < ApplicationJob
     cleaned_response = extract_json(raw_response)
     response_json = JSON.parse(cleaned_response)
     
-    # Save response_json to task field
-    task.update!(response_json: response_json)
+    # Save response_json, system_tag, and data_description to task
+    task.update!(
+      response_json: response_json,
+      system_tag: system_tag,
+      data_description: data_description
+    )
     
     task.mark_completed!(
       output: {
         "response_json" => response_json,
+        "system_tag" => system_tag,
+        "data_description" => data_description,
       }
     )
     broadcast_event(
@@ -66,6 +73,8 @@ class CodeWorkflowJob < ApplicationJob
       message: "Workflow completed successfully",
       output: response_json,
       response_json: response_json,
+      system_tag: system_tag,
+      data_description: data_description,
       final: true
     ) 
   end
