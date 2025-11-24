@@ -69,7 +69,7 @@ export default function TaskRunner() {
       setGeneratingMessage((prev) =>
         prev === "" ? "Background process, may take several seconds" : ""
       );
-    }, 1000);
+    }, 3000);
 
     return () => clearInterval(interval);
   }, [isGeneratingPreview]);
@@ -145,7 +145,7 @@ export default function TaskRunner() {
             data_description: dataDescription,
             input_payload: {
               from_response: fetchedData,
-              task_type: "transformed_response_generation",
+              task_type: "preview_response_generation",
               system_tag: systemTag,
               data_description: dataDescription,
             },
@@ -223,6 +223,18 @@ export default function TaskRunner() {
             className="py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-300 cursor-not-allowed"
           >
             Create Transformer
+          </button>
+          <button
+            disabled
+            className="py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-300 cursor-not-allowed"
+          >
+            Build Schema
+          </button>
+          <button
+            disabled
+            className="py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-300 cursor-not-allowed"
+          >
+            Run Tests
           </button>
         </nav>
       </div>

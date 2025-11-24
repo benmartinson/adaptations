@@ -81,8 +81,22 @@ module Api
     end
 
     def enqueue_job(task)
-      job_class = "CodeWorkflowJob".safe_constantize
-      job = job_class.perform_later(task.id)
+      task_type = task.input_payload.fetch("task_type", nil)
+      
+      job_class = case task_type
+                  when "preview_response_generation"
+                    "PreviewResponseGenerationJob"
+                  when "generate_transform_code"
+                    "GenerateTransformCodeJob"
+                  when "run_transform_tests"
+                    "RunTransformTestsJob"
+                  else
+                    # Default fallback
+                    "PreviewResponseGenerationJob"
+                  end
+      
+      job_class_constant = job_class.safe_constantize
+      job = job_class_constant.perform_later(task.id)
       task.update!(job_id: job.job_id) if job.respond_to?(:job_id)
     end
   end
