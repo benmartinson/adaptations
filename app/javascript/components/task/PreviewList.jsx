@@ -7,7 +7,6 @@ const PreviewItem = ({ item }) => {
   const { header, subheader, image_url, attributes } = item;
   const [imageError, setImageError] = useState(false);
 
-  // Separate description-like attributes from others
   const descriptionKeys = ["description", "summary", "overview", "plot"];
 
   let description = "";
@@ -19,13 +18,13 @@ const PreviewItem = ({ item }) => {
         descriptionKeys.includes(key.toLowerCase()) &&
         typeof value === "string"
       ) {
-        // Pick the first matching description
         if (!description) description = value;
       } else {
         otherAttributes[key] = value;
       }
     });
   }
+  console.log({ image_url });
 
   return (
     <PageFrame>
@@ -34,11 +33,11 @@ const PreviewItem = ({ item }) => {
           <img
             src={image_url}
             alt={header || "Item image"}
-            className="w-[210px] h-[320px] m-auto [border-radius:0_6%_6%_0_/4%] drop-shadow-md object-cover"
+            className="w-[150px] h-[230px] m-auto [border-radius:0_6%_6%_0_/4%] drop-shadow-md group-hover:scale-105 transition-all duration-300"
             onError={() => setImageError(true)}
           />
         ) : (
-          <ImageNotFound />
+          <ImageNotFound size="small" />
         )}
       </div>
       <div className="col-span-9">

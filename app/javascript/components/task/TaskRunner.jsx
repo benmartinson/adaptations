@@ -15,8 +15,11 @@ export default function TaskRunner() {
   const [fetchingEndpoint, setFetchingEndpoint] = useState(false);
   const [tasks, setTasks] = useState([]);
   const [formError, setFormError] = useState(null);
+  const [generatingMessage, setGeneratingMessage] = useState("");
+  const [activeTab, setActiveTab] = useState("endpoint-details");
 
   const { snapshot, responseJson } = useTaskProgress(task_id);
+  const isStepOneDisabled = fetchingEndpoint || !!responseJson;
 
   useEffect(() => {
     loadTasks();
@@ -48,11 +51,35 @@ export default function TaskRunner() {
     return tasks.find((task) => task.id === task_id) || snapshot;
   }, [snapshot, tasks, task_id]);
 
-  const isGenerating =
+  const isGeneratingPreview =
     fetchingEndpoint ||
     (activeTask &&
       ["pending", "running"].includes(activeTask.status) &&
       !responseJson);
+
+  useEffect(() => {
+    if (!isGeneratingPreview) {
+      setGeneratingMessage("");
+      return;
+    }
+
+    setGeneratingMessage("");
+
+    const interval = setInterval(() => {
+      setGeneratingMessage((prev) =>
+        prev === "" ? "Background process, may take several seconds" : ""
+      );
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isGeneratingPreview]);
+
+  // Auto-switch to UI Preview tab when responseJson is available
+  useEffect(() => {
+    if (responseJson) {
+      setActiveTab("ui-preview");
+    }
+  }, [responseJson]);
 
   async function loadTasks() {
     try {
@@ -168,83 +195,136 @@ export default function TaskRunner() {
         </Link>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-4">
-        <h2 className="text-xl font-semibold text-gray-900">API Endpoint</h2>
-
-        {formError && (
-          <div className="bg-red-50 border border-red-200 text-sm text-red-700 rounded-xl px-4 py-3">
-            {formError}
-          </div>
-        )}
-
-        <div className="space-y-3">
-          <label className="block text-sm font-medium text-gray-700">
-            Enter API Endpoint
-          </label>
-          <div className="flex flex-col gap-3 md:flex-row">
-            <input
-              type="url"
-              className="flex-1 rounded-lg border border-gray-300 p-3 focus:ring-2 focus:ring-blue-500"
-              placeholder="https://example.com/api/endpoint"
-              value={apiEndpoint}
-              onChange={(event) => setApiEndpoint(event.target.value)}
-              disabled={fetchingEndpoint}
-            />
-            <button
-              type="button"
-              onClick={handleFetchEndpoint}
-              className="px-4 py-2 rounded-lg bg-gray-900 text-white font-semibold hover:bg-gray-800 disabled:opacity-50"
-              disabled={!apiEndpoint || !systemTag || fetchingEndpoint}
-            >
-              {fetchingEndpoint ? "Fetching..." : "Get Response"}
-            </button>
-          </div>
-
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700">
-              System Tag <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              className="w-full rounded-lg border border-gray-300 p-3 focus:ring-2 focus:ring-blue-500"
-              value={systemTag}
-              onChange={(event) => setSystemTag(event.target.value)}
-              disabled={fetchingEndpoint}
-            />
-            <p className="text-xs text-gray-500">
-              Required: Request identifier tag that describes the request (e.g.,
-              "BooksByAuthor"). Must be one word with no spaces.
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700">
-              Data Description (Optional)
-            </label>
-            <textarea
-              className="w-full rounded-lg border border-gray-300 p-3 focus:ring-2 focus:ring-blue-500 resize-y"
-              placeholder="Describe the data returned by this endpoint to help the chatbot understand and transform it better..."
-              value={dataDescription}
-              onChange={(event) => setDataDescription(event.target.value)}
-              disabled={fetchingEndpoint}
-              rows={3}
-            />
-            <p className="text-xs text-gray-500">
-              Optional: Provide context about the data structure, field
-              meanings, or transformation goals.
-            </p>
-          </div>
-
-          {isGenerating && (
-            <div className="text-gray-500 text-sm">Generating...</div>
-          )}
-        </div>
+      {/* Tabs */}
+      <div className="border-b border-gray-200">
+        <nav className="flex space-x-8" aria-label="Tabs">
+          <button
+            onClick={() => setActiveTab("endpoint-details")}
+            className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+              activeTab === "endpoint-details"
+                ? "border-blue-500 text-blue-600"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+            }`}
+          >
+            Endpoint Details
+          </button>
+          <button
+            onClick={() => setActiveTab("ui-preview")}
+            className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+              activeTab === "ui-preview"
+                ? "border-blue-500 text-blue-600"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+            }`}
+          >
+            UI Preview
+          </button>
+          <button
+            disabled
+            className="py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-300 cursor-not-allowed"
+          >
+            Create Transformer
+          </button>
+        </nav>
       </div>
 
-      {responseJson && (
+      {/* Endpoint Details Tab */}
+      {activeTab === "endpoint-details" && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-4">
+          <h2 className="text-xl font-semibold text-gray-900">API Endpoint</h2>
+
+          {formError && (
+            <div className="bg-red-50 border border-red-200 text-sm text-red-700 rounded-xl px-4 py-3">
+              {formError}
+            </div>
+          )}
+
+          <div className="space-y-3">
+            <label className="block text-sm font-medium text-gray-700">
+              Enter API Endpoint
+            </label>
+            <div className="flex flex-col gap-3 md:flex-row">
+              <input
+                type="url"
+                className="flex-1 rounded-lg border border-gray-300 p-3 focus:ring-2 focus:ring-blue-500"
+                placeholder="https://example.com/api/endpoint"
+                value={apiEndpoint}
+                onChange={(event) => setApiEndpoint(event.target.value)}
+                disabled={isStepOneDisabled}
+              />
+              <button
+                type="button"
+                onClick={handleFetchEndpoint}
+                className="px-4 py-2 rounded-lg bg-gray-900 text-white font-semibold hover:bg-gray-800 disabled:opacity-50"
+                disabled={!apiEndpoint || !systemTag || isStepOneDisabled}
+              >
+                {fetchingEndpoint ? "Fetching..." : "Get Response"}
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">
+                System Tag <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                className="w-full rounded-lg border border-gray-300 p-3 focus:ring-2 focus:ring-blue-500"
+                value={systemTag}
+                onChange={(event) => setSystemTag(event.target.value)}
+                disabled={isStepOneDisabled}
+              />
+              <p className="text-xs text-gray-500">
+                Required: Request identifier tag that describes the request
+                (e.g., "BooksByAuthor"). Must be one word with no spaces.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">
+                Data Description (Optional)
+              </label>
+              <textarea
+                className="w-full rounded-lg border border-gray-300 p-3 focus:ring-2 focus:ring-blue-500 resize-y"
+                placeholder="Describe the data returned by this endpoint to help the chatbot understand and transform it better..."
+                value={dataDescription}
+                onChange={(event) => setDataDescription(event.target.value)}
+                disabled={isStepOneDisabled}
+                rows={3}
+              />
+              <p className="text-xs text-gray-500">
+                Optional: Provide context about the data structure, field
+                meanings, or transformation goals.
+              </p>
+            </div>
+
+            {isGeneratingPreview && (
+              <div className="text-black text-md font-bold">
+                {generatingMessage || "Generating Preview..."}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* UI Preview Tab */}
+      {activeTab === "ui-preview" && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Preview</h2>
-          <PreviewList toResponseText={JSON.stringify(responseJson, null, 2)} />
+          {responseJson ? (
+            <>
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                Preview
+              </h2>
+              <PreviewList
+                toResponseText={JSON.stringify(responseJson, null, 2)}
+              />
+            </>
+          ) : (
+            <div className="text-center py-12 text-gray-500">
+              <p className="text-lg">No preview available yet.</p>
+              <p className="text-sm mt-2">
+                Please fetch an endpoint first from the Endpoint Details tab.
+              </p>
+            </div>
+          )}
         </div>
       )}
 

@@ -1,8 +1,12 @@
 import React from "react";
 
-export default function ImageNotFound() {
+export default function ImageNotFound({ size = "large" }) {
+  const sizeClass =
+    size === "small" ? "w-[150px] h-[230px]" : "w-[210px] h-[320px]";
   return (
-    <div className="w-[210px] h-[320px] m-auto [border-radius:0_6%_6%_0_/4%] drop-shadow-md bg-gray-200 flex items-center justify-center border-2 border-dashed border-gray-400">
+    <div
+      className={`${sizeClass} m-auto [border-radius:0_6%_6%_0_/4%] drop-shadow-md bg-gray-200 flex items-center justify-center border-2 border-dashed border-gray-400`}
+    >
       <div className="text-center text-gray-500">
         <svg
           className="w-16 h-16 mx-auto mb-2"
