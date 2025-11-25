@@ -80,14 +80,8 @@ export default function useTaskProgress(taskId) {
     };
   }, [taskId]);
 
-  const latestCode = useMemo(() => {
-    console.log("snapshot", snapshot);
-    return (
-      snapshot?.metadata?.latest_code ||
-      snapshot?.output?.code ||
-      snapshot?.output_payload?.code ||
-      ""
-    );
+  const transformCode = useMemo(() => {
+    return snapshot?.transform_code || "";
   }, [snapshot]);
 
   const testResults = useMemo(() => {
@@ -114,7 +108,7 @@ export default function useTaskProgress(taskId) {
     events,
     connected,
     error,
-    latestCode,
+    transformCode,
     testResults,
     requestStop,
     responseJson,
@@ -137,6 +131,7 @@ export function mergeSnapshot(previous, incoming) {
     output: incoming.output || previous.output,
     test_results: incoming.test_results || previous.test_results,
     response_json: incoming.response_json || previous.response_json,
+    transform_code: incoming.transform_code || previous.transform_code,
   };
 }
 

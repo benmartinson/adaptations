@@ -3,6 +3,8 @@ import React from "react";
 export default function TransformationConfigurator({
   fromResponse,
   toResponse,
+  onGenerateTransform,
+  isGenerating = false,
 }) {
   const fromResponseText = fromResponse
     ? JSON.stringify(fromResponse, null, 2)
@@ -14,6 +16,14 @@ export default function TransformationConfigurator({
       <p className="text-sm text-gray-600">
         View and compare the original API response with the transformed output.
       </p>
+      <button
+        type="button"
+        onClick={onGenerateTransform}
+        disabled={!fromResponse || !toResponse || isGenerating}
+        className="px-4 py-2 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {isGenerating ? "Generating..." : "Generate Transform"}
+      </button>
       <div className="grid md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">

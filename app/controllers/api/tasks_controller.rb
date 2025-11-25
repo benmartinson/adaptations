@@ -61,6 +61,7 @@ module Api
         system_tag: task.system_tag,
         data_description: task.data_description,
         response_json: task.response_json,
+        transform_code: task.transform_code,
         started_at: task.started_at,
         finished_at: task.finished_at,
         cancelled_at: task.cancelled_at,

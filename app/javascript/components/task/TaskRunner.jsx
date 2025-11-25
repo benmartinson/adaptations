@@ -20,6 +20,7 @@ export default function TaskRunner() {
   const [generatingMessage, setGeneratingMessage] = useState("");
   const [activeTab, setActiveTab] = useState("endpoint-details");
   const [isAdvancedModalOpen, setIsAdvancedModalOpen] = useState(false);
+  const [generatingTransform, setGeneratingTransform] = useState(false);
 
   const { snapshot, responseJson } = useTaskProgress(task_id);
 
@@ -173,6 +174,52 @@ export default function TaskRunner() {
     }
   }
 
+  async function handleGenerateTransform() {
+    const fromResponseData = snapshot?.input_payload?.from_response;
+    if (!fromResponseData || !responseJson) {
+      return;
+    }
+
+    setGeneratingTransform(true);
+    try {
+      const taskResponse = await fetch("/api/tasks", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          task: {
+            kind: "code_workflow",
+            api_endpoint: apiEndpoint,
+            system_tag: systemTag,
+            data_description: dataDescription,
+            input_payload: {
+              from_response: fromResponseData,
+              to_response: responseJson,
+              task_type: "generate_transform_code",
+            },
+            metadata: {
+              source: "web-ui",
+            },
+          },
+        }),
+      });
+
+      if (!taskResponse.ok) {
+        throw new Error("Unable to create transform task");
+      }
+
+      const task = await taskResponse.json();
+      setTasks((prev) => [task, ...prev].slice(0, 15));
+      setIsAdvancedModalOpen(false);
+      // Redirect to the new task
+      window.location.href = `/task/${task.id}`;
+    } catch (error) {
+      console.error(error);
+      setGeneratingTransform(false);
+    }
+  }
+
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
       <div className="flex justify-between items-center">
@@ -271,7 +318,7 @@ export default function TaskRunner() {
                 className="px-4 py-2 rounded-lg bg-gray-900 text-white font-semibold hover:bg-gray-800 disabled:opacity-50"
                 disabled={!apiEndpoint || !systemTag || fetchingEndpoint}
               >
-                {fetchingEndpoint ? "Fetching..." : "Generate"}
+                {fetchingEndpoint ? "Fetching..." : "Generate Preview"}
               </button>
             </div>
 
@@ -322,21 +369,31 @@ export default function TaskRunner() {
       {activeTab === "ui-preview" && (
         <>
           {responseJson && (
-            <p className="text-sm text-gray-600">
-              Here is a preview of what the response data layout will look like
-              after it's been transformed. If it's not correct, you can go back
-              to the 'Endpoint Details' section and modify the 'Data
-              Description' to provide the model with more details about what
-              data transformation is required. If you need more control you can
-              click{" "}
+            <div className="space-y-4">
+              <p className="text-sm text-gray-600">
+                Here is a preview of what the response data layout will look
+                like after it's been transformed. If it's not correct, you can
+                go back to the 'Endpoint Details' section and modify the 'Data
+                Description' to provide the model with more details about what
+                data transformation is required. If you need more control you
+                can click{" "}
+                <button
+                  onClick={() => setIsAdvancedModalOpen(true)}
+                  className="text-blue-600 hover:text-blue-800 font-medium underline"
+                >
+                  here
+                </button>{" "}
+                to open advanced options.
+              </p>
               <button
-                onClick={() => setIsAdvancedModalOpen(true)}
-                className="text-blue-600 hover:text-blue-800 font-medium underline"
+                type="button"
+                onClick={handleGenerateTransform}
+                disabled={generatingTransform}
+                className="px-4 py-2 rounded-lg bg-gray-900 text-white font-semibold hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
-                here
-              </button>{" "}
-              to open advanced options.
-            </p>
+                {generatingTransform ? "Generating..." : "Generate Transform"}
+              </button>
+            </div>
           )}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             {responseJson ? (
@@ -370,6 +427,8 @@ export default function TaskRunner() {
         <TransformationConfigurator
           fromResponse={snapshot?.input_payload?.from_response}
           toResponse={responseJson}
+          onGenerateTransform={handleGenerateTransform}
+          isGenerating={generatingTransform}
         />
       </Modal>
 

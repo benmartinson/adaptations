@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_11_20_231636) do
+ActiveRecord::Schema[8.1].define(version: 2025_11_25_201454) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -166,6 +166,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_20_231636) do
     t.integer "tokens_completion", default: 0, null: false
     t.integer "tokens_prompt", default: 0, null: false
     t.integer "tokens_total", default: 0, null: false
+    t.text "transform_code"
     t.datetime "updated_at", null: false
     t.index ["created_at"], name: "index_tasks_on_created_at"
     t.index ["kind"], name: "index_tasks_on_kind"

@@ -23,7 +23,7 @@ class GenerateTransformCodeJob < ApplicationJob
     task.mark_running!
     broadcast_event(phase: "starting", message: "Starting code generation")
 
-    task.record_progress!(metadata: { "phase" => "code_generation", "latest_code" => "Generating..." })
+    task.record_progress!(metadata: { "phase" => "code_generation" })
     broadcast_event(
       phase: "code_generation",
       message: "Generating transformation code",
@@ -35,14 +35,12 @@ class GenerateTransformCodeJob < ApplicationJob
 
     return handle_cancellation! if cancellation_requested?
 
-    task.record_progress!(metadata: { "phase" => "code_generated", "latest_code" => code_body })
+    task.update!(transform_code: code_body)
+    task.record_progress!(metadata: { "phase" => "code_generated" })
     broadcast_event(
       phase: "code_generated",
       message: "Code generated successfully",
-      code: code_body,
-      metadata: {
-        "latest_code" => code_body,
-      }
+      transform_code: code_body,
     )
 
     task.mark_completed!(
@@ -54,8 +52,7 @@ class GenerateTransformCodeJob < ApplicationJob
     broadcast_event(
       phase: "completed",
       message: "Code generation completed successfully",
-      output: { "code" => code_body },
-      code: code_body,
+      transform_code: code_body,
       final: true,
     )
   end
