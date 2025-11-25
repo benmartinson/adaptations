@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import useTaskProgress from "../../hooks/useTaskProgress";
 import PreviewList from "./PreviewList";
+import Modal from "../common/Modal";
+import TransformationConfigurator from "./TransformationConfigurator";
 import { limitArraySizes } from "../../helpers";
 // import TaskStatus from "./TaskStatus";
 // import EventLog from "./EventLog";
@@ -17,9 +19,9 @@ export default function TaskRunner() {
   const [formError, setFormError] = useState(null);
   const [generatingMessage, setGeneratingMessage] = useState("");
   const [activeTab, setActiveTab] = useState("endpoint-details");
+  const [isAdvancedModalOpen, setIsAdvancedModalOpen] = useState(false);
 
   const { snapshot, responseJson } = useTaskProgress(task_id);
-  const isStepOneDisabled = fetchingEndpoint || !!responseJson;
 
   useEffect(() => {
     loadTasks();
@@ -172,7 +174,7 @@ export default function TaskRunner() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-6 space-y-8">
+    <div className="max-w-6xl mx-auto p-6 space-y-6">
       <div className="flex justify-between items-center">
         <Link
           to="/tasks"
@@ -261,15 +263,15 @@ export default function TaskRunner() {
                 placeholder="https://example.com/api/endpoint"
                 value={apiEndpoint}
                 onChange={(event) => setApiEndpoint(event.target.value)}
-                disabled={isStepOneDisabled}
+                disabled={fetchingEndpoint}
               />
               <button
                 type="button"
                 onClick={handleFetchEndpoint}
                 className="px-4 py-2 rounded-lg bg-gray-900 text-white font-semibold hover:bg-gray-800 disabled:opacity-50"
-                disabled={!apiEndpoint || !systemTag || isStepOneDisabled}
+                disabled={!apiEndpoint || !systemTag || fetchingEndpoint}
               >
-                {fetchingEndpoint ? "Fetching..." : "Get Response"}
+                {fetchingEndpoint ? "Fetching..." : "Generate"}
               </button>
             </div>
 
@@ -282,7 +284,7 @@ export default function TaskRunner() {
                 className="w-full rounded-lg border border-gray-300 p-3 focus:ring-2 focus:ring-blue-500"
                 value={systemTag}
                 onChange={(event) => setSystemTag(event.target.value)}
-                disabled={isStepOneDisabled}
+                disabled={fetchingEndpoint}
               />
               <p className="text-xs text-gray-500">
                 Required: Request identifier tag that describes the request
@@ -299,7 +301,6 @@ export default function TaskRunner() {
                 placeholder="Describe the data returned by this endpoint to help the chatbot understand and transform it better..."
                 value={dataDescription}
                 onChange={(event) => setDataDescription(event.target.value)}
-                disabled={isStepOneDisabled}
                 rows={3}
               />
               <p className="text-xs text-gray-500">
@@ -319,26 +320,58 @@ export default function TaskRunner() {
 
       {/* UI Preview Tab */}
       {activeTab === "ui-preview" && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          {responseJson ? (
-            <>
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                Preview
-              </h2>
-              <PreviewList
-                toResponseText={JSON.stringify(responseJson, null, 2)}
-              />
-            </>
-          ) : (
-            <div className="text-center py-12 text-gray-500">
-              <p className="text-lg">No preview available yet.</p>
-              <p className="text-sm mt-2">
-                Please fetch an endpoint first from the Endpoint Details tab.
-              </p>
-            </div>
+        <>
+          {responseJson && (
+            <p className="text-sm text-gray-600">
+              Here is a preview of what the response data layout will look like
+              after it's been transformed. If it's not correct, you can go back
+              to the 'Endpoint Details' section and modify the 'Data
+              Description' to provide the model with more details about what
+              data transformation is required. If you need more control you can
+              click{" "}
+              <button
+                onClick={() => setIsAdvancedModalOpen(true)}
+                className="text-blue-600 hover:text-blue-800 font-medium underline"
+              >
+                here
+              </button>{" "}
+              to open advanced options.
+            </p>
           )}
-        </div>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            {responseJson ? (
+              <>
+                <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                  Preview
+                </h2>
+                <PreviewList
+                  toResponseText={JSON.stringify(responseJson, null, 2)}
+                />
+              </>
+            ) : (
+              <div className="text-center py-12 text-gray-500">
+                <p className="text-lg">No preview available yet.</p>
+                <p className="text-sm mt-2">
+                  Please fetch an endpoint first from the Endpoint Details tab.
+                </p>
+              </div>
+            )}
+          </div>
+        </>
       )}
+
+      {/* Advanced Options Modal */}
+      <Modal
+        isOpen={isAdvancedModalOpen}
+        onClose={() => setIsAdvancedModalOpen(false)}
+        title="Advanced Options"
+        size="xl"
+      >
+        <TransformationConfigurator
+          fromResponse={snapshot?.input_payload?.from_response}
+          toResponse={responseJson}
+        />
+      </Modal>
 
       {/* <TaskStatus
         activeTask={activeTask}
