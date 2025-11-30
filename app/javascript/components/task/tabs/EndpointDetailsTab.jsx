@@ -74,10 +74,6 @@ export default function EndpointDetailsTab({
             onChange={(event) => setDataDescription(event.target.value)}
             rows={3}
           />
-          <p className="text-xs text-gray-500">
-            Optional: Provide context about the data structure, field meanings,
-            or transformation goals.
-          </p>
         </div>
 
         {isGeneratingPreview && (

@@ -81,9 +81,6 @@ export default function PreviewItem({ item, isNested = false }) {
 
           {Object.keys(otherAttributes).length > 0 && (
             <div className="mt-3">
-              <h4 className="font-fancy text-[14px] leading-[20px] font-[600] font-bold mt-6 border-b border-gray-200 pb-2 mb-3">
-                Attributes
-              </h4>
               {Object.entries(otherAttributes).map(([key, value]) => (
                 <Label
                   key={key}

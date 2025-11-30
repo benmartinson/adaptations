@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import useTaskProgress from "../../hooks/useTaskProgress";
-import Modal from "../common/Modal";
-import TransformationConfigurator from "./TransformationConfigurator";
 import EndpointDetailsTab from "./tabs/EndpointDetailsTab";
 import UIPreviewTab from "./Preview/UIPreviewTab";
 import CreateTransformerTab from "./tabs/CreateTransformerTab";
@@ -17,12 +15,12 @@ export default function TaskRunner() {
   const [formError, setFormError] = useState(null);
   const [generatingMessage, setGeneratingMessage] = useState("");
   const [activeTab, setActiveTab] = useState("endpoint-details");
-  const [isAdvancedModalOpen, setIsAdvancedModalOpen] = useState(false);
   const [generatingTransform, setGeneratingTransform] = useState(false);
   const [generatingTransformMessage, setGeneratingTransformMessage] =
     useState("");
 
-  const { snapshot, responseJson, transformCode } = useTaskProgress(task_id);
+  const { snapshot, responseJson, transformCode, updateResponseJson } =
+    useTaskProgress(task_id);
 
   // Check if we're in the code_generation phase from metadata
   const isGeneratingTransformCode =
@@ -170,7 +168,6 @@ export default function TaskRunner() {
 
     setGeneratingTransform(true);
     setActiveTab("create-transformer");
-    setIsAdvancedModalOpen(false);
 
     try {
       const taskResponse = await fetch(`/api/tasks/${task_id}/run_job`, {
@@ -279,7 +276,9 @@ export default function TaskRunner() {
           isGeneratingTransformCode={isGeneratingTransformCode}
           onGenerateTransform={handleGenerateTransform}
           generatingTransformMessage={generatingTransformMessage}
-          onOpenAdvancedOptions={() => setIsAdvancedModalOpen(true)}
+          fromResponse={snapshot?.input_payload?.from_response}
+          taskId={task_id}
+          onResponseUpdate={updateResponseJson}
         />
       )}
 
@@ -292,21 +291,6 @@ export default function TaskRunner() {
           onNextStep={() => setActiveTab("run-tests")}
         />
       )}
-
-      {/* Advanced Options Modal */}
-      <Modal
-        isOpen={isAdvancedModalOpen}
-        onClose={() => setIsAdvancedModalOpen(false)}
-        title="Advanced Options"
-        size="xl"
-      >
-        <TransformationConfigurator
-          fromResponse={snapshot?.input_payload?.from_response}
-          toResponse={responseJson}
-          onGenerateTransform={handleGenerateTransform}
-          isGenerating={isGeneratingTransformCode}
-        />
-      </Modal>
     </div>
   );
 }

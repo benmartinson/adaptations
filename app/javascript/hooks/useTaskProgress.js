@@ -101,7 +101,12 @@ export default function useTaskProgress(taskId) {
     return snapshot?.response_json;
   }, [snapshot]);
 
-  // console.log("responseJson", responseJson);
+  const updateResponseJson = (newResponseJson) => {
+    setSnapshot((prev) => ({
+      ...prev,
+      response_json: newResponseJson,
+    }));
+  };
 
   return {
     snapshot,
@@ -112,6 +117,7 @@ export default function useTaskProgress(taskId) {
     testResults,
     requestStop,
     responseJson,
+    updateResponseJson,
   };
 }
 

@@ -43,7 +43,7 @@ module Api
     end
 
     def task_params
-      payload = params.require(:task).permit(:kind, :api_endpoint, :system_tag, :data_description, metadata: {}, input_payload: {})
+      payload = params.require(:task).permit(:kind, :api_endpoint, :system_tag, :data_description, metadata: {}, input_payload: {}, response_json: {})
 
       result = {}
       result[:kind] = payload[:kind] if payload[:kind].present?
@@ -52,6 +52,7 @@ module Api
       result[:data_description] = payload[:data_description] if payload.key?(:data_description)
       result[:metadata] = payload[:metadata] if payload[:metadata].present?
       result[:input_payload] = payload[:input_payload] if payload[:input_payload].present?
+      result[:response_json] = payload[:response_json] if payload[:response_json].present?
       result
     end
 
