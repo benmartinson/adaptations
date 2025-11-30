@@ -31,8 +31,26 @@ class PreviewResponseGenerationJob < ApplicationJob
     to_response_example = "[{
       \"header\": \"Some string value selected from the api response that works as a header\",
       \"subheader\": \"Some string value selected from the api response that works as a subheader\",
-      \"image_url\": \"Some string value selected from the api response that works as a image url\",
-
+      \"image_url\": \"Some url, something in the api response that leads to an image url (this is important)\",
+      \"attributes\": {
+        \"key\": \"value\",
+        \"key2\": \"value2\"
+        ...
+        (you can have as many keys as you want, try to use data from the api response that is relevant to the header and subheader, 
+        DO NOT use data that shouldn't be displayed in a typical UI, like internal ids, urls, create/update timestamps, etc. 
+        Also if the value is null, do not include the attribute)
+      },
+      \"list_items\": [
+        {
+          \"header\": \"Some string value selected from the api response that works as a header\",
+          \"subheader\": \"Some string value selected from the api response that works as a subheader\",
+          \"image_url\": \"Some url, something in the api response that leads to an image url (this is important)\",
+          \"attributes\": {
+            \"key\": \"value\"
+          }
+        }
+      ],
+      \"list_items_header\": \"Some string value selected from the api response that works as a header for the list items\"
     }]"
     
     prompt = "You are a assistant that helps create a data visualization from an api response. 

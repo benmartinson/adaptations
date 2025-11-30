@@ -4,7 +4,7 @@ import useTaskProgress from "../../hooks/useTaskProgress";
 import Modal from "../common/Modal";
 import TransformationConfigurator from "./TransformationConfigurator";
 import EndpointDetailsTab from "./tabs/EndpointDetailsTab";
-import UIPreviewTab from "./tabs/UIPreviewTab";
+import UIPreviewTab from "./Preview/UIPreviewTab";
 import CreateTransformerTab from "./tabs/CreateTransformerTab";
 import { limitArraySizes } from "../../helpers";
 
@@ -265,7 +265,7 @@ export default function TaskRunner() {
           setSystemTag={setSystemTag}
           dataDescription={dataDescription}
           setDataDescription={setDataDescription}
-          fetchingEndpoint={fetchingEndpoint}
+          fetchingEndpoint={isGeneratingPreview}
           formError={formError}
           onFetchEndpoint={handleFetchEndpoint}
           isGeneratingPreview={isGeneratingPreview}

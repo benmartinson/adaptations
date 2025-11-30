@@ -1,5 +1,5 @@
 import React from "react";
-import PreviewList from "../PreviewList";
+import PreviewList from "./PreviewList";
 
 export default function UIPreviewTab({
   responseJson,
@@ -47,7 +47,9 @@ export default function UIPreviewTab({
             <h2 className="text-xl font-semibold text-gray-900 mb-4">
               Preview
             </h2>
-            <PreviewList toResponseText={JSON.stringify(responseJson, null, 2)} />
+            <PreviewList
+              toResponseText={JSON.stringify(responseJson, null, 2)}
+            />
           </>
         ) : (
           <div className="text-center py-12 text-gray-500">
@@ -61,4 +63,3 @@ export default function UIPreviewTab({
     </>
   );
 }
-
