@@ -10,8 +10,6 @@ class RunTransformTestsJob < ApplicationJob
 
   def perform(task_id)
     @task = Task.find(task_id)
-    return if @task.cancelled?
-    
     run_tests
   end
 
@@ -20,7 +18,6 @@ class RunTransformTestsJob < ApplicationJob
   attr_reader :task
 
   def run_tests
-    task.mark_running!
     broadcast_event(phase: "starting", message: "Starting test execution")
 
     code_body = task.input_payload.fetch("code", nil)
@@ -32,8 +29,6 @@ class RunTransformTestsJob < ApplicationJob
     task.record_progress!(metadata: { "phase" => "testing", "test_results" => [] })
 
     test_results = execute_test_suite(code_body)
-    
-    return handle_cancellation! if cancellation_requested?
 
     task.record_progress!(metadata: { "phase" => "testing_complete", "test_results" => test_results })
 
@@ -60,8 +55,6 @@ class RunTransformTestsJob < ApplicationJob
     results = []
 
     test_cases.each_with_index do |test_case, index|
-      break if cancellation_requested?
-
       broadcast_event(
         phase: "testing",
         message: "Running #{test_case["name"].presence || "test #{index + 1}"}",
@@ -132,19 +125,6 @@ class RunTransformTestsJob < ApplicationJob
     end
   rescue StandardError => e
     raise(StandardError, "Inline evaluation failed: #{e.message}")
-  end
-
-  def cancellation_requested?
-    task.reload.cancelled?
-  end
-
-  def handle_cancellation!
-    task.update!(finished_at: Time.current)
-    broadcast_event(
-      phase: "cancelled",
-      message: "Task cancelled",
-      final: true
-    )
   end
 
   def broadcast_event(data)

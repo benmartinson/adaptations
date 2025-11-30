@@ -10,8 +10,6 @@ class GenerateTransformCodeJob < ApplicationJob
 
   def perform(task_id)
     @task = Task.find(task_id)
-    return if @task.cancelled?
-    
     run_code_generation
   end
 
@@ -20,14 +18,10 @@ class GenerateTransformCodeJob < ApplicationJob
   attr_reader :task
 
   def run_code_generation
-    task.mark_running!
-    broadcast_event(phase: "starting", message: "Starting code generation")
-
-    task.record_progress!(metadata: { "phase" => "code_generation" })
-    broadcast_event(
-      phase: "code_generation",
-      message: "Generating transformation code",
-    )
+    # broadcast_event(
+    #   phase: "code_generation",
+    #   message: "Generating transformation code",
+    # )
 
     code_prompt = build_prompt()
     raw_response = generate_code_response(code_prompt)
@@ -66,19 +60,6 @@ class GenerateTransformCodeJob < ApplicationJob
     code = heredoc_match[1] if heredoc_match
 
     code.strip
-  end
-
-  def cancellation_requested?
-    task.reload.cancelled?
-  end
-
-  def handle_cancellation!
-    task.update!(finished_at: Time.current)
-    broadcast_event(
-      phase: "cancelled",
-      message: "Task cancelled",
-      final: true
-    )
   end
 
   def broadcast_event(data)

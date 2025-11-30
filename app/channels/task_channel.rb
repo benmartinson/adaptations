@@ -11,12 +11,6 @@ class TaskChannel < ApplicationCable::Channel
     stop_all_streams
   end
 
-  def stop(_data = {})
-    return unless @task
-
-    @task.request_cancel!("Cancelled via websocket")
-  end
-
   private
 
   def snapshot_payload(task)

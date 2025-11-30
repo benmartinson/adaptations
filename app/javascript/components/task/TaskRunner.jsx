@@ -45,9 +45,7 @@ export default function TaskRunner() {
 
   const isGeneratingPreview =
     fetchingEndpoint ||
-    (snapshot &&
-      ["running-preview-response-generation"].includes(snapshot.status) &&
-      !responseJson);
+    (snapshot?.phase === "preview_generation" && !responseJson);
 
   useEffect(() => {
     if (!isGeneratingPreview) {
@@ -202,8 +200,12 @@ export default function TaskRunner() {
 
   const tabs = [
     { id: "endpoint-details", label: "Endpoint Details", enabled: true },
-    { id: "ui-preview", label: "UI Preview", enabled: true },
-    { id: "create-transformer", label: "Create Transformer", enabled: true },
+    { id: "ui-preview", label: "UI Preview", enabled: !!responseJson },
+    {
+      id: "create-transformer",
+      label: "Create Transformer",
+      enabled: !!transformCode,
+    },
     { id: "run-tests", label: "Run Tests", enabled: false },
     { id: "deploy", label: "Deploy", enabled: false },
   ];
@@ -240,7 +242,7 @@ export default function TaskRunner() {
               key={tab.id}
               onClick={() => tab.enabled && setActiveTab(tab.id)}
               disabled={!tab.enabled}
-              className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+              className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
                 !tab.enabled
                   ? "border-transparent text-gray-300 cursor-not-allowed"
                   : activeTab === tab.id

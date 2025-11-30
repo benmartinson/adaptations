@@ -2,7 +2,7 @@ module Api
   class TasksController < ApplicationController
     skip_before_action :verify_authenticity_token
 
-    before_action :set_task, only: %i[show update cancel run_job]
+    before_action :set_task, only: %i[show update run_job]
 
     def index
       tasks = Task.recent.limit(limit_param)
@@ -30,11 +30,6 @@ module Api
       enqueue_job(@task)
 
       render json: serialize_task(@task), status: :accepted
-    end
-
-    def cancel
-      @task.request_cancel!(reason: cancel_reason)
-      render json: serialize_task(@task)
     end
 
     private
@@ -72,10 +67,6 @@ module Api
       result
     end
 
-    def cancel_reason
-      params.fetch(:reason, nil)
-    end
-
     def serialize_task(task)
       {
         id: task.id,
@@ -88,7 +79,6 @@ module Api
         transform_code: task.transform_code,
         started_at: task.started_at,
         finished_at: task.finished_at,
-        cancelled_at: task.cancelled_at,
         last_progress_at: task.last_progress_at,
         tokens: {
           prompt: task.tokens_prompt,

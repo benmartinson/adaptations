@@ -10,8 +10,6 @@ class PreviewResponseGenerationJob < ApplicationJob
 
   def perform(task_id)
     @task = Task.find(task_id)
-    return if @task.cancelled?
-    
     run_preview_response_generation
   end
 
@@ -20,8 +18,11 @@ class PreviewResponseGenerationJob < ApplicationJob
   attr_reader :task
 
   def run_preview_response_generation
-    task.update!(status: "running-preview-response-generation")
-    broadcast_event(phase: "starting", message: "Starting transformation generation")
+    broadcast_event(
+      phase: "preview_generation",
+      message: "Generating preview response",
+      progress: 0.1
+    )
     
     from_response = task.input_payload.fetch("from_response", [])
     system_tag = task.input_payload.fetch("system_tag", nil)

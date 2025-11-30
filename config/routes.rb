@@ -11,7 +11,6 @@ Rails.application.routes.draw do
 
     resources :tasks, only: %i[index show create update] do
       member do
-        post :cancel
         post :run_job
       end
     end
