@@ -20,7 +20,7 @@ class PreviewResponseGenerationJob < ApplicationJob
   attr_reader :task
 
   def run_preview_response_generation
-    task.mark_running!
+    task.update!(status: "running-preview-response-generation")
     broadcast_event(phase: "starting", message: "Starting transformation generation")
     
     from_response = task.input_payload.fetch("from_response", [])

@@ -51,7 +51,6 @@ group :development, :test do
   # Commented out to avoid conflict with pry
   # gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"
 
-  # Interactive debugging with binding.pry
   gem "pry-rails"
   gem "pry-byebug"
 

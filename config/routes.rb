@@ -9,9 +9,10 @@ Rails.application.routes.draw do
     get 'try_api', to: 'try_api#index'
     post 'try_api', to: 'try_api#index'
 
-    resources :tasks, only: %i[index show create] do
+    resources :tasks, only: %i[index show create update] do
       member do
         post :cancel
+        post :run_job
       end
     end
   end

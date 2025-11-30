@@ -2,7 +2,7 @@ module Api
   class TasksController < ApplicationController
     skip_before_action :verify_authenticity_token
 
-    before_action :set_task, only: %i[show cancel]
+    before_action :set_task, only: %i[show update cancel run_job]
 
     def index
       tasks = Task.recent.limit(limit_param)
@@ -15,9 +15,21 @@ module Api
 
     def create
       task = Task.create!(task_params)
-      enqueue_job(task)
 
-      render json: serialize_task(task), status: :accepted
+      render json: serialize_task(task), status: :created
+    end
+
+    def update
+      @task.update!(task_params)
+
+      render json: serialize_task(@task)
+    end
+
+    def run_job
+      @task.update!(run_job_params)
+      enqueue_job(@task)
+
+      render json: serialize_task(@task), status: :accepted
     end
 
     def cancel
@@ -38,14 +50,26 @@ module Api
     def task_params
       payload = params.require(:task).permit(:kind, :api_endpoint, :system_tag, :data_description, metadata: {}, input_payload: {})
 
-      {
-        kind: payload[:kind].presence || "code_workflow",
-        api_endpoint: payload[:api_endpoint],
-        system_tag: payload[:system_tag],
-        data_description: payload[:data_description],
-        metadata: payload[:metadata] || {},
-        input_payload: payload[:input_payload] || {}
-      }
+      result = {}
+      result[:kind] = payload[:kind] if payload[:kind].present?
+      result[:api_endpoint] = payload[:api_endpoint] if payload.key?(:api_endpoint)
+      result[:system_tag] = payload[:system_tag] if payload.key?(:system_tag)
+      result[:data_description] = payload[:data_description] if payload.key?(:data_description)
+      result[:metadata] = payload[:metadata] if payload[:metadata].present?
+      result[:input_payload] = payload[:input_payload] if payload[:input_payload].present?
+      result
+    end
+
+    def run_job_params
+      payload = params.require(:task).permit(:api_endpoint, :system_tag, :data_description, metadata: {}, input_payload: {})
+
+      result = {}
+      result[:api_endpoint] = payload[:api_endpoint] if payload.key?(:api_endpoint)
+      result[:system_tag] = payload[:system_tag] if payload.key?(:system_tag)
+      result[:data_description] = payload[:data_description] if payload.key?(:data_description)
+      result[:metadata] = payload[:metadata] if payload[:metadata].present?
+      result[:input_payload] = payload[:input_payload] if payload[:input_payload].present?
+      result
     end
 
     def cancel_reason

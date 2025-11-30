@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 export default function TaskList() {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [creating, setCreating] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadTasks();
@@ -24,6 +26,35 @@ export default function TaskList() {
       setError(error.message);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleNewTask() {
+    setCreating(true);
+    try {
+      const response = await fetch("/api/tasks", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          task: {
+            kind: "code_workflow",
+            metadata: { source: "web-ui" },
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Unable to create task");
+      }
+
+      const task = await response.json();
+      navigate(`/task/${task.id}`);
+    } catch (error) {
+      console.error(error);
+      setError(error.message);
+      setCreating(false);
     }
   }
 
@@ -72,12 +103,13 @@ export default function TaskList() {
     <div className="max-w-6xl mx-auto p-6 space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-gray-900">Tasks</h1>
-        <Link
-          to="/task/new"
-          className="px-4 py-2 rounded-lg bg-gray-900 text-white font-semibold hover:bg-gray-800"
+        <button
+          onClick={handleNewTask}
+          disabled={creating}
+          className="px-4 py-2 rounded-lg bg-gray-900 text-white font-semibold hover:bg-gray-800 disabled:opacity-50"
         >
-          New Task
-        </Link>
+          {creating ? "Creating..." : "New Task"}
+        </button>
       </div>
 
       {tasks.length === 0 ? (
@@ -102,9 +134,7 @@ export default function TaskList() {
                     >
                       {task.status}
                     </span>
-                    <span className="text-xs text-gray-500">
-                      ID: {task.id}
-                    </span>
+                    <span className="text-xs text-gray-500">ID: {task.id}</span>
                   </div>
 
                   {task.api_endpoint && (
@@ -155,4 +185,3 @@ export default function TaskList() {
     </div>
   );
 }
-

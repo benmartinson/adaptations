@@ -33,27 +33,11 @@ class GenerateTransformCodeJob < ApplicationJob
     raw_response = generate_code_response(code_prompt)
     code_body = sanitize_code(raw_response)
 
-    return handle_cancellation! if cancellation_requested?
-
     task.update!(transform_code: code_body)
-    task.record_progress!(metadata: { "phase" => "code_generated" })
     broadcast_event(
       phase: "code_generated",
       message: "Code generated successfully",
       transform_code: code_body,
-    )
-
-    task.mark_completed!(
-      output: {
-        "code" => code_body,
-      }
-    )
-
-    broadcast_event(
-      phase: "completed",
-      message: "Code generation completed successfully",
-      transform_code: code_body,
-      final: true,
     )
   end
 
