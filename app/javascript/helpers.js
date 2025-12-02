@@ -21,3 +21,22 @@ export function limitArraySizes(obj, maxArraySize = 10) {
 
   return result;
 }
+
+export async function fetchEndpointData(apiEndpoint, maxArraySize = 10) {
+  const response = await fetch(apiEndpoint);
+  if (!response.ok) {
+    throw new Error("Unable to fetch from endpoint");
+  }
+
+  const text = await response.text();
+  let fetchedData;
+  try {
+    fetchedData = JSON.parse(text);
+    // Limit array sizes to reduce token usage
+    fetchedData = limitArraySizes(fetchedData, maxArraySize);
+  } catch {
+    fetchedData = text;
+  }
+
+  return fetchedData;
+}

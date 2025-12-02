@@ -20,25 +20,24 @@ class RunTransformTestsJob < ApplicationJob
   def run_tests
     broadcast_event(phase: "starting", message: "Starting test execution")
 
-    code_body = task.input_payload.fetch("code", nil)
+    code_body = task.transform_code
     
     if code_body.blank?
-      raise StandardError, "No code found to test"
+      raise StandardError, "No transform code found to test"
     end
 
-    task.record_progress!(metadata: { "phase" => "testing", "test_results" => [] })
+    from_response = task.input_payload.fetch("from_response", nil)
+    if from_response.blank?
+      raise StandardError, "No input data (from_response) found to test"
+    end
 
-    test_results = execute_test_suite(code_body)
+    expected_output = task.response_json
+    if expected_output.blank?
+      raise StandardError, "No expected output (response_json) found to compare"
+    end
 
-    task.record_progress!(metadata: { "phase" => "testing_complete", "test_results" => test_results })
-
-    task.mark_completed!(
-      output: {
-        "test_results" => test_results,
-        "code" => code_body,
-      }
-    )
-
+    from_response = [from_response] unless from_response.is_a?(Array)
+    test_results = run_transform_test(code_body, from_response, expected_output)
     broadcast_event(
       phase: "completed",
       message: "Tests completed successfully",
@@ -48,67 +47,38 @@ class RunTransformTestsJob < ApplicationJob
     )
   end
 
-  def execute_test_suite(code_body)
-    test_cases = Array(task.input_payload["test_cases"])
-    return [] if test_cases.empty?
+  def run_transform_test(code_body, from_response, expected_output)
+    output = execute_code(code_body, from_response)
+    # Normalize both for comparison (convert to JSON and back to handle symbol/string keys)
+    normalized_output = normalize_for_comparison(output)
+    normalized_expected = normalize_for_comparison(expected_output)
 
-    results = []
-
-    test_cases.each_with_index do |test_case, index|
-      broadcast_event(
-        phase: "testing",
-        message: "Running #{test_case["name"].presence || "test #{index + 1}"}",
-        code: code_body,
-        test_case: test_case
-      )
-
-      result = run_single_test(code_body, test_case, index)
-      results << result
-
-      broadcast_event(
-        phase: "testing",
-        message: "Finished #{test_case["name"].presence || "test #{index + 1}"} (#{result[:status]})",
-        test_result: result
-      )
-    end
-
-    results
-  end
-
-  def run_single_test(code_body, test_case, index)
-    input = test_case["input"] || {}
-    expected = test_case["expected_output"]
-
-    output = execute_code(code_body, input)
-
-    status =
-      if expected.nil?
-        "completed"
-      elsif output == expected
-        "passed"
-      else
-        "failed"
-      end
+    status = normalized_output == normalized_expected ? "passed" : "failed"
 
     {
-      name: test_case["name"].presence || "Test #{index + 1}",
+      name: "Transform API Response",
       status: status,
-      input: input,
+      input: from_response,
       output: output,
-      expected_output: expected
+      expected_output: expected_output
     }
   rescue StandardError => e
     {
-      name: test_case["name"].presence || "Test #{index + 1}",
+      name: "Transform API Response",
       status: "error",
-      input: input,
+      input: from_response,
       error: e.message
     }
   end
 
+  def normalize_for_comparison(data)
+    JSON.parse(data.to_json)
+  end
+
   def execute_code(code_body, input)
     RubySandbox.run(code_body, input)
-  rescue StandardError
+  rescue StandardError => e
+    binding.pry
     evaluate_inline(code_body, input)
   end
 

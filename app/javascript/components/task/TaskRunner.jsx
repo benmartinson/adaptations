@@ -4,7 +4,8 @@ import useTaskProgress from "../../hooks/useTaskProgress";
 import EndpointDetailsTab from "./tabs/EndpointDetailsTab";
 import UIPreviewTab from "./Preview/UIPreviewTab";
 import CreateTransformerTab from "./tabs/CreateTransformerTab";
-import { limitArraySizes } from "../../helpers";
+import RunTestsTab from "./tabs/RunTestsTab";
+import { fetchEndpointData } from "../../helpers";
 
 export default function TaskRunner() {
   const { task_id } = useParams();
@@ -19,8 +20,13 @@ export default function TaskRunner() {
   const [generatingTransformMessage, setGeneratingTransformMessage] =
     useState("");
 
-  const { snapshot, responseJson, transformCode, updateResponseJson } =
-    useTaskProgress(task_id);
+  const {
+    snapshot,
+    responseJson,
+    transformCode,
+    updateResponseJson,
+    testResults,
+  } = useTaskProgress(task_id);
 
   const isGeneratingTransformCode = snapshot?.phase === "code_generation";
 
@@ -79,6 +85,13 @@ export default function TaskRunner() {
     return () => clearInterval(interval);
   }, [isGeneratingTransformCode]);
 
+  // Auto-switch to run-tests tab when transformCode is received
+  useEffect(() => {
+    if (transformCode && activeTab === "create-transformer") {
+      setActiveTab("run-tests");
+    }
+  }, [transformCode]);
+
   async function handleFetchEndpoint() {
     if (!apiEndpoint) {
       setFormError("Please provide an API endpoint.");
@@ -99,20 +112,7 @@ export default function TaskRunner() {
     setFetchingEndpoint(true);
     try {
       // Fetch the endpoint data
-      const response = await fetch(apiEndpoint);
-      if (!response.ok) {
-        throw new Error("Unable to fetch from endpoint");
-      }
-
-      const text = await response.text();
-      let fetchedData;
-      try {
-        fetchedData = JSON.parse(text);
-        // Limit array sizes to reduce token usage
-        fetchedData = limitArraySizes(fetchedData, 10);
-      } catch {
-        fetchedData = text;
-      }
+      const fetchedData = await fetchEndpointData(apiEndpoint);
 
       // Update the existing task and run the job
       const taskResponse = await fetch(`/api/tasks/${task_id}/run_job`, {
@@ -272,11 +272,21 @@ export default function TaskRunner() {
       {activeTab === "create-transformer" && (
         <CreateTransformerTab
           isGeneratingTransformCode={isGeneratingTransformCode}
-          transformCode={transformCode}
           generatingTransformMessage={generatingTransformMessage}
           onGenerateTransform={handleGenerateTransform}
-          onNextStep={() => setActiveTab("run-tests")}
           onBackStep={() => setActiveTab("ui-preview")}
+          transformCode={transformCode}
+        />
+      )}
+
+      {activeTab === "run-tests" && (
+        <RunTestsTab
+          transformCode={transformCode}
+          responseJson={responseJson}
+          apiEndpoint={snapshot?.api_endpoint}
+          taskId={task_id}
+          testResults={testResults}
+          isRunningTests={snapshot?.phase === "testing"}
         />
       )}
     </div>
