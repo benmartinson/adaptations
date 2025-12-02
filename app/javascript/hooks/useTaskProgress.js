@@ -85,12 +85,11 @@ export default function useTaskProgress(taskId) {
   }, [snapshot]);
 
   const testResults = useMemo(() => {
-    return (
-      snapshot?.metadata?.test_results ||
-      snapshot?.output?.tests ||
-      snapshot?.output_payload?.tests ||
-      []
-    );
+    return snapshot?.test_results || [];
+  }, [snapshot]);
+
+  const tests = useMemo(() => {
+    return snapshot?.tests || [];
   }, [snapshot]);
 
   const requestStop = () => {
@@ -115,6 +114,7 @@ export default function useTaskProgress(taskId) {
     error,
     transformCode,
     testResults,
+    tests,
     requestStop,
     responseJson,
     updateResponseJson,
@@ -136,6 +136,7 @@ export function mergeSnapshot(previous, incoming) {
       incoming.output_payload || previous.output_payload || previous.output,
     output: incoming.output || previous.output,
     test_results: incoming.test_results || previous.test_results,
+    tests: incoming.tests ?? previous.tests,
     response_json: incoming.response_json || previous.response_json,
     transform_code: incoming.transform_code || previous.transform_code,
   };

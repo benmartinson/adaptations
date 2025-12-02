@@ -49,6 +49,7 @@ class RunTransformTestsJob < ApplicationJob
       message: "Test completed",
       output: { "test_results" => [test_result] },
       test_results: [test_result],
+      tests: task.tests.order(created_at: :desc).map { |t| serialize_test(t) },
       final: true,
     )
   end
@@ -65,6 +66,21 @@ class RunTransformTestsJob < ApplicationJob
       actual_output: result[:output],
       error_message: result[:error]
     )
+  end
+
+  def serialize_test(t)
+    {
+      id: t.id,
+      api_endpoint: t.api_endpoint,
+      status: t.status,
+      from_response: t.from_response,
+      expected_output: t.expected_output,
+      actual_output: t.actual_output,
+      error_message: t.error_message,
+      attempts: t.attempts,
+      created_at: t.created_at,
+      updated_at: t.updated_at
+    }
   end
 
   def execute_transform_test(code_body, from_response, expected_output)

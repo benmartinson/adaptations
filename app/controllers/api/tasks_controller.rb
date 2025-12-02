@@ -92,8 +92,24 @@ module Api
         output_payload: task.output_payload,
         error_message: task.error_message,
         job_id: task.job_id,
+        tests: task.tests.order(created_at: :desc).map { |t| serialize_test(t) },
         created_at: task.created_at,
         updated_at: task.updated_at
+      }
+    end
+
+    def serialize_test(test)
+      {
+        id: test.id,
+        api_endpoint: test.api_endpoint,
+        status: test.status,
+        from_response: test.from_response,
+        expected_output: test.expected_output,
+        actual_output: test.actual_output,
+        error_message: test.error_message,
+        attempts: test.attempts,
+        created_at: test.created_at,
+        updated_at: test.updated_at
       }
     end
 

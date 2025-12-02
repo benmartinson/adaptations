@@ -26,6 +26,7 @@ export default function TaskRunner() {
     transformCode,
     updateResponseJson,
     testResults,
+    tests,
   } = useTaskProgress(task_id);
 
   const isGeneratingTransformCode = snapshot?.phase === "code_generation";
@@ -286,6 +287,7 @@ export default function TaskRunner() {
           apiEndpoint={snapshot?.api_endpoint}
           taskId={task_id}
           testResults={testResults}
+          tests={tests}
           isRunningTests={snapshot?.phase === "testing"}
         />
       )}

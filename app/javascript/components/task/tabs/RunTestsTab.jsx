@@ -7,6 +7,7 @@ export default function RunTestsTab({
   apiEndpoint,
   taskId,
   testResults,
+  tests,
   isRunningTests,
 }) {
   const [runningTest, setRunningTest] = useState(false);
@@ -14,13 +15,23 @@ export default function RunTestsTab({
   const [fetchError, setFetchError] = useState(null);
   const [isFetching, setIsFetching] = useState(false);
 
+  const latestTest = tests?.[0];
   const latestResult = testResults?.[0];
-  const hasRun = !!latestResult;
-  const isPassed = latestResult?.status === "passed";
-  const isFailed = latestResult?.status === "failed";
-  const isError = latestResult?.status === "error";
+  console.log({ latestTest, testResults });
 
-  // Fetch data from the API endpoint when the tab loads
+  const hasRun = !!latestTest || !!latestResult;
+  const isPassed =
+    latestResult?.status === "passed" || latestTest?.status === "pass";
+  const isFailed =
+    latestResult?.status === "failed" || latestTest?.status === "fail";
+  const isError = latestResult?.status === "error";
+  const isPending = latestTest?.status === "pending" && !latestResult;
+
+  const actualOutput = latestResult?.output ?? latestTest?.actual_output;
+  const expectedOutput =
+    latestResult?.expected_output ?? latestTest?.expected_output;
+  const errorMessage = latestResult?.error ?? latestTest?.error_message;
+
   useEffect(() => {
     if (!apiEndpoint) return;
 
@@ -77,16 +88,25 @@ export default function RunTestsTab({
 
   const isLoading = runningTest || isRunningTests;
 
+  const testApiEndpoint = latestTest?.api_endpoint || apiEndpoint;
+
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <div
+        className={`bg-white rounded-xl shadow-sm border p-6 ${
+          isPassed
+            ? "border-green-300"
+            : isFailed
+            ? "border-red-300"
+            : isError
+            ? "border-orange-300"
+            : "border-gray-200"
+        }`}
+      >
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">
-              Transform API Response
-            </h3>
-            <p className="text-sm text-gray-500 mt-1">
-              Run the generated transform code against the fetched API data
+            <p className="text-sm text-gray-500 mt-1 truncate max-w-md">
+              {testApiEndpoint || "No endpoint configured"}
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -99,6 +119,8 @@ export default function RunTestsTab({
                     ? "bg-red-100 text-red-700"
                     : isError
                     ? "bg-orange-100 text-orange-700"
+                    : isPending
+                    ? "bg-yellow-100 text-yellow-700"
                     : "bg-gray-100 text-gray-700"
                 }`}
               >
@@ -108,7 +130,9 @@ export default function RunTestsTab({
                   ? "Failed"
                   : isError
                   ? "Error"
-                  : latestResult?.status}
+                  : isPending
+                  ? "Pending"
+                  : latestTest?.status || latestResult?.status}
               </span>
             )}
             <button
@@ -126,10 +150,7 @@ export default function RunTestsTab({
           <div className="border border-gray-200 rounded-lg overflow-hidden">
             <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
               <h4 className="text-sm font-medium text-gray-700">Input Data</h4>
-              <p className="text-xs text-gray-500">
-                Fresh data from{" "}
-                {apiEndpoint ? new URL(apiEndpoint).hostname : "API"}
-              </p>
+              <p className="text-xs text-gray-500">from_response</p>
             </div>
             <div className="p-4 max-h-48 overflow-auto">
               {isFetching && (
@@ -159,86 +180,53 @@ export default function RunTestsTab({
             </div>
             <div className="p-4 max-h-48 overflow-auto">
               <pre className="text-xs text-gray-600 whitespace-pre-wrap">
-                {JSON.stringify(responseJson, null, 2)?.slice(0, 1000)}
-                {JSON.stringify(responseJson, null, 2)?.length > 1000 && "..."}
+                {JSON.stringify(expectedOutput || responseJson, null, 2)?.slice(
+                  0,
+                  1000
+                )}
+                {JSON.stringify(expectedOutput || responseJson, null, 2)
+                  ?.length > 1000 && "..."}
               </pre>
             </div>
           </div>
         </div>
-      </div>
 
-      {hasRun && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Test Results
-          </h3>
-
-          {isError && (
-            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-4">
-              <p className="text-sm text-orange-700 font-medium">
-                Error during execution
-              </p>
-              <p className="text-sm text-orange-600 mt-1">
-                {latestResult?.error}
-              </p>
-            </div>
-          )}
-
-          {(isPassed || isFailed) && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {/* Expected Output */}
-              <div
-                className={`border rounded-lg overflow-hidden ${
-                  isPassed ? "border-green-200" : "border-gray-200"
-                }`}
-              >
-                <div
-                  className={`px-4 py-2 border-b ${
-                    isPassed
-                      ? "bg-green-50 border-green-200"
-                      : "bg-gray-50 border-gray-200"
-                  }`}
-                >
-                  <h4
-                    className={`text-sm font-medium ${
-                      isPassed ? "text-green-700" : "text-gray-700"
-                    }`}
-                  >
-                    Expected Output
-                  </h4>
-                </div>
-                <div className="p-4 max-h-64 overflow-auto bg-white">
-                  <pre className="text-xs text-gray-600 whitespace-pre-wrap">
-                    {JSON.stringify(latestResult?.expected_output, null, 2)}
-                  </pre>
-                </div>
+        {/* Actual Output - only shown after test has run */}
+        {hasRun && (
+          <div className="mt-4">
+            {isError && (
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                <p className="text-sm text-orange-700 font-medium">
+                  Error during execution
+                </p>
+                <p className="text-sm text-orange-600 mt-1">{errorMessage}</p>
               </div>
+            )}
 
+            {isPending && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <p className="text-sm text-yellow-700 font-medium">
+                  Test is running...
+                </p>
+              </div>
+            )}
+
+            {(isPassed || isFailed) && (
               <div
                 className={`border rounded-lg overflow-hidden ${
-                  isPassed
-                    ? "border-green-200"
-                    : isFailed
-                    ? "border-red-200"
-                    : "border-gray-200"
+                  isPassed ? "border-green-200" : "border-red-200"
                 }`}
               >
                 <div
                   className={`px-4 py-2 border-b ${
                     isPassed
                       ? "bg-green-50 border-green-200"
-                      : isFailed
-                      ? "bg-red-50 border-red-200"
-                      : "bg-gray-50 border-gray-200"
+                      : "bg-red-50 border-red-200"
                   }`}
                 >
                   <h4
                     className={`text-sm font-medium ${
-                      isPassed
-                        ? "text-green-700"
-                        : isFailed
-                        ? "text-red-700"
-                        : "text-gray-700"
+                      isPassed ? "text-green-700" : "text-red-700"
                     }`}
                   >
                     Actual Output
@@ -247,42 +235,37 @@ export default function RunTestsTab({
                         (differs from expected)
                       </span>
                     )}
+                    {isPassed && (
+                      <span className="ml-2 text-xs font-normal">
+                        (matches expected)
+                      </span>
+                    )}
                   </h4>
                 </div>
-                <div className="p-4 max-h-64 overflow-auto bg-white">
+                <div className="p-4 max-h-48 overflow-auto bg-white">
                   <pre className="text-xs text-gray-600 whitespace-pre-wrap">
-                    {JSON.stringify(latestResult?.output, null, 2)}
+                    {JSON.stringify(actualOutput, null, 2)?.slice(0, 1000)}
+                    {JSON.stringify(actualOutput, null, 2)?.length > 1000 &&
+                      "..."}
                   </pre>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {isFailed && (
-            <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-4">
-              <p className="text-sm text-red-700 font-medium">
-                Test failed: Output does not match expected response_json
-              </p>
-              <p className="text-sm text-red-600 mt-1">
-                Review the differences above and regenerate the transform code
-                if needed.
-              </p>
-            </div>
-          )}
-
-          {isPassed && (
-            <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-4">
-              <p className="text-sm text-green-700 font-medium">
-                Test passed! Output matches expected response_json
-              </p>
-              <p className="text-sm text-green-600 mt-1">
-                The transform code is working correctly. You can proceed to
-                deploy.
-              </p>
-            </div>
-          )}
-        </div>
-      )}
+            {isFailed && (
+              <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-4">
+                <p className="text-sm text-red-700 font-medium">
+                  Test failed: Output does not match expected response_json
+                </p>
+                <p className="text-sm text-red-600 mt-1">
+                  Review the differences above and regenerate the transform code
+                  if needed.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
