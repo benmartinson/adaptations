@@ -5,7 +5,7 @@ import TransformationConfigurator from "../TransformationConfigurator";
 export default function UIPreviewTab({
   responseJson,
   isGeneratingTransformCode,
-  onGenerateTransform,
+  onNextStep,
   generatingTransformMessage,
   fromResponse,
   taskId,
@@ -46,13 +46,10 @@ export default function UIPreviewTab({
               )}
               <button
                 type="button"
-                onClick={onGenerateTransform}
-                disabled={isGeneratingTransformCode}
-                className="px-4 py-2 rounded-lg bg-gray-900 text-white font-semibold hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                onClick={onNextStep}
+                className="px-4 py-2 rounded-lg bg-gray-900 text-white font-semibold hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
-                {isGeneratingTransformCode
-                  ? "Generating..."
-                  : "Generate Transform"}
+                Next Step
               </button>
             </div>
           </div>

@@ -18,10 +18,10 @@ class GenerateTransformCodeJob < ApplicationJob
   attr_reader :task
 
   def run_code_generation
-    # broadcast_event(
-    #   phase: "code_generation",
-    #   message: "Generating transformation code",
-    # )
+    broadcast_event(
+      phase: "code_generation",
+      message: "Generating transformation code",
+    )
 
     code_prompt = build_prompt()
     raw_response = generate_code_response(code_prompt)

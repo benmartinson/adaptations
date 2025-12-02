@@ -22,11 +22,8 @@ export default function TaskRunner() {
   const { snapshot, responseJson, transformCode, updateResponseJson } =
     useTaskProgress(task_id);
 
-  // Check if we're in the code_generation phase from metadata
-  const isGeneratingTransformCode =
-    generatingTransform || snapshot?.metadata?.phase === "code_generation";
+  const isGeneratingTransformCode = snapshot?.phase === "code_generation";
 
-  // Load api_endpoint, system_tag, and data_description from snapshot if available
   useEffect(() => {
     if (!snapshot) return;
 
@@ -61,16 +58,6 @@ export default function TaskRunner() {
 
     return () => clearInterval(interval);
   }, [isGeneratingPreview]);
-
-  // Auto-switch to appropriate tab based on available data
-  useEffect(() => {
-    if (transformCode) {
-      setActiveTab("create-transformer");
-      setGeneratingTransform(false);
-    } else if (responseJson) {
-      setActiveTab("ui-preview");
-    }
-  }, [responseJson, transformCode]);
 
   // Switching text for transform generation
   useEffect(() => {
@@ -201,9 +188,9 @@ export default function TaskRunner() {
     {
       id: "create-transformer",
       label: "Create Transformer",
-      enabled: !!transformCode,
+      enabled: !!responseJson,
     },
-    { id: "run-tests", label: "Run Tests", enabled: false },
+    { id: "run-tests", label: "Run Tests", enabled: !!transformCode },
     { id: "deploy", label: "Deploy", enabled: false },
   ];
 
@@ -274,7 +261,7 @@ export default function TaskRunner() {
         <UIPreviewTab
           responseJson={responseJson}
           isGeneratingTransformCode={isGeneratingTransformCode}
-          onGenerateTransform={handleGenerateTransform}
+          onNextStep={() => setActiveTab("create-transformer")}
           generatingTransformMessage={generatingTransformMessage}
           fromResponse={snapshot?.input_payload?.from_response}
           taskId={task_id}
@@ -289,6 +276,7 @@ export default function TaskRunner() {
           generatingTransformMessage={generatingTransformMessage}
           onGenerateTransform={handleGenerateTransform}
           onNextStep={() => setActiveTab("run-tests")}
+          onBackStep={() => setActiveTab("ui-preview")}
         />
       )}
     </div>
