@@ -27,7 +27,8 @@ module Api
 
     def run_job
       @task.update!(run_job_params)
-      enqueue_job(@task)
+      test = create_test_if_needed
+      enqueue_job(@task, test)
 
       render json: serialize_task(@task), status: :accepted
     end
@@ -96,7 +97,22 @@ module Api
       }
     end
 
-    def enqueue_job(task)
+    def create_test_if_needed
+      task_type = @task.input_payload.fetch("task_type", nil)
+      return nil unless task_type == "run_transform_tests" && params[:test].present?
+
+      test_data = params.require(:test).permit(:api_endpoint, from_response: {}, expected_output: {})
+      
+      @task.tests.create!(
+        api_endpoint: test_data[:api_endpoint] || @task.api_endpoint,
+        from_response: test_data[:from_response],
+        expected_output: test_data[:expected_output] || @task.response_json,
+        status: "pending",
+        attempts: 0
+      )
+    end
+
+    def enqueue_job(task, test = nil)
       task_type = task.input_payload.fetch("task_type", nil)
       
       job_class = case task_type
@@ -112,7 +128,11 @@ module Api
                   end
       
       job_class_constant = job_class.safe_constantize
-      job = job_class_constant.perform_later(task.id)
+      job = if test
+              job_class_constant.perform_later(task.id, test.id)
+            else
+              job_class_constant.perform_later(task.id)
+            end
       task.update!(job_id: job.job_id) if job.respond_to?(:job_id)
     end
   end

@@ -1,0 +1,21 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  api_endpoint: https://api.example.com/data
+  task: one
+  status: pending
+  from_response: { "data": [] }
+  expected_output: { "items": [] }
+  actual_output:
+  error_message:
+  attempts: 0
+
+two:
+  api_endpoint: https://api.example.com/data
+  task: two
+  status: pass
+  from_response: { "data": [] }
+  expected_output: { "items": [] }
+  actual_output: { "items": [] }
+  error_message:
+  attempts: 1

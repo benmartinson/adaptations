@@ -55,8 +55,12 @@ export default function RunTestsTab({
           task: {
             input_payload: {
               task_type: "run_transform_tests",
-              from_response: fetchedData,
             },
+          },
+          test: {
+            api_endpoint: apiEndpoint,
+            from_response: fetchedData,
+            expected_output: responseJson,
           },
         }),
       });

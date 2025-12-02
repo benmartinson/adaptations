@@ -1,6 +1,8 @@
 class Task < ApplicationRecord
   KINDS = %w[code_workflow].freeze
 
+  has_many :tests, dependent: :destroy
+
   enum :status, {
     pending: "pending",
     running: "running",

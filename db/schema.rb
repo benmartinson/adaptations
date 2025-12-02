@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_11_25_201454) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_02_220004) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -173,6 +173,20 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_25_201454) do
     t.index ["status"], name: "index_tasks_on_status"
   end
 
+  create_table "tests", force: :cascade do |t|
+    t.json "actual_output"
+    t.string "api_endpoint"
+    t.integer "attempts", default: 0
+    t.datetime "created_at", null: false
+    t.text "error_message"
+    t.json "expected_output"
+    t.json "from_response"
+    t.string "status", default: "pending"
+    t.integer "task_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["task_id"], name: "index_tests_on_task_id"
+  end
+
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "author_books", "authors"
@@ -185,4 +199,5 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_25_201454) do
   add_foreign_key "editions", "books"
   add_foreign_key "movie_books", "books"
   add_foreign_key "movie_books", "movies"
+  add_foreign_key "tests", "tasks"
 end

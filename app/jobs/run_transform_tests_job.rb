@@ -2,52 +2,72 @@ class RunTransformTestsJob < ApplicationJob
   queue_as :default
 
   rescue_from(ActiveRecord::RecordNotFound) do |_error|
-    Rails.logger.warn("[RunTransformTestsJob] Task not found, skipping job")
+    Rails.logger.warn("[RunTransformTestsJob] Task or Test not found, skipping job")
   end
   rescue_from(StandardError) do |error|
     handle_failure(error)
   end
 
-  def perform(task_id)
+  def perform(task_id, test_id)
     @task = Task.find(task_id)
-    run_tests
+    @test = Test.find(test_id)
+    run_test
   end
 
   private
 
-  attr_reader :task
+  attr_reader :task, :test
 
-  def run_tests
+  def run_test
     broadcast_event(phase: "starting", message: "Starting test execution")
 
+    test.update!(attempts: test.attempts + 1)
+
     code_body = task.transform_code
-    
     if code_body.blank?
       raise StandardError, "No transform code found to test"
     end
 
-    from_response = task.input_payload.fetch("from_response", nil)
+    from_response = test.from_response
     if from_response.blank?
       raise StandardError, "No input data (from_response) found to test"
     end
 
-    expected_output = task.response_json
+    expected_output = test.expected_output
     if expected_output.blank?
-      raise StandardError, "No expected output (response_json) found to compare"
+      raise StandardError, "No expected output found to compare"
     end
 
     from_response = [from_response] unless from_response.is_a?(Array)
-    test_results = run_transform_test(code_body, from_response, expected_output)
+    test_result = execute_transform_test(code_body, from_response, expected_output)
+
+    # Update the Test record with results
+    update_test_record(test_result)
+
     broadcast_event(
       phase: "completed",
-      message: "Tests completed successfully",
-      output: { "test_results" => test_results },
-      test_results: test_results,
+      message: "Test completed",
+      output: { "test_results" => [test_result] },
+      test_results: [test_result],
       final: true,
     )
   end
 
-  def run_transform_test(code_body, from_response, expected_output)
+  def update_test_record(result)
+    status = case result[:status]
+             when "passed" then "pass"
+             when "failed" then "fail"
+             else "fail"
+             end
+
+    test.update!(
+      status: status,
+      actual_output: result[:output],
+      error_message: result[:error]
+    )
+  end
+
+  def execute_transform_test(code_body, from_response, expected_output)
     output = execute_code(code_body, from_response)
     # Normalize both for comparison (convert to JSON and back to handle symbol/string keys)
     normalized_output = normalize_for_comparison(output)
@@ -77,8 +97,7 @@ class RunTransformTestsJob < ApplicationJob
 
   def execute_code(code_body, input)
     RubySandbox.run(code_body, input)
-  rescue StandardError => e
-    binding.pry
+  rescue StandardError
     evaluate_inline(code_body, input)
   end
 
