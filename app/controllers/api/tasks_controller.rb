@@ -28,6 +28,7 @@ module Api
     def run_job
       @task.update!(run_job_params)
       test = create_test_if_needed
+      binding.pry
       enqueue_job(@task, test)
 
       render json: serialize_task(@task), status: :accepted

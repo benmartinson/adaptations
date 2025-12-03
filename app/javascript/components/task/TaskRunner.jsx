@@ -4,7 +4,7 @@ import useTaskProgress from "../../hooks/useTaskProgress";
 import EndpointDetailsTab from "./tabs/EndpointDetailsTab";
 import UIPreviewTab from "./Preview/UIPreviewTab";
 import CreateTransformerTab from "./tabs/CreateTransformerTab";
-import RunTestsTab from "./tabs/RunTestsTab";
+import RunTestsTab from "./tests/RunTestsTab";
 import { fetchEndpointData } from "../../helpers";
 
 export default function TaskRunner() {
@@ -28,6 +28,7 @@ export default function TaskRunner() {
     testResults,
     tests,
   } = useTaskProgress(task_id);
+  console.log({ testResults, tests });
 
   const isGeneratingTransformCode = snapshot?.phase === "code_generation";
 

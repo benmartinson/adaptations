@@ -34,12 +34,14 @@ class RunTransformTestsJob < ApplicationJob
     end
 
     expected_output = test.expected_output
-    if expected_output.blank?
-      raise StandardError, "No expected output found to compare"
-    end
-
     from_response = [from_response] unless from_response.is_a?(Array)
-    test_result = execute_transform_test(code_body, from_response, expected_output)
+    
+    # If no expected_output, run as execution-only test (passes if no error)
+    test_result = if expected_output.blank?
+                    execute_without_comparison(code_body, from_response)
+                  else
+                    execute_transform_test(code_body, from_response, expected_output)
+                  end
 
     # Update the Test record with results
     update_test_record(test_result)
@@ -80,6 +82,25 @@ class RunTransformTestsJob < ApplicationJob
       attempts: t.attempts,
       created_at: t.created_at,
       updated_at: t.updated_at
+    }
+  end
+
+  def execute_without_comparison(code_body, from_response)
+    output = execute_code(code_body, from_response)
+
+    {
+      name: "Transform API Response",
+      status: "passed",
+      input: from_response,
+      output: output,
+      expected_output: nil
+    }
+  rescue StandardError => e
+    {
+      name: "Transform API Response",
+      status: "error",
+      input: from_response,
+      error: e.message
     }
   end
 
