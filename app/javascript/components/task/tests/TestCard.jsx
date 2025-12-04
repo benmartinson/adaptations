@@ -14,7 +14,7 @@ export default function TestCard({
   const hasRun = !!test;
   const isPassed = testResult?.status === "passed" || test?.status === "pass";
   const isFailed = testResult?.status === "failed" || test?.status === "fail";
-  const isError = testResult?.status === "error";
+  const isError = testResult?.status === "error" || test?.status === "error";
   const isPending = test?.status === "pending" && !testResult;
 
   const actualOutput = testResult?.output ?? test?.actual_output;
@@ -43,7 +43,7 @@ export default function TestCard({
           </p>
         </div>
         <div className="flex items-center gap-3">
-          {hasRun && (
+          {hasRun && test?.status !== "created" && (
             <span
               className={`px-3 py-1 rounded-full text-sm font-medium ${
                 isPassed

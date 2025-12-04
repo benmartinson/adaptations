@@ -1,27 +1,62 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { fetchEndpointData } from "../../../helpers";
 import TestCard from "./TestCard";
 
 export default function RunTestsTab({
-  transformCode,
   responseJson,
   apiEndpoint,
-  taskId,
-  testResults,
+  task,
   tests,
-  isRunningTests,
+  onTestCreated,
 }) {
-  const [runningTestId, setRunningTestId] = useState(null);
+  const [runningTestIds, setRunningTestIds] = useState([]);
   const [newTestEndpoint, setNewTestEndpoint] = useState("");
   const [showAddTest, setShowAddTest] = useState(false);
   const [fetchedDataMap, setFetchedDataMap] = useState({});
   const [fetchingEndpoints, setFetchingEndpoints] = useState({});
+  const [isAddingTest, setIsAddingTest] = useState(false);
+  const primaryTestCreatedRef = useRef(false);
 
-  // Fetch data for the main endpoint on mount
   useEffect(() => {
     if (!apiEndpoint) return;
     fetchDataForEndpoint(apiEndpoint);
   }, [apiEndpoint]);
+
+  useEffect(() => {
+    if (
+      !primaryTestCreatedRef.current &&
+      tests &&
+      tests.length === 0 &&
+      apiEndpoint &&
+      responseJson
+    ) {
+      primaryTestCreatedRef.current = true;
+      createTest(apiEndpoint, responseJson, true);
+    }
+  }, [tests, apiEndpoint, responseJson]);
+
+  async function createTest(endpoint, expectedOutput, isPrimary = false) {
+    const data = await fetchEndpointData(endpoint);
+    if (!data) return null;
+
+    const response = await fetch(`/api/tasks/${task.id}/tests`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        test: {
+          api_endpoint: endpoint,
+          from_response: data,
+          expected_output: expectedOutput,
+          is_primary: isPrimary,
+        },
+      }),
+    });
+
+    if (!response.ok) return null;
+    const newTest = await response.json();
+    onTestCreated?.(newTest);
+    return newTest;
+  }
 
   async function fetchDataForEndpoint(endpoint) {
     if (fetchedDataMap[endpoint] || fetchingEndpoints[endpoint]) return;
@@ -37,63 +72,44 @@ export default function RunTestsTab({
     }
   }
 
-  async function handleRunTest({
-    test = null,
-    endpoint,
-    expectedOutput = null,
-    isNewTest = false,
-  }) {
-    let fetchedData = fetchedDataMap[endpoint];
-
-    // If no data yet, fetch it first
-    if (!fetchedData) {
-      await fetchDataForEndpoint(endpoint);
-      fetchedData = fetchedDataMap[endpoint];
-      if (!fetchedData) return;
-    }
-
-    setRunningTestId(test?.id || "new");
+  async function handleAddTest() {
+    setIsAddingTest(true);
     try {
-      const response = await fetch(`/api/tasks/${taskId}/run_job`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          task: {
-            input_payload: {
-              task_type: "run_transform_tests",
-            },
-          },
-          test: {
-            api_endpoint: endpoint,
-            from_response: fetchedData,
-            expected_output: expectedOutput,
-          },
-        }),
-      });
+      await createTest(newTestEndpoint || apiEndpoint, null, false);
+      setShowAddTest(false);
+      setNewTestEndpoint("");
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsAddingTest(false);
+    }
+  }
+
+  async function handleRunTest(testId) {
+    setRunningTestIds((prev) => [...prev, testId]);
+    try {
+      const response = await fetch(
+        `/api/tasks/${task.id}/tests/${testId}/run_job`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        }
+      );
 
       if (!response.ok) {
-        throw new Error("Unable to run tests");
-      }
-
-      if (isNewTest) {
-        setShowAddTest(false);
-        setNewTestEndpoint("");
+        throw new Error("Unable to run test");
       }
     } catch (error) {
       console.error(error);
     } finally {
-      setRunningTestId(null);
+      setRunningTestIds((prev) => prev.filter((id) => id !== testId));
     }
   }
 
-  // Show all tests - tests array is already ordered by created_at desc from the API
   const allTests = tests || [];
 
   return (
     <div className="space-y-6">
-      {/* Add Test Section - at top */}
       {showAddTest ? (
         <div className="bg-white rounded-xl shadow-sm border border-dashed border-gray-300 p-6">
           <h4 className="text-sm font-medium text-gray-700 mb-3">
@@ -109,17 +125,11 @@ export default function RunTestsTab({
             />
             <button
               type="button"
-              onClick={() =>
-                handleRunTest({
-                  endpoint: newTestEndpoint || apiEndpoint,
-                  expectedOutput: null,
-                  isNewTest: true,
-                })
-              }
-              disabled={runningTestId === "new"}
+              onClick={handleAddTest}
+              disabled={isAddingTest}
               className="px-4 py-2 rounded-lg bg-gray-900 text-white font-semibold hover:bg-gray-700 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {runningTestId === "new" ? "Running..." : "Run Test"}
+              {isAddingTest ? "Adding..." : "Add Test"}
             </button>
             <button
               type="button"
@@ -160,47 +170,39 @@ export default function RunTestsTab({
         </button>
       )}
 
-      {/* All Test Cards */}
-      {allTests.map((test, index) => (
-        <TestCard
-          key={test.id}
-          test={test}
-          testResult={testResults?.find((r) => r.test_id === test.id)}
-          endpoint={test.api_endpoint}
-          expectedOutput={test.expected_output}
-          fetchedData={fetchedDataMap[test.api_endpoint]}
-          isFetching={fetchingEndpoints[test.api_endpoint]}
-          isRunning={runningTestId === test.id}
-          onRun={() =>
-            handleRunTest({
-              test,
-              endpoint: test.api_endpoint,
-              expectedOutput: test.expected_output,
-            })
-          }
-          isPrimary={index === 0}
-        />
-      ))}
+      {allTests
+        .filter((test) => !test.is_primary)
+        .map((test) => (
+          <TestCard
+            key={test.id}
+            test={test}
+            testResult={test}
+            endpoint={test.api_endpoint}
+            expectedOutput={test.expected_output}
+            fetchedData={fetchedDataMap[test.api_endpoint]}
+            isFetching={fetchingEndpoints[test.api_endpoint]}
+            isRunning={runningTestIds.includes(test.id)}
+            onRun={() => handleRunTest(test.id)}
+            isPrimary={false}
+          />
+        ))}
 
-      {/* Show a default card if no tests exist yet */}
-      {allTests.length === 0 && (
-        <TestCard
-          test={null}
-          endpoint={apiEndpoint}
-          expectedOutput={responseJson}
-          fetchedData={fetchedDataMap[apiEndpoint]}
-          isFetching={fetchingEndpoints[apiEndpoint]}
-          isRunning={runningTestId === "new"}
-          onRun={() =>
-            handleRunTest({
-              endpoint: apiEndpoint,
-              expectedOutput: responseJson,
-              isNewTest: true,
-            })
-          }
-          isPrimary
-        />
-      )}
+      {allTests
+        .filter((test) => test.is_primary)
+        .map((test) => (
+          <TestCard
+            key={test.id}
+            test={test}
+            testResult={test}
+            endpoint={test.api_endpoint}
+            expectedOutput={task.response_json}
+            fetchedData={fetchedDataMap[test.api_endpoint]}
+            isFetching={fetchingEndpoints[test.api_endpoint]}
+            isRunning={runningTestIds.includes(test.id)}
+            onRun={() => handleRunTest(test.id)}
+            isPrimary
+          />
+        ))}
     </div>
   );
 }

@@ -84,10 +84,6 @@ export default function useTaskProgress(taskId) {
     return snapshot?.transform_code || "";
   }, [snapshot]);
 
-  const testResults = useMemo(() => {
-    return snapshot?.test_results || [];
-  }, [snapshot]);
-
   const tests = useMemo(() => {
     return snapshot?.tests || [];
   }, [snapshot]);
@@ -107,17 +103,24 @@ export default function useTaskProgress(taskId) {
     }));
   };
 
+  const addTest = (newTest) => {
+    setSnapshot((prev) => ({
+      ...prev,
+      tests: [newTest, ...(prev?.tests || [])],
+    }));
+  };
+
   return {
     snapshot,
     events,
     connected,
     error,
     transformCode,
-    testResults,
     tests,
     requestStop,
     responseJson,
     updateResponseJson,
+    addTest,
   };
 }
 

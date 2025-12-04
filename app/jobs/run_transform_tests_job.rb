@@ -8,58 +8,66 @@ class RunTransformTestsJob < ApplicationJob
     handle_failure(error)
   end
 
-  def perform(task_id, test_id)
-    @task = Task.find(task_id)
+  def perform(test_id)
     @test = Test.find(test_id)
-    run_test
-  end
+    @task = @test.task
+    code_body = @task.transform_code
 
-  private
-
-  attr_reader :task, :test
-
-  def run_test
-    broadcast_event(phase: "starting", message: "Starting test execution")
-
-    test.update!(attempts: test.attempts + 1)
-
-    code_body = task.transform_code
     if code_body.blank?
       raise StandardError, "No transform code found to test"
     end
 
-    from_response = test.from_response
-    if from_response.blank?
-      raise StandardError, "No input data (from_response) found to test"
-    end
+    broadcast_event(phase: "starting", message: "Starting test execution")
 
-    expected_output = test.expected_output
-    from_response = [from_response] unless from_response.is_a?(Array)
-    
-    # If no expected_output, run as execution-only test (passes if no error)
-    test_result = if expected_output.blank?
-                    execute_without_comparison(code_body, from_response)
-                  else
-                    execute_transform_test(code_body, from_response, expected_output)
-                  end
-
-    # Update the Test record with results
-    update_test_record(test_result)
+    test_result = run_single_test(@test, code_body)
+    update_test_record(@test, test_result)
 
     broadcast_event(
       phase: "completed",
       message: "Test completed",
       output: { "test_results" => [test_result] },
       test_results: [test_result],
-      tests: task.tests.order(created_at: :desc).map { |t| serialize_test(t) },
-      final: true,
+      tests: @task.tests.order(created_at: :desc).map { |t| serialize_test(t) },
+      final: true
     )
   end
 
-  def update_test_record(result)
+  private
+
+  attr_reader :task, :test
+
+  def run_single_test(test, code_body)
+    test.update!(attempts: test.attempts + 1)
+
+    from_response = test.from_response
+    if from_response.blank?
+      test.update!(status: "error", error_message: "No input data (from_response) found to test")
+      message = {
+        test_id: test.id,
+        name: "Transform API Response",
+        status: "error",
+        error: "No input data (from_response) found to test",
+      }
+      broadcast_event(phase: "error", message: message, final: true)
+      return message
+    end
+
+    expected_output = test.expected_output
+    from_response = [from_response] unless from_response.is_a?(Array)
+    
+    # If no expected_output, run as execution-only test (passes if no error)
+    if expected_output.blank?
+      execute_without_comparison(test, code_body, from_response)
+    else
+      execute_transform_test(test, code_body, from_response, expected_output)
+    end
+  end
+
+  def update_test_record(test, result)
     status = case result[:status]
              when "passed" then "pass"
              when "failed" then "fail"
+             when "error" then "error"
              else "fail"
              end
 
@@ -79,16 +87,18 @@ class RunTransformTestsJob < ApplicationJob
       expected_output: t.expected_output,
       actual_output: t.actual_output,
       error_message: t.error_message,
+      is_primary: t.is_primary,
       attempts: t.attempts,
       created_at: t.created_at,
       updated_at: t.updated_at
     }
   end
 
-  def execute_without_comparison(code_body, from_response)
+  def execute_without_comparison(test, code_body, from_response)
     output = execute_code(code_body, from_response)
 
     {
+      test_id: test.id,
       name: "Transform API Response",
       status: "passed",
       input: from_response,
@@ -97,6 +107,7 @@ class RunTransformTestsJob < ApplicationJob
     }
   rescue StandardError => e
     {
+      test_id: test.id,
       name: "Transform API Response",
       status: "error",
       input: from_response,
@@ -104,7 +115,7 @@ class RunTransformTestsJob < ApplicationJob
     }
   end
 
-  def execute_transform_test(code_body, from_response, expected_output)
+  def execute_transform_test(test, code_body, from_response, expected_output)
     output = execute_code(code_body, from_response)
     # Normalize both for comparison (convert to JSON and back to handle symbol/string keys)
     normalized_output = normalize_for_comparison(output)
@@ -113,6 +124,7 @@ class RunTransformTestsJob < ApplicationJob
     status = normalized_output == normalized_expected ? "passed" : "failed"
 
     {
+      test_id: test.id,
       name: "Transform API Response",
       status: status,
       input: from_response,
@@ -121,6 +133,7 @@ class RunTransformTestsJob < ApplicationJob
     }
   rescue StandardError => e
     {
+      test_id: test.id,
       name: "Transform API Response",
       status: "error",
       input: from_response,

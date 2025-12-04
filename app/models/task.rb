@@ -7,8 +7,9 @@ class Task < ApplicationRecord
     pending: "pending",
     running: "running",
     completed: "completed",
-    failed: "failed"
-  }, default: "pending"
+    failed: "failed",
+    created: "created"
+  }, default: "created"
 
   validates :kind, inclusion: { in: KINDS }
 

@@ -27,9 +27,7 @@ module Api
 
     def run_job
       @task.update!(run_job_params)
-      test = create_test_if_needed
-      binding.pry
-      enqueue_job(@task, test)
+      enqueue_job(@task)
 
       render json: serialize_task(@task), status: :accepted
     end
@@ -108,28 +106,14 @@ module Api
         expected_output: test.expected_output,
         actual_output: test.actual_output,
         error_message: test.error_message,
+        is_primary: test.is_primary,
         attempts: test.attempts,
         created_at: test.created_at,
         updated_at: test.updated_at
       }
     end
 
-    def create_test_if_needed
-      task_type = @task.input_payload.fetch("task_type", nil)
-      return nil unless task_type == "run_transform_tests" && params[:test].present?
-
-      test_data = params.require(:test).permit(:api_endpoint, from_response: {}, expected_output: {})
-      
-      @task.tests.create!(
-        api_endpoint: test_data[:api_endpoint] || @task.api_endpoint,
-        from_response: test_data[:from_response],
-        expected_output: test_data[:expected_output] || @task.response_json,
-        status: "pending",
-        attempts: 0
-      )
-    end
-
-    def enqueue_job(task, test = nil)
+    def enqueue_job(task)
       task_type = task.input_payload.fetch("task_type", nil)
       
       job_class = case task_type
@@ -137,19 +121,12 @@ module Api
                     "PreviewResponseGenerationJob"
                   when "generate_transform_code"
                     "GenerateTransformCodeJob"
-                  when "run_transform_tests"
-                    "RunTransformTestsJob"
                   else
-                    # Default fallback
                     "PreviewResponseGenerationJob"
                   end
       
       job_class_constant = job_class.safe_constantize
-      job = if test
-              job_class_constant.perform_later(task.id, test.id)
-            else
-              job_class_constant.perform_later(task.id)
-            end
+      job = job_class_constant.perform_later(task.id)
       task.update!(job_id: job.job_id) if job.respond_to?(:job_id)
     end
   end

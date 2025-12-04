@@ -13,6 +13,11 @@ Rails.application.routes.draw do
       member do
         post :run_job
       end
+      resources :tests, only: %i[create] do
+        member do
+          post :run_job
+        end
+      end
     end
   end
 

@@ -25,10 +25,9 @@ export default function TaskRunner() {
     responseJson,
     transformCode,
     updateResponseJson,
-    testResults,
     tests,
+    addTest,
   } = useTaskProgress(task_id);
-  console.log({ testResults, tests });
 
   const isGeneratingTransformCode = snapshot?.phase === "code_generation";
 
@@ -89,7 +88,7 @@ export default function TaskRunner() {
 
   // Auto-switch to run-tests tab when transformCode is received
   useEffect(() => {
-    if (transformCode && activeTab === "create-transformer") {
+    if (transformCode) {
       setActiveTab("run-tests");
     }
   }, [transformCode]);
@@ -266,7 +265,7 @@ export default function TaskRunner() {
           onNextStep={() => setActiveTab("create-transformer")}
           generatingTransformMessage={generatingTransformMessage}
           fromResponse={snapshot?.input_payload?.from_response}
-          taskId={task_id}
+          task={snapshot}
           onResponseUpdate={updateResponseJson}
         />
       )}
@@ -283,13 +282,11 @@ export default function TaskRunner() {
 
       {activeTab === "run-tests" && (
         <RunTestsTab
-          transformCode={transformCode}
           responseJson={responseJson}
           apiEndpoint={snapshot?.api_endpoint}
-          taskId={task_id}
-          testResults={testResults}
+          task={snapshot}
           tests={tests}
-          isRunningTests={snapshot?.phase === "testing"}
+          onTestCreated={addTest}
         />
       )}
     </div>
