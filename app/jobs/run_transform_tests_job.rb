@@ -52,6 +52,7 @@ class RunTransformTestsJob < ApplicationJob
       return message
     end
 
+    binding.pry
     expected_output = test.expected_output
     from_response = [from_response] unless from_response.is_a?(Array)
     
@@ -68,6 +69,7 @@ class RunTransformTestsJob < ApplicationJob
              when "passed" then "pass"
              when "failed" then "fail"
              when "error" then "error"
+             when "pending" then "pending"
              else "fail"
              end
 
@@ -97,10 +99,12 @@ class RunTransformTestsJob < ApplicationJob
   def execute_without_comparison(test, code_body, from_response)
     output = execute_code(code_body, from_response)
 
+    result_status = test.is_primary ? "passed" : "pending"
+
     {
       test_id: test.id,
       name: "Transform API Response",
-      status: "passed",
+      status: result_status,
       input: from_response,
       output: output,
       expected_output: nil

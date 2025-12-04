@@ -8,6 +8,7 @@ import Navbar from "./components/Navbar";
 import TryApi from "./components/api/TryApi";
 import TaskRunner from "./components/task/TaskRunner";
 import TaskList from "./components/task/TaskList";
+import TestPreviewPage from "./components/task/tests/TestPreviewPage";
 
 const root = createRoot(document.getElementById("react-root"));
 root.render(
@@ -20,6 +21,10 @@ root.render(
       <Route path="/try_api" element={<TryApi />} />
       <Route path="/tasks" element={<TaskList />} />
       <Route path="/task/:task_id" element={<TaskRunner />} />
+      <Route
+        path="/task/:task_id/test/:test_id/preview"
+        element={<TestPreviewPage />}
+      />
     </Routes>
   </BrowserRouter>
 );

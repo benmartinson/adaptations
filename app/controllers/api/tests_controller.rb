@@ -3,7 +3,11 @@ module Api
     skip_before_action :verify_authenticity_token
 
     before_action :set_task
-    before_action :set_test, only: %i[run_job]
+    before_action :set_test, only: %i[show update run_job]
+
+    def show
+      render json: serialize_test(@test)
+    end
 
     def create
       test_data = params.require(:test).permit(:api_endpoint, :is_primary, from_response: {}, expected_output: {})
@@ -25,6 +29,13 @@ module Api
       enqueue_job(@task, @test)
 
       render json: serialize_test(@test), status: :accepted
+    end
+
+    def update
+      test_params = params.require(:test).permit(:status)
+      @test.update!(test_params)
+
+      render json: serialize_test(@test)
     end
 
     private

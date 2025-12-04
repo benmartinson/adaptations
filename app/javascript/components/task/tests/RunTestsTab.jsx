@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { fetchEndpointData } from "../../../helpers";
 import TestCard from "./TestCard";
+import { useNavigate } from "react-router-dom";
 
 export default function RunTestsTab({
   responseJson,
@@ -16,6 +17,7 @@ export default function RunTestsTab({
   const [fetchingEndpoints, setFetchingEndpoints] = useState({});
   const [isAddingTest, setIsAddingTest] = useState(false);
   const primaryTestCreatedRef = useRef(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!apiEndpoint) return;
@@ -99,6 +101,7 @@ export default function RunTestsTab({
       if (!response.ok) {
         throw new Error("Unable to run test");
       }
+      navigate(`/task/${task.id}/test/${testId}/preview`);
     } catch (error) {
       console.error(error);
     } finally {
@@ -184,6 +187,7 @@ export default function RunTestsTab({
             isRunning={runningTestIds.includes(test.id)}
             onRun={() => handleRunTest(test.id)}
             isPrimary={false}
+            taskId={task.id}
           />
         ))}
 
@@ -201,6 +205,7 @@ export default function RunTestsTab({
             isRunning={runningTestIds.includes(test.id)}
             onRun={() => handleRunTest(test.id)}
             isPrimary
+            taskId={task.id}
           />
         ))}
     </div>
