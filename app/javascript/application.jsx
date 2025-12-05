@@ -1,6 +1,6 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import BookList from "./components/BookList";
 import Book from "./components/book/Book";
 import Author from "./components/author/Author";
@@ -20,7 +20,11 @@ root.render(
       <Route path="/author/:slug" element={<Author />} />
       <Route path="/try_api" element={<TryApi />} />
       <Route path="/tasks" element={<TaskList />} />
-      <Route path="/task/:task_id" element={<TaskRunner />} />
+      <Route
+        path="/task/:task_id"
+        element={<Navigate to="endpoint" replace />}
+      />
+      <Route path="/task/:task_id/:tab" element={<TaskRunner />} />
       <Route
         path="/task/:task_id/test/:test_id/preview"
         element={<TestPreviewPage />}

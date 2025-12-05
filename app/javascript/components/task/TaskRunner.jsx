@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import useTaskProgress from "../../hooks/useTaskProgress";
 import EndpointDetailsTab from "./tabs/EndpointDetailsTab";
 import UIPreviewTab from "./Preview/UIPreviewTab";
@@ -8,14 +8,14 @@ import RunTestsTab from "./tests/RunTestsTab";
 import { fetchEndpointData } from "../../helpers";
 
 export default function TaskRunner() {
-  const { task_id } = useParams();
+  const { task_id, tab } = useParams();
+  const navigate = useNavigate();
   const [apiEndpoint, setApiEndpoint] = useState("");
   const [systemTag, setSystemTag] = useState("");
   const [dataDescription, setDataDescription] = useState("");
   const [fetchingEndpoint, setFetchingEndpoint] = useState(false);
   const [formError, setFormError] = useState(null);
   const [generatingMessage, setGeneratingMessage] = useState("");
-  const [activeTab, setActiveTab] = useState("endpoint-details");
   const [generatingTransform, setGeneratingTransform] = useState(false);
   const [generatingTransformMessage, setGeneratingTransformMessage] =
     useState("");
@@ -88,12 +88,12 @@ export default function TaskRunner() {
     return () => clearInterval(interval);
   }, [isGeneratingTransformCode]);
 
-  // Auto-switch to run-tests tab when transformCode is received
-  useEffect(() => {
-    if (transformCode) {
-      setActiveTab("run-tests");
-    }
-  }, [transformCode]);
+  // // Auto-switch to tests tab when transformCode is received
+  // useEffect(() => {
+  //   if (transformCode && tab !== "tests") {
+  //     navigate(`/task/${task_id}/tests`, { replace: true });
+  //   }
+  // }, [transformCode, task_id, navigate, tab]);
 
   async function handleFetchEndpoint() {
     if (!apiEndpoint) {
@@ -157,7 +157,7 @@ export default function TaskRunner() {
     }
 
     setGeneratingTransform(true);
-    setActiveTab("create-transformer");
+    navigate(`/task/${task_id}/transformer`);
 
     try {
       const taskResponse = await fetch(`/api/tasks/${task_id}/run_job`, {
@@ -186,14 +186,14 @@ export default function TaskRunner() {
   }
 
   const tabs = [
-    { id: "endpoint-details", label: "Endpoint Details", enabled: true },
-    { id: "ui-preview", label: "UI Preview", enabled: !!responseJson },
+    { id: "endpoint", label: "Endpoint Details", enabled: true },
+    { id: "preview", label: "UI Preview", enabled: !!responseJson },
     {
-      id: "create-transformer",
+      id: "transformer",
       label: "Create Transformer",
       enabled: !!responseJson,
     },
-    { id: "run-tests", label: "Run Tests", enabled: !!transformCode },
+    { id: "tests", label: "Run Tests", enabled: !!transformCode },
     { id: "deploy", label: "Deploy", enabled: false },
   ];
 
@@ -224,27 +224,33 @@ export default function TaskRunner() {
       {/* Tabs */}
       <div className="border-b border-gray-200">
         <nav className="flex space-x-8" aria-label="Tabs">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => tab.enabled && setActiveTab(tab.id)}
-              disabled={!tab.enabled}
-              className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
-                !tab.enabled
-                  ? "border-transparent text-gray-300 cursor-not-allowed"
-                  : activeTab === tab.id
-                  ? "border-blue-500 text-blue-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+          {tabs.map((t) =>
+            t.enabled ? (
+              <Link
+                key={t.id}
+                to={`/task/${task_id}/${t.id}`}
+                className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
+                  tab === t.id
+                    ? "border-blue-500 text-blue-600"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                }`}
+              >
+                {t.label}
+              </Link>
+            ) : (
+              <span
+                key={t.id}
+                className="py-2 px-1 border-b-2 font-medium text-sm border-transparent text-gray-300 cursor-not-allowed"
+              >
+                {t.label}
+              </span>
+            )
+          )}
         </nav>
       </div>
 
       {/* Tab Content */}
-      {activeTab === "endpoint-details" && (
+      {tab === "endpoint" && (
         <EndpointDetailsTab
           apiEndpoint={apiEndpoint}
           setApiEndpoint={setApiEndpoint}
@@ -263,11 +269,11 @@ export default function TaskRunner() {
         />
       )}
 
-      {activeTab === "ui-preview" && (
+      {tab === "preview" && (
         <UIPreviewTab
           responseJson={responseJson}
           isGeneratingTransformCode={isGeneratingTransformCode}
-          onNextStep={() => setActiveTab("create-transformer")}
+          onNextStep={() => navigate(`/task/${task_id}/transformer`)}
           generatingTransformMessage={generatingTransformMessage}
           fromResponse={snapshot?.input_payload?.from_response}
           task={snapshot}
@@ -276,17 +282,17 @@ export default function TaskRunner() {
         />
       )}
 
-      {activeTab === "create-transformer" && (
+      {tab === "transformer" && (
         <CreateTransformerTab
           isGeneratingTransformCode={isGeneratingTransformCode}
           generatingTransformMessage={generatingTransformMessage}
           onGenerateTransform={handleGenerateTransform}
-          onBackStep={() => setActiveTab("ui-preview")}
+          onBackStep={() => navigate(`/task/${task_id}/preview`)}
           transformCode={transformCode}
         />
       )}
 
-      {activeTab === "run-tests" && (
+      {tab === "tests" && (
         <RunTestsTab
           responseJson={responseJson}
           apiEndpoint={snapshot?.api_endpoint}
