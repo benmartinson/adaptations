@@ -46,7 +46,6 @@ export default function TransformationConfigurator({
       setSaveStatus("saved");
       setTimeout(() => setSaveStatus(null), 2000);
 
-      // Notify parent of the update
       if (onResponseUpdate) {
         onResponseUpdate(parsedJson);
       }

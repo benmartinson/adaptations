@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_03_205454) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_05_193953) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -146,6 +146,15 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_03_205454) do
     t.datetime "updated_at", null: false
   end
 
+  create_table "parameters", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "example_value"
+    t.string "name"
+    t.integer "task_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["task_id"], name: "index_parameters_on_task_id"
+  end
+
   create_table "tasks", force: :cascade do |t|
     t.text "api_endpoint"
     t.datetime "cancelled_at"
@@ -200,5 +209,6 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_03_205454) do
   add_foreign_key "editions", "books"
   add_foreign_key "movie_books", "books"
   add_foreign_key "movie_books", "movies"
+  add_foreign_key "parameters", "tasks"
   add_foreign_key "tests", "tasks"
 end

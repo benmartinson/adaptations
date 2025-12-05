@@ -88,6 +88,10 @@ export default function useTaskProgress(taskId) {
     return snapshot?.tests || [];
   }, [snapshot]);
 
+  const parameters = useMemo(() => {
+    return snapshot?.parameters || [];
+  }, [snapshot]);
+
   const requestStop = () => {
     channelRef.current?.perform("stop");
   };
@@ -110,6 +114,13 @@ export default function useTaskProgress(taskId) {
     }));
   };
 
+  const updateParameters = (newParameters) => {
+    setSnapshot((prev) => ({
+      ...prev,
+      parameters: newParameters,
+    }));
+  };
+
   return {
     snapshot,
     events,
@@ -117,10 +128,12 @@ export default function useTaskProgress(taskId) {
     error,
     transformCode,
     tests,
+    parameters,
     requestStop,
     responseJson,
     updateResponseJson,
     addTest,
+    updateParameters,
   };
 }
 
@@ -140,6 +153,7 @@ export function mergeSnapshot(previous, incoming) {
     output: incoming.output || previous.output,
     test_results: incoming.test_results || previous.test_results,
     tests: incoming.tests ?? previous.tests,
+    parameters: incoming.parameters ?? previous.parameters,
     response_json: incoming.response_json || previous.response_json,
     transform_code: incoming.transform_code || previous.transform_code,
   };

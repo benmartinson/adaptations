@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import PreviewList from "./PreviewList";
 import TransformationConfigurator from "../TransformationConfigurator";
+import { fetchEndpointData } from "../../../helpers";
 
 export default function UIPreviewTab({
   responseJson,
@@ -10,13 +11,29 @@ export default function UIPreviewTab({
   fromResponse,
   taskId,
   onResponseUpdate,
+  apiEndpoint,
 }) {
   const [activeSubTab, setActiveSubTab] = useState("preview");
+  const [fromResponseData, setFromResponseData] = useState(fromResponse);
+  const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false);
 
   const subTabs = [
     { id: "preview", label: "Preview" },
     { id: "data-selection", label: "Data Selection" },
   ];
+
+  useEffect(() => {
+    if (!fromResponse && apiEndpoint && !hasAttemptedFetch) {
+      setHasAttemptedFetch(true);
+      handleFetchEndpoint();
+    }
+  }, [fromResponse, apiEndpoint]);
+
+  async function handleFetchEndpoint() {
+    const fetchedData = await fetchEndpointData(apiEndpoint);
+    setFromResponseData(fetchedData);
+    console.log("fetchedData", fetchedData);
+  }
 
   return (
     <div className="space-y-4">
@@ -64,7 +81,7 @@ export default function UIPreviewTab({
 
           {activeSubTab === "data-selection" && (
             <TransformationConfigurator
-              fromResponse={fromResponse}
+              fromResponse={fromResponseData}
               toResponse={responseJson}
               taskId={taskId}
               onResponseUpdate={onResponseUpdate}

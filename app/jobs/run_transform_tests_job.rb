@@ -52,7 +52,6 @@ class RunTransformTestsJob < ApplicationJob
       return message
     end
 
-    binding.pry
     expected_output = test.expected_output
     from_response = [from_response] unless from_response.is_a?(Array)
     

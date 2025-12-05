@@ -92,6 +92,7 @@ module Api
         error_message: task.error_message,
         job_id: task.job_id,
         tests: task.tests.order(created_at: :desc).map { |t| serialize_test(t) },
+        parameters: task.parameters.map { |p| serialize_parameter(p) },
         created_at: task.created_at,
         updated_at: task.updated_at
       }
@@ -113,6 +114,17 @@ module Api
       }
     end
 
+    def serialize_parameter(parameter)
+      {
+        id: parameter.id,
+        name: parameter.name,
+        example_value: parameter.example_value,
+        task_id: parameter.task_id,
+        created_at: parameter.created_at,
+        updated_at: parameter.updated_at
+      }
+    end
+
     def enqueue_job(task)
       task_type = task.input_payload.fetch("task_type", nil)
       
@@ -122,7 +134,7 @@ module Api
                   when "generate_transform_code"
                     "GenerateTransformCodeJob"
                   else
-                    "PreviewResponseGenerationJob"
+                    ""
                   end
       
       job_class_constant = job_class.safe_constantize
