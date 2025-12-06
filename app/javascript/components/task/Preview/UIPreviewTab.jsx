@@ -11,7 +11,7 @@ export default function UIPreviewTab({
   fromResponse,
   taskId,
   onResponseUpdate,
-  apiEndpoint,
+  resolvedApiEndpoint: apiEndpoint,
 }) {
   const [activeSubTab, setActiveSubTab] = useState("preview");
   const [fromResponseData, setFromResponseData] = useState(fromResponse);

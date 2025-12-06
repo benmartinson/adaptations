@@ -24,7 +24,12 @@ class PreviewResponseGenerationJob < ApplicationJob
       progress: 0.1
     )
     
-    from_response = task.input_payload.fetch("from_response", [])
+    # Replace parameter placeholders in api_endpoint with example values
+    api_endpoint = task.api_endpoint
+    resolved_api_endpoint = substitute_parameters(api_endpoint)
+    
+    # Fetch data from the resolved API endpoint
+    from_response = fetch_endpoint_data(resolved_api_endpoint)
     system_tag = task.input_payload.fetch("system_tag", nil)
     data_description = task.input_payload.fetch("data_description", nil)
     
@@ -72,8 +77,10 @@ class PreviewResponseGenerationJob < ApplicationJob
     # Save response_json, system_tag, and data_description to task
     task.update!(
       response_json: response_json,
+      api_endpoint: api_endpoint,
       system_tag: system_tag,
-      data_description: data_description
+      data_description: data_description,
+      resolved_api_endpoint: resolved_api_endpoint,
     )
     
     task.mark_completed!(
@@ -81,6 +88,7 @@ class PreviewResponseGenerationJob < ApplicationJob
         "response_json" => response_json,
         "system_tag" => system_tag,
         "data_description" => data_description,
+        "resolved_api_endpoint" => resolved_api_endpoint,
       }
     )
     broadcast_event(
@@ -89,7 +97,9 @@ class PreviewResponseGenerationJob < ApplicationJob
       output: response_json,
       response_json: response_json,
       system_tag: system_tag,
+      from_response: from_response,
       data_description: data_description,
+      resolved_api_endpoint: resolved_api_endpoint,
       final: true
     ) 
   end
@@ -97,6 +107,41 @@ class PreviewResponseGenerationJob < ApplicationJob
   def generate_code_response(prompt)
     response = GeminiChat.new.generate_response(prompt)
     response
+  end
+
+  def substitute_parameters(endpoint)
+    return endpoint if endpoint.blank?
+    
+    result = endpoint.dup
+    task.parameters.each do |param|
+      result.gsub!("{#{param.name}}", param.example_value.to_s)
+    end
+    result
+  end
+
+  def fetch_endpoint_data(url)
+    return [] if url.blank?
+    
+    uri = URI.parse(url)
+    http = Net::HTTP.new(uri.host, uri.port)
+    
+    if uri.scheme == "https"
+      http.use_ssl = true
+      http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+    end
+    
+    request = Net::HTTP::Get.new(uri.request_uri)
+    response = http.request(request)
+    
+    if response.is_a?(Net::HTTPSuccess)
+      JSON.parse(response.body)
+    else
+      Rails.logger.error("[PreviewResponseGenerationJob] Failed to fetch endpoint: #{response.code} #{response.message}")
+      []
+    end
+  rescue StandardError => e
+    Rails.logger.error("[PreviewResponseGenerationJob] Error fetching endpoint: #{e.message}")
+    []
   end
 
   def extract_json(raw_response)
