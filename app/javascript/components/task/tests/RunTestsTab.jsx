@@ -16,6 +16,7 @@ export default function RunTestsTab({
   const [fetchedDataMap, setFetchedDataMap] = useState({});
   const [fetchingEndpoints, setFetchingEndpoints] = useState({});
   const [isAddingTest, setIsAddingTest] = useState(false);
+  const [activeTab, setActiveTab] = useState("parameter");
   const primaryTestCreatedRef = useRef(false);
   const navigate = useNavigate();
 
@@ -110,104 +111,181 @@ export default function RunTestsTab({
   }
 
   const allTests = tests || [];
+  const parameterTests = allTests.filter(
+    (test) => test.test_type === "parameter"
+  );
+  const specificTests = allTests.filter(
+    (test) => test.test_type === "specific" || !test.test_type
+  );
 
   return (
     <div className="space-y-6">
-      {showAddTest ? (
-        <div className="bg-white rounded-xl shadow-sm border border-dashed border-gray-300 p-6">
-          <h4 className="text-sm font-medium text-gray-700 mb-3">
-            Add New Test
-          </h4>
-          <div className="flex gap-3">
-            <input
-              type="url"
-              className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder={apiEndpoint || "Enter API endpoint URL"}
-              value={newTestEndpoint}
-              onChange={(e) => setNewTestEndpoint(e.target.value)}
-            />
-            <button
-              type="button"
-              onClick={handleAddTest}
-              disabled={isAddingTest}
-              className="px-4 py-2 rounded-lg bg-gray-900 text-white font-semibold hover:bg-gray-700 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isAddingTest ? "Adding..." : "Add Test"}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setShowAddTest(false);
-                setNewTestEndpoint("");
-              }}
-              className="px-4 py-2 rounded-lg bg-gray-100 text-gray-700 font-semibold hover:bg-gray-200"
-            >
-              Cancel
-            </button>
-          </div>
-          <p className="text-xs text-gray-500 mt-2">
-            This test will run without expected output validation - it passes if
-            the transform executes without errors.
-          </p>
-        </div>
-      ) : (
+      {/* Subtabs */}
+      <div className="inline-flex rounded-lg border border-gray-300 overflow-hidden">
         <button
           type="button"
-          onClick={() => setShowAddTest(true)}
-          className="w-full py-3 rounded-xl border-2 border-dashed border-gray-300 text-gray-500 hover:border-gray-400 hover:text-gray-600 transition-colors flex items-center justify-center gap-2"
+          onClick={() => setActiveTab("parameter")}
+          className={`px-4 py-2 text-sm font-medium transition-colors ${
+            activeTab === "parameter"
+              ? "bg-gray-900 text-white"
+              : "bg-white text-gray-600 hover:bg-gray-50"
+          }`}
         >
-          <svg
-            className="w-5 h-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 4v16m8-8H4"
-            />
-          </svg>
-          Add Test
+          Parameter Tests
         </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("specific")}
+          className={`px-4 py-2 text-sm font-medium transition-colors border-l border-gray-300 ${
+            activeTab === "specific"
+              ? "bg-gray-900 text-white"
+              : "bg-white text-gray-600 hover:bg-gray-50"
+          }`}
+        >
+          Specific Tests
+        </button>
+      </div>
+
+      {activeTab === "parameter" && (
+        <div className="space-y-6">
+          <button
+            type="button"
+            onClick={() => {}}
+            className="w-full py-3 rounded-xl border-2 border-dashed border-gray-300 text-gray-500 hover:border-gray-400 hover:text-gray-600 transition-colors flex items-center justify-center gap-2"
+          >
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 4v16m8-8H4"
+              />
+            </svg>
+            Add Parameter Bulk Test
+          </button>
+
+          {parameterTests.map((test) => (
+            <TestCard
+              key={test.id}
+              test={test}
+              testResult={test}
+              endpoint={test.api_endpoint}
+              expectedOutput={test.expected_output}
+              fetchedData={fetchedDataMap[test.api_endpoint]}
+              isFetching={fetchingEndpoints[test.api_endpoint]}
+              isRunning={runningTestIds.includes(test.id)}
+              onRun={() => handleRunTest(test.id)}
+              isPrimary={test.is_primary}
+              taskId={task.id}
+            />
+          ))}
+        </div>
       )}
 
-      {allTests
-        .filter((test) => !test.is_primary)
-        .map((test) => (
-          <TestCard
-            key={test.id}
-            test={test}
-            testResult={test}
-            endpoint={test.api_endpoint}
-            expectedOutput={test.expected_output}
-            fetchedData={fetchedDataMap[test.api_endpoint]}
-            isFetching={fetchingEndpoints[test.api_endpoint]}
-            isRunning={runningTestIds.includes(test.id)}
-            onRun={() => handleRunTest(test.id)}
-            isPrimary={false}
-            taskId={task.id}
-          />
-        ))}
+      {activeTab === "specific" && (
+        <>
+          {showAddTest ? (
+            <div className="bg-white rounded-xl shadow-sm border border-dashed border-gray-300 p-6">
+              <h4 className="text-sm font-medium text-gray-700 mb-3">
+                Add New Test
+              </h4>
+              <div className="flex gap-3">
+                <input
+                  type="url"
+                  className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder={apiEndpoint || "Enter API endpoint URL"}
+                  value={newTestEndpoint}
+                  onChange={(e) => setNewTestEndpoint(e.target.value)}
+                />
+                <button
+                  type="button"
+                  onClick={handleAddTest}
+                  disabled={isAddingTest}
+                  className="px-4 py-2 rounded-lg bg-gray-900 text-white font-semibold hover:bg-gray-700 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isAddingTest ? "Adding..." : "Add Test"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAddTest(false);
+                    setNewTestEndpoint("");
+                  }}
+                  className="px-4 py-2 rounded-lg bg-gray-100 text-gray-700 font-semibold hover:bg-gray-200"
+                >
+                  Cancel
+                </button>
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                This test will run without expected output validation - it
+                passes if the transform executes without errors.
+              </p>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowAddTest(true)}
+              className="w-full py-3 rounded-xl border-2 border-dashed border-gray-300 text-gray-500 hover:border-gray-400 hover:text-gray-600 transition-colors flex items-center justify-center gap-2"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 4v16m8-8H4"
+                />
+              </svg>
+              Add Test
+            </button>
+          )}
 
-      {allTests
-        .filter((test) => test.is_primary)
-        .map((test) => (
-          <TestCard
-            key={test.id}
-            test={test}
-            testResult={test}
-            endpoint={test.api_endpoint}
-            expectedOutput={task.response_json}
-            fetchedData={fetchedDataMap[test.api_endpoint]}
-            isFetching={fetchingEndpoints[test.api_endpoint]}
-            isRunning={runningTestIds.includes(test.id)}
-            onRun={() => handleRunTest(test.id)}
-            isPrimary
-            taskId={task.id}
-          />
-        ))}
+          {specificTests
+            .filter((test) => !test.is_primary)
+            .map((test) => (
+              <TestCard
+                key={test.id}
+                test={test}
+                testResult={test}
+                endpoint={test.api_endpoint}
+                expectedOutput={test.expected_output}
+                fetchedData={fetchedDataMap[test.api_endpoint]}
+                isFetching={fetchingEndpoints[test.api_endpoint]}
+                isRunning={runningTestIds.includes(test.id)}
+                onRun={() => handleRunTest(test.id)}
+                isPrimary={false}
+                taskId={task.id}
+              />
+            ))}
+
+          {specificTests
+            .filter((test) => test.is_primary)
+            .map((test) => (
+              <TestCard
+                key={test.id}
+                test={test}
+                testResult={test}
+                endpoint={test.api_endpoint}
+                expectedOutput={task.response_json}
+                fetchedData={fetchedDataMap[test.api_endpoint]}
+                isFetching={fetchingEndpoints[test.api_endpoint]}
+                isRunning={runningTestIds.includes(test.id)}
+                onRun={() => handleRunTest(test.id)}
+                isPrimary
+                taskId={task.id}
+              />
+            ))}
+        </>
+      )}
     </div>
   );
 }

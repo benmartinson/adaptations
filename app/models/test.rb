@@ -8,4 +8,9 @@ class Test < ApplicationRecord
     fail: "fail",
     error: "error"
   }, default: "created"
+
+  enum :test_type, {
+    parameter: "parameter",
+    specific: "specific"
+  }, default: "specific"
 end
