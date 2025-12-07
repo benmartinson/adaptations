@@ -2,7 +2,7 @@ module Api
   class TasksController < ApplicationController
     skip_before_action :verify_authenticity_token
 
-    before_action :set_task, only: %i[show update run_job]
+    before_action :set_task, only: %i[show update run_job run_tests]
 
     def index
       tasks = Task.recent.limit(limit_param)
@@ -28,6 +28,13 @@ module Api
     def run_job
       @task.update!(run_job_params)
       enqueue_job(@task)
+
+      render json: serialize_task(@task), status: :accepted
+    end
+
+    def run_tests
+      job = RunTransformTestsJob.perform_later(@task.id)
+      @task.update!(job_id: job.job_id) if job.respond_to?(:job_id)
 
       render json: serialize_task(@task), status: :accepted
     end
@@ -107,7 +114,6 @@ module Api
         expected_output: test.expected_output,
         actual_output: test.actual_output,
         error_message: test.error_message,
-        is_primary: test.is_primary,
         attempts: test.attempts,
         created_at: test.created_at,
         updated_at: test.updated_at
@@ -119,6 +125,7 @@ module Api
         id: parameter.id,
         name: parameter.name,
         example_value: parameter.example_value,
+        example_values: parameter.example_values || [],
         task_id: parameter.task_id,
         created_at: parameter.created_at,
         updated_at: parameter.updated_at

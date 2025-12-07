@@ -2,15 +2,14 @@ class RunTransformTestsJob < ApplicationJob
   queue_as :default
 
   rescue_from(ActiveRecord::RecordNotFound) do |_error|
-    Rails.logger.warn("[RunTransformTestsJob] Task or Test not found, skipping job")
+    Rails.logger.warn("[RunTransformTestsJob] Task not found, skipping job")
   end
   rescue_from(StandardError) do |error|
     handle_failure(error)
   end
 
-  def perform(test_id)
-    @test = Test.find(test_id)
-    @task = @test.task
+  def perform(task_id)
+    @task = Task.find(task_id)
     code_body = @task.transform_code
 
     if code_body.blank?
@@ -19,132 +18,142 @@ class RunTransformTestsJob < ApplicationJob
 
     broadcast_event(phase: "starting", message: "Starting test execution")
 
-    test_result = run_single_test(@test, code_body)
-    update_test_record(@test, test_result)
+    # Delete existing tests
+    @task.tests.destroy_all
+
+    # Generate all parameter combinations
+    combinations = generate_combinations
+    if combinations.empty?
+      raise StandardError, "No parameter values to test"
+    end
+
+    test_results = []
+
+    combinations.each_with_index do |params_hash, index|
+      broadcast_event(
+        phase: "running",
+        message: "Running test #{index + 1} of #{combinations.length}",
+        progress: { current: index + 1, total: combinations.length }
+      )
+
+      result = run_single_combination(params_hash, code_body)
+      test_results << result
+    end
 
     broadcast_event(
       phase: "completed",
-      message: "Test completed",
-      output: { "test_results" => [test_result] },
-      test_results: [test_result],
-      tests: @task.tests.order(created_at: :desc).map { |t| serialize_test(t) },
+      message: "All tests completed",
+      output: { "test_results" => test_results },
+      test_results: test_results,
+      tests: @task.tests.reload.order(created_at: :desc).map { |t| serialize_test(t) },
       final: true
     )
   end
 
   private
 
-  attr_reader :task, :test
+  attr_reader :task
 
-  def run_single_test(test, code_body)
-    test.update!(attempts: test.attempts + 1)
+  def generate_combinations
+    params_with_values = @task.parameters.map do |p|
+      { name: p.name, values: p.example_values || [] }
+    end.select { |p| p[:values].any? }
 
-    from_response = test.from_response
-    if from_response.blank?
-      test.update!(status: "error", error_message: "No input data (from_response) found to test")
-      message = {
-        test_id: test.id,
-        name: "Transform API Response",
-        status: "error",
-        error: "No input data (from_response) found to test",
-      }
-      broadcast_event(phase: "error", message: message, final: true)
-      return message
-    end
+    return [] if params_with_values.empty?
 
-    expected_output = test.expected_output
-    from_response = [from_response] unless from_response.is_a?(Array)
-    
-    # If no expected_output, run as execution-only test (passes if no error)
-    if expected_output.blank?
-      execute_without_comparison(test, code_body, from_response)
-    else
-      execute_transform_test(test, code_body, from_response, expected_output)
-    end
+    # Generate cartesian product of all parameter values
+    names = params_with_values.map { |p| p[:name] }
+    value_arrays = params_with_values.map { |p| p[:values] }
+
+    # Use Array#product to get all combinations
+    first_values = value_arrays.first
+    rest_values = value_arrays[1..] || []
+
+    all_combinations = if rest_values.empty?
+                         first_values.map { |v| [v] }
+                       else
+                         first_values.product(*rest_values)
+                       end
+
+    all_combinations.map { |values| names.zip(values).to_h }
   end
 
-  def update_test_record(test, result)
-    status = case result[:status]
-             when "passed" then "pass"
-             when "failed" then "fail"
-             when "error" then "error"
-             when "needs_review" then "needs_review"
-             else "fail"
-             end
+  def resolve_api_url(template, params_hash)
+    result = template.dup
+    params_hash.each do |name, value|
+      result = result.gsub("{#{name}}", value.to_s)
+    end
+    result
+  end
 
-    test.update!(
-      status: status,
-      actual_output: result[:output],
-      error_message: result[:error]
+  def fetch_api_response(url)
+    uri = URI.parse(url)
+
+    http = Net::HTTP.new(uri.host, uri.port)
+    if uri.scheme == "https"
+      http.use_ssl = true
+      http.verify_mode = OpenSSL::SSL::VERIFY_PEER
+      http.verify_callback = ->(_preverify_ok, _store_ctx) { true }
+    end
+
+    request = Net::HTTP::Get.new(uri)
+    response = http.request(request)
+
+    unless response.is_a?(Net::HTTPSuccess)
+      raise StandardError, "HTTP request failed: #{response.code} #{response.message}"
+    end
+
+    JSON.parse(response.body)
+  rescue JSON::ParserError => e
+    raise StandardError, "Failed to parse API response as JSON: #{e.message}"
+  end
+
+  def run_single_combination(params_hash, code_body)
+    resolved_url = resolve_api_url(@task.api_endpoint, params_hash)
+
+    # Create test record first
+    test = @task.tests.create!(
+      api_endpoint: resolved_url,
+      status: "pending",
+      attempts: 1
     )
-  end
 
-  def serialize_test(t)
-    {
-      id: t.id,
-      api_endpoint: t.api_endpoint,
-      status: t.status,
-      from_response: t.from_response,
-      expected_output: t.expected_output,
-      actual_output: t.actual_output,
-      error_message: t.error_message,
-      parameter_id: t.parameter_id,
-      example_values: t.example_values || [],
-      attempts: t.attempts,
-      created_at: t.created_at,
-      updated_at: t.updated_at
-    }
-  end
+    begin
+      # Fetch the API response
+      from_response = fetch_api_response(resolved_url)
+      test.update!(from_response: from_response)
 
-  def execute_without_comparison(test, code_body, from_response)
-    output = execute_code(code_body, from_response)
+      # Run the transform
+      from_response_array = from_response.is_a?(Array) ? from_response : [from_response]
+      output = execute_code(code_body, from_response_array)
 
-    {
-      test_id: test.id,
-      name: "Transform API Response",
-      status: "needs_review",
-      input: from_response,
-      output: output,
-      expected_output: nil
-    }
-  rescue StandardError => e
-    {
-      test_id: test.id,
-      name: "Transform API Response",
-      status: "error",
-      input: from_response,
-      error: e.message
-    }
-  end
+      test.update!(
+        status: "needs_review",
+        actual_output: output
+      )
 
-  def execute_transform_test(test, code_body, from_response, expected_output)
-    output = execute_code(code_body, from_response)
-    # Normalize both for comparison (convert to JSON and back to handle symbol/string keys)
-    normalized_output = normalize_for_comparison(output)
-    normalized_expected = normalize_for_comparison(expected_output)
+      {
+        test_id: test.id,
+        name: "Transform: #{resolved_url}",
+        status: "needs_review",
+        params: params_hash,
+        input: from_response,
+        output: output
+      }
+    rescue StandardError => e
+      test.update!(
+        status: "error",
+        error_message: e.message
+      )
 
-    status = normalized_output == normalized_expected ? "passed" : "failed"
-
-    {
-      test_id: test.id,
-      name: "Transform API Response",
-      status: status,
-      input: from_response,
-      output: output,
-      expected_output: expected_output
-    }
-  rescue StandardError => e
-    {
-      test_id: test.id,
-      name: "Transform API Response",
-      status: "error",
-      input: from_response,
-      error: e.message
-    }
-  end
-
-  def normalize_for_comparison(data)
-    JSON.parse(data.to_json)
+      {
+        test_id: test.id,
+        name: "Transform: #{resolved_url}",
+        status: "error",
+        params: params_hash,
+        error: e.message
+      }
+    end
   end
 
   def execute_code(code_body, input)
@@ -166,6 +175,23 @@ class RunTransformTestsJob < ApplicationJob
     end
   rescue StandardError => e
     raise(StandardError, "Inline evaluation failed: #{e.message}")
+  end
+
+  def serialize_test(t)
+    {
+      id: t.id,
+      api_endpoint: t.api_endpoint,
+      status: t.status,
+      from_response: t.from_response,
+      expected_output: t.expected_output,
+      actual_output: t.actual_output,
+      error_message: t.error_message,
+      parameter_id: t.parameter_id,
+      example_values: t.example_values || [],
+      attempts: t.attempts,
+      created_at: t.created_at,
+      updated_at: t.updated_at
+    }
   end
 
   def broadcast_event(data)
@@ -196,4 +222,3 @@ class RunTransformTestsJob < ApplicationJob
     )
   end
 end
-

@@ -5,18 +5,39 @@ export default function RunTestsTab({
   task,
   parameters,
   tests,
-  onTestCreated,
+  onParameterUpdated,
 }) {
-  const [testValues, setTestValues] = useState({});
-  const [creatingTests, setCreatingTests] = useState({});
-  const [runningTests, setRunningTests] = useState({});
   const navigate = useNavigate();
+  const [testValues, setTestValues] = useState({});
+  const [savingParams, setSavingParams] = useState({});
+  const [runningTests, setRunningTests] = useState(false);
 
   const allParameters = parameters || [];
   const allTests = tests || [];
+  const hasTests = allTests.length > 0;
 
-  function getTestForParameter(paramId) {
-    return allTests.find((t) => t.parameter_id === paramId);
+  function handleReviewTests() {
+    if (hasTests) {
+      navigate(`/task/${task.id}/tests/preview`);
+    }
+  }
+
+  async function handleRunTests() {
+    setRunningTests(true);
+    try {
+      const response = await fetch(`/api/tasks/${task.id}/run_tests`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to run tests");
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setRunningTests(false);
+    }
   }
 
   function handleTestValuesChange(paramId, value) {
@@ -26,7 +47,7 @@ export default function RunTestsTab({
     }));
   }
 
-  async function handleCreateTest(param) {
+  async function handleSaveTestValues(param) {
     const values =
       testValues[param.id] ?? (param.example_values || []).join(", ");
     const exampleValuesArray = values
@@ -34,72 +55,32 @@ export default function RunTestsTab({
       .map((v) => v.trim())
       .filter((v) => v.length > 0);
 
-    setCreatingTests((prev) => ({ ...prev, [param.id]: true }));
-    try {
-      const response = await fetch(`/api/tasks/${task.id}/tests`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          test: {
-            parameter_id: param.id,
-            example_values: exampleValuesArray,
-          },
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to create test");
-      }
-
-      const newTest = await response.json();
-      onTestCreated?.(newTest);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setCreatingTests((prev) => ({ ...prev, [param.id]: false }));
-    }
-  }
-
-  async function handleRunTest(test) {
-    setRunningTests((prev) => ({ ...prev, [test.id]: true }));
+    setSavingParams((prev) => ({ ...prev, [param.id]: true }));
     try {
       const response = await fetch(
-        `/api/tasks/${task.id}/tests/${test.id}/run_job`,
+        `/api/tasks/${task.id}/parameters/${param.id}`,
         {
-          method: "POST",
+          method: "PATCH",
           headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            parameter: {
+              example_values: exampleValuesArray,
+            },
+          }),
         }
       );
 
       if (!response.ok) {
-        throw new Error("Unable to run test");
+        throw new Error("Failed to save test values");
       }
-      navigate(`/task/${task.id}/test/${test.id}/preview`);
+
+      const updatedParam = await response.json();
+      onParameterUpdated?.(updatedParam);
     } catch (error) {
       console.error(error);
     } finally {
-      setRunningTests((prev) => ({ ...prev, [test.id]: false }));
+      setSavingParams((prev) => ({ ...prev, [param.id]: false }));
     }
-  }
-
-  function getStatusBadge(status) {
-    const statusStyles = {
-      created: "bg-gray-100 text-gray-600",
-      pending: "bg-yellow-100 text-yellow-700",
-      pass: "bg-green-100 text-green-700",
-      fail: "bg-red-100 text-red-700",
-      error: "bg-red-100 text-red-700",
-    };
-
-    return (
-      <span
-        className={`text-xs font-medium px-2 py-1 rounded ${
-          statusStyles[status] || statusStyles.created
-        }`}
-      >
-        {status}
-      </span>
-    );
   }
 
   if (allParameters.length === 0) {
@@ -108,15 +89,34 @@ export default function RunTestsTab({
 
   return (
     <div className="space-y-6">
+      <div className="flex justify-end gap-3">
+        <button
+          type="button"
+          onClick={handleRunTests}
+          disabled={runningTests}
+          className="px-6 py-2.5 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {runningTests
+            ? "Running Tests..."
+            : hasTests
+            ? "Re-Run Tests"
+            : "Run Tests"}
+        </button>
+        {hasTests && (
+          <button
+            type="button"
+            onClick={handleReviewTests}
+            className="px-6 py-2.5 rounded-lg bg-gray-900 text-white font-semibold hover:bg-gray-700 cursor-pointer"
+          >
+            Review Tests
+          </button>
+        )}
+      </div>
+
       {allParameters.map((param) => {
-        const existingTest = getTestForParameter(param.id);
         const currentValues =
-          testValues[param.id] ??
-          (existingTest?.example_values || param.example_values || []).join(
-            ", "
-          );
-        const isCreating = creatingTests[param.id];
-        const isRunning = existingTest && runningTests[existingTest.id];
+          testValues[param.id] ?? (param.example_values || []).join(", ");
+        const isSaving = savingParams[param.id];
 
         return (
           <div
@@ -128,28 +128,14 @@ export default function RunTestsTab({
                 {param.name}
               </h3>
               <div className="flex items-center gap-3">
-                {existingTest ? (
-                  <>
-                    {getStatusBadge(existingTest.status)}
-                    <button
-                      type="button"
-                      onClick={() => handleRunTest(existingTest)}
-                      disabled={isRunning}
-                      className="px-4 py-2 rounded-lg bg-gray-900 text-white font-semibold hover:bg-gray-700 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                    >
-                      {isRunning ? "Running..." : "Run Test"}
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => handleCreateTest(param)}
-                    disabled={isCreating}
-                    className="px-4 py-2 rounded-lg bg-gray-900 text-white font-semibold hover:bg-gray-700 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                  >
-                    {isCreating ? "Creating..." : "Create Test"}
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => handleSaveTestValues(param)}
+                  disabled={isSaving}
+                  className="px-4 py-2 rounded-lg bg-gray-900 text-white font-semibold hover:bg-gray-700 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                >
+                  {isSaving ? "Saving..." : "Save"}
+                </button>
               </div>
             </div>
 
@@ -168,7 +154,6 @@ export default function RunTestsTab({
                 onChange={(e) =>
                   handleTestValuesChange(param.id, e.target.value)
                 }
-                disabled={!!existingTest}
               />
             </div>
           </div>

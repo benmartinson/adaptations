@@ -3,21 +3,22 @@ import { useParams, Link } from "react-router-dom";
 import PreviewList from "../Preview/PreviewList";
 
 export default function TestPreviewPage() {
-  const { test_id, task_id } = useParams();
-  const [test, setTest] = useState(null);
+  const { task_id } = useParams();
+  const [tests, setTests] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [updating, setUpdating] = useState(false);
 
   useEffect(() => {
-    async function loadTest() {
+    async function loadTests() {
       try {
-        const response = await fetch(`/api/tasks/${task_id}/tests/${test_id}`);
+        const response = await fetch(`/api/tasks/${task_id}`);
         if (!response.ok) {
-          throw new Error("Unable to load test");
+          throw new Error("Unable to load task");
         }
         const data = await response.json();
-        setTest(data);
+        setTests(data.tests || []);
       } catch (err) {
         setError(err.message);
       } finally {
@@ -25,13 +26,26 @@ export default function TestPreviewPage() {
       }
     }
 
-    loadTest();
-  }, [test_id, task_id]);
+    loadTests();
+  }, [task_id]);
+
+  const test = tests[currentIndex];
+  const hasMultipleTests = tests.length > 1;
+
+  function handleNextTest() {
+    setCurrentIndex((prev) => (prev + 1) % tests.length);
+  }
+
+  function handlePrevTest() {
+    setCurrentIndex((prev) => (prev - 1 + tests.length) % tests.length);
+  }
 
   async function handleMarkAsPassed() {
+    if (!test) return;
+
     setUpdating(true);
     try {
-      const response = await fetch(`/api/tasks/${task_id}/tests/${test_id}`, {
+      const response = await fetch(`/api/tasks/${task_id}/tests/${test.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ test: { status: "pass" } }),
@@ -40,7 +54,7 @@ export default function TestPreviewPage() {
         throw new Error("Unable to update test");
       }
       const data = await response.json();
-      setTest(data);
+      setTests((prev) => prev.map((t) => (t.id === data.id ? data : t)));
     } catch (err) {
       setError(err.message);
     } finally {
@@ -83,10 +97,46 @@ export default function TestPreviewPage() {
           </h2>
           <p className="text-gray-600 mb-6">{error}</p>
           <Link
-            to={`/task/${task_id}`}
+            to={`/task/${task_id}/tests`}
             className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
           >
-            Back to Task
+            Back to Tests
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (tests.length === 0) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-amber-50 flex items-center justify-center">
+        <div className="bg-white rounded-xl shadow-lg p-8 max-w-md text-center">
+          <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg
+              className="w-8 h-8 text-amber-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+              />
+            </svg>
+          </div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">
+            No Tests Available
+          </h2>
+          <p className="text-gray-600 mb-6">
+            No tests have been run yet for this task.
+          </p>
+          <Link
+            to={`/task/${task_id}/tests`}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+          >
+            Back to Tests
           </Link>
         </div>
       </div>
@@ -120,12 +170,36 @@ export default function TestPreviewPage() {
           <p className="text-gray-600 mb-6">
             This test hasn't been run yet or has no output to preview.
           </p>
-          <Link
-            to={`/task/${task_id}`}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-          >
-            Back to Task
-          </Link>
+          <div className="flex items-center justify-center gap-3">
+            <Link
+              to={`/task/${task_id}/tests`}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+            >
+              Back to Tests
+            </Link>
+            {hasMultipleTests && (
+              <button
+                type="button"
+                onClick={handleNextTest}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                Next Test
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              </button>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -137,7 +211,7 @@ export default function TestPreviewPage() {
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link
-              to={`/task/${task_id}`}
+              to={`/task/${task_id}/tests`}
               className="inline-flex items-center gap-2 px-3 py-1.5 text-sm bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
             >
               <svg
@@ -153,11 +227,16 @@ export default function TestPreviewPage() {
                   d="M15 19l-7-7 7-7"
                 />
               </svg>
-              Back to Task
+              Back to Tests
             </Link>
             <div>
               <h1 className="text-lg font-semibold text-gray-900">
-                UI Preview
+                Test Preview
+                {hasMultipleTests && (
+                  <span className="ml-2 text-sm font-normal text-gray-500">
+                    ({currentIndex + 1} of {tests.length})
+                  </span>
+                )}
               </h1>
               <p className="text-sm text-gray-500 truncate max-w-md">
                 {test.api_endpoint || "Test Preview"}
@@ -165,13 +244,57 @@ export default function TestPreviewPage() {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            {hasMultipleTests && (
+              <>
+                <button
+                  type="button"
+                  onClick={handlePrevTest}
+                  className="p-2 rounded-lg bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
+                  title="Previous Test"
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 19l-7-7 7-7"
+                    />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleNextTest}
+                  className="p-2 rounded-lg bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
+                  title="Next Test"
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5l7 7-7 7"
+                    />
+                  </svg>
+                </button>
+              </>
+            )}
             <span
               className={`px-3 py-1 rounded-full text-sm font-medium ${
                 test.status === "pass"
                   ? "bg-green-100 text-green-700"
                   : test.status === "fail"
                   ? "bg-red-100 text-red-700"
-                  : test.status === "pending"
+                  : test.status === "needs_review"
                   ? "bg-yellow-100 text-yellow-700"
                   : "bg-gray-100 text-gray-700"
               }`}
@@ -180,11 +303,11 @@ export default function TestPreviewPage() {
                 ? "Passed"
                 : test.status === "fail"
                 ? "Failed"
-                : test.status === "pending"
-                ? "Pending Review"
+                : test.status === "needs_review"
+                ? "Needs Review"
                 : test.status}
             </span>
-            {test.status === "pending" && (
+            {test.status === "needs_review" && (
               <button
                 type="button"
                 onClick={handleMarkAsPassed}

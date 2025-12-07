@@ -328,12 +328,16 @@ export default function TaskRunner() {
 
       {tab === "tests" && (
         <RunTestsTab
-          responseJson={responseJson}
-          apiEndpoint={snapshot?.api_endpoint}
           task={snapshot}
-          tests={tests}
-          onTestCreated={addTest}
           parameters={parameters}
+          tests={tests}
+          onParameterUpdated={(updatedParam) => {
+            updateParameters(
+              parameters.map((p) =>
+                p.id === updatedParam.id ? updatedParam : p
+              )
+            );
+          }}
         />
       )}
     </div>

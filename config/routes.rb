@@ -12,6 +12,7 @@ Rails.application.routes.draw do
     resources :tasks, only: %i[index show create update] do
       member do
         post :run_job
+        post :run_tests
       end
       resources :tests, only: %i[create show update] do
         member do
