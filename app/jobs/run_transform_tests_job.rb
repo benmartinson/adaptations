@@ -68,7 +68,7 @@ class RunTransformTestsJob < ApplicationJob
              when "passed" then "pass"
              when "failed" then "fail"
              when "error" then "error"
-             when "pending" then "pending"
+             when "needs_review" then "needs_review"
              else "fail"
              end
 
@@ -88,7 +88,8 @@ class RunTransformTestsJob < ApplicationJob
       expected_output: t.expected_output,
       actual_output: t.actual_output,
       error_message: t.error_message,
-      is_primary: t.is_primary,
+      parameter_id: t.parameter_id,
+      example_values: t.example_values || [],
       attempts: t.attempts,
       created_at: t.created_at,
       updated_at: t.updated_at
@@ -98,12 +99,10 @@ class RunTransformTestsJob < ApplicationJob
   def execute_without_comparison(test, code_body, from_response)
     output = execute_code(code_body, from_response)
 
-    result_status = test.is_primary ? "passed" : "pending"
-
     {
       test_id: test.id,
       name: "Transform API Response",
-      status: result_status,
+      status: "needs_review",
       input: from_response,
       output: output,
       expected_output: nil

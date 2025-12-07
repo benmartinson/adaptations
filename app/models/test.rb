@@ -1,16 +1,12 @@
 class Test < ApplicationRecord
   belongs_to :task
+  belongs_to :parameter, optional: true
 
   enum :status, {
-    created: "created",
     pending: "pending",
+    needs_review: "needs_review",
     pass: "pass",
     fail: "fail",
     error: "error"
-  }, default: "created"
-
-  enum :test_type, {
-    parameter: "parameter",
-    specific: "specific"
-  }, default: "specific"
+  }, default: "pending"
 end

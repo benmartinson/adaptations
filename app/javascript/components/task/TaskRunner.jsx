@@ -333,6 +333,7 @@ export default function TaskRunner() {
           task={snapshot}
           tests={tests}
           onTestCreated={addTest}
+          parameters={parameters}
         />
       )}
     </div>

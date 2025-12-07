@@ -25,7 +25,7 @@ module Api
     end
 
     def update
-      parameter_data = params.require(:parameter).permit(:name, :example_value)
+      parameter_data = params.require(:parameter).permit(:name, :example_value, example_values: [])
       
       # Validate that example_value is included in the API endpoint
       if parameter_data[:example_value].present? && @task.api_endpoint.present?
@@ -60,6 +60,7 @@ module Api
         id: parameter.id,
         name: parameter.name,
         example_value: parameter.example_value,
+        example_values: parameter.example_values || [],
         task_id: parameter.task_id,
         created_at: parameter.created_at,
         updated_at: parameter.updated_at
