@@ -27,8 +27,6 @@ export default function TaskRunner() {
     updateResponseJson,
     tests,
     addTest,
-    parameters,
-    updateParameters,
   } = useTaskProgress(task_id);
 
   const isGeneratingTransformCode = snapshot?.phase === "code_generation";
@@ -263,9 +261,6 @@ export default function TaskRunner() {
           onFetchEndpoint={handleFetchEndpoint}
           isGeneratingPreview={isGeneratingPreview}
           generatingMessage={generatingMessage}
-          taskId={task_id}
-          parameters={parameters}
-          onParametersChange={updateParameters}
         />
       )}
 

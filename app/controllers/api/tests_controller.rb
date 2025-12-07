@@ -10,13 +10,14 @@ module Api
     end
 
     def create
-      test_data = params.require(:test).permit(:api_endpoint, :is_primary, from_response: {}, expected_output: {})
+      test_data = params.require(:test).permit(:api_endpoint, :is_primary, :description, from_response: {}, expected_output: {})
 
       test = @task.tests.create!(
         api_endpoint: test_data[:api_endpoint] || @task.api_endpoint,
         from_response: test_data[:from_response],
         expected_output: test_data[:expected_output],
         is_primary: test_data[:is_primary] || false,
+        description: test_data[:description],
         status: "created",
         attempts: 0
       )
@@ -32,7 +33,7 @@ module Api
     end
 
     def update
-      test_params = params.require(:test).permit(:status)
+      test_params = params.require(:test).permit(:status, :description, :is_primary)
       @test.update!(test_params)
 
       render json: serialize_test(@test)
@@ -63,6 +64,7 @@ module Api
         actual_output: test.actual_output,
         error_message: test.error_message,
         is_primary: test.is_primary,
+        description: test.description,
         attempts: test.attempts,
         created_at: test.created_at,
         updated_at: test.updated_at

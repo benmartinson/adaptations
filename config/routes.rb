@@ -18,7 +18,6 @@ Rails.application.routes.draw do
           post :run_job
         end
       end
-      resources :parameters, only: %i[index create show update destroy]
     end
   end
 

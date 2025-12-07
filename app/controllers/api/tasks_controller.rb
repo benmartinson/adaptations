@@ -92,7 +92,6 @@ module Api
         error_message: task.error_message,
         job_id: task.job_id,
         tests: task.tests.order(created_at: :desc).map { |t| serialize_test(t) },
-        parameters: task.parameters.map { |p| serialize_parameter(p) },
         created_at: task.created_at,
         updated_at: task.updated_at
       }
@@ -108,20 +107,10 @@ module Api
         actual_output: test.actual_output,
         error_message: test.error_message,
         is_primary: test.is_primary,
+        description: test.description,
         attempts: test.attempts,
         created_at: test.created_at,
         updated_at: test.updated_at
-      }
-    end
-
-    def serialize_parameter(parameter)
-      {
-        id: parameter.id,
-        name: parameter.name,
-        example_value: parameter.example_value,
-        task_id: parameter.task_id,
-        created_at: parameter.created_at,
-        updated_at: parameter.updated_at
       }
     end
 

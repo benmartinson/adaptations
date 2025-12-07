@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_05_193953) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_07_212124) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -149,6 +149,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_05_193953) do
   create_table "parameters", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "example_value"
+    t.json "example_values", default: []
     t.string "name"
     t.integer "task_id", null: false
     t.datetime "updated_at", null: false
@@ -168,6 +169,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_05_193953) do
     t.datetime "last_progress_at"
     t.json "metadata", default: {}
     t.json "output_payload", default: {}
+    t.text "resolved_api_endpoint"
     t.json "response_json"
     t.datetime "started_at"
     t.string "status", default: "pending", null: false
@@ -187,13 +189,17 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_05_193953) do
     t.string "api_endpoint"
     t.integer "attempts", default: 0
     t.datetime "created_at", null: false
+    t.text "description"
     t.text "error_message"
+    t.json "example_values", default: []
     t.json "expected_output"
     t.json "from_response"
     t.boolean "is_primary", default: false
+    t.integer "parameter_id"
     t.string "status", default: "pending"
     t.integer "task_id", null: false
     t.datetime "updated_at", null: false
+    t.index ["parameter_id"], name: "index_tests_on_parameter_id"
     t.index ["task_id"], name: "index_tests_on_task_id"
   end
 
@@ -210,5 +216,6 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_05_193953) do
   add_foreign_key "movie_books", "books"
   add_foreign_key "movie_books", "movies"
   add_foreign_key "parameters", "tasks"
+  add_foreign_key "tests", "parameters"
   add_foreign_key "tests", "tasks"
 end
