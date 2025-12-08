@@ -26,7 +26,7 @@ root.render(
       />
       <Route path="/task/:task_id/:tab" element={<TaskRunner />} />
       <Route
-        path="/task/:task_id/test/:test_id/preview"
+        path="/task/:task_id/tests/preview"
         element={<TestPreviewPage />}
       />
     </Routes>

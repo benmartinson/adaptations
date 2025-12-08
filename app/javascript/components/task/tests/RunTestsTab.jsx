@@ -1,8 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useLocation } from "react-router-dom";
 import { fetchEndpointData } from "../../../helpers";
 import TestCard from "./TestCard";
 
 export default function RunTestsTab({ task, tests, onTestCreated }) {
+  const location = useLocation();
+  const expandTestId = location.state?.expandTestId;
+  const focusNotes = location.state?.focusNotes;
   const [runningTestIds, setRunningTestIds] = useState([]);
   const [newTestEndpoint, setNewTestEndpoint] = useState("");
   const [showAddTest, setShowAddTest] = useState(false);
@@ -123,54 +127,19 @@ export default function RunTestsTab({ task, tests, onTestCreated }) {
   }
 
   const otherTests = allTests.filter((t) => !t.is_primary);
+  const hasChangesNeeded = allTests.some((t) => t.status === "changes_needed");
 
   return (
-    <div className="space-y-6">
-      {showAddTest ? (
-        <div className="bg-white rounded-xl shadow-sm border border-dashed border-gray-300 p-6">
-          <h4 className="text-sm font-medium text-gray-700 mb-3">
-            Add New Test
-          </h4>
-          <div className="flex gap-3">
-            <input
-              type="url"
-              className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder={apiEndpoint || "Enter API endpoint URL"}
-              value={newTestEndpoint}
-              onChange={(e) => setNewTestEndpoint(e.target.value)}
-            />
-            <button
-              type="button"
-              onClick={handleAddTest}
-              disabled={isAddingTest}
-              className="px-4 py-2 rounded-lg bg-gray-900 text-white font-semibold hover:bg-gray-700 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isAddingTest ? "Adding..." : "Add Test"}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setShowAddTest(false);
-                setNewTestEndpoint("");
-              }}
-              className="px-4 py-2 rounded-lg bg-gray-100 text-gray-700 font-semibold hover:bg-gray-200"
-            >
-              Cancel
-            </button>
-          </div>
-          <p className="text-xs text-gray-500 mt-2">
-            This test will run without expected output validation - it passes if
-            the transform executes without errors.
-          </p>
-        </div>
-      ) : (
+    <div className="space-y-3">
+      {/* Header row with Add Test and Re-Generate buttons */}
+      <div className="flex items-center justify-between">
         <button
           type="button"
-          onClick={() => setShowAddTest(true)}
-          className="w-full py-3 rounded-xl border-2 border-dashed border-gray-300 text-gray-500 hover:border-gray-400 hover:text-gray-600 transition-colors flex items-center justify-center gap-2"
+          onClick={() => setShowAddTest(!showAddTest)}
+          className="text-sm text-gray-600 hover:text-gray-900 cursor-pointer flex items-center gap-1"
         >
           <svg
-            className="w-5 h-5"
+            className="w-4 h-4"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -184,6 +153,45 @@ export default function RunTestsTab({ task, tests, onTestCreated }) {
           </svg>
           Add Test
         </button>
+        <button
+          type="button"
+          disabled={!hasChangesNeeded}
+          className="px-3  py-1 rounded-lg bg-gray-900 text-white font-semibold hover:bg-gray-700 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-400"
+        >
+          Re-Generate Transformation
+        </button>
+      </div>
+
+      {showAddTest && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+          <div className="flex gap-3">
+            <input
+              type="url"
+              className="flex-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:ring-0 focus:outline-none"
+              placeholder={apiEndpoint || "Enter API endpoint URL"}
+              value={newTestEndpoint}
+              onChange={(e) => setNewTestEndpoint(e.target.value)}
+            />
+            <button
+              type="button"
+              onClick={handleAddTest}
+              disabled={isAddingTest}
+              className="px-3 py-1.5 text-sm rounded-md bg-gray-900 text-white font-medium hover:bg-gray-700 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isAddingTest ? "Adding..." : "Add"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setShowAddTest(false);
+                setNewTestEndpoint("");
+              }}
+              className="px-3 py-1.5 text-sm rounded-md bg-gray-100 text-gray-700 font-medium hover:bg-gray-200"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
       )}
 
       {otherTests.map((test) => (
@@ -199,6 +207,8 @@ export default function RunTestsTab({ task, tests, onTestCreated }) {
           onRun={() => runTest(test.id)}
           isPrimary={false}
           taskId={task.id}
+          initialExpanded={expandTestId === test.id}
+          focusNotes={expandTestId === test.id && focusNotes}
         />
       ))}
 
@@ -226,6 +236,8 @@ export default function RunTestsTab({ task, tests, onTestCreated }) {
           onRun={() => runTest(primaryTest.id)}
           isPrimary
           taskId={task.id}
+          initialExpanded={expandTestId === primaryTest.id}
+          focusNotes={expandTestId === primaryTest.id && focusNotes}
         />
       )}
     </div>

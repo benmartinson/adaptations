@@ -1,23 +1,39 @@
 import React, { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useLocation, useNavigate } from "react-router-dom";
 import PreviewList from "../Preview/PreviewList";
 
 export default function TestPreviewPage() {
-  const { task_id, test_id } = useParams();
-  const [test, setTest] = useState(null);
+  const { task_id } = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const initialTestId = location.state?.testId;
+
+  const [tests, setTests] = useState([]);
+  const [selectedTestId, setSelectedTestId] = useState(initialTestId);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [updating, setUpdating] = useState(false);
 
+  const currentIndex = tests.findIndex((t) => t.id === selectedTestId);
+  const selectedTest = currentIndex >= 0 ? tests[currentIndex] : tests[0];
+  const prevTest = currentIndex > 0 ? tests[currentIndex - 1] : null;
+  const nextTest =
+    currentIndex < tests.length - 1 ? tests[currentIndex + 1] : null;
+
   useEffect(() => {
-    async function loadTest() {
+    async function loadTests() {
       try {
-        const response = await fetch(`/api/tasks/${task_id}/tests/${test_id}`);
+        const response = await fetch(`/api/tasks/${task_id}/tests`);
         if (!response.ok) {
-          throw new Error("Unable to load test");
+          throw new Error("Unable to load tests");
         }
         const data = await response.json();
-        setTest(data);
+        setTests(data);
+
+        // If no testId was passed but we have tests, select the first one
+        if (!selectedTestId && data.length > 0) {
+          setSelectedTestId(data[0].id);
+        }
       } catch (err) {
         setError(err.message);
       } finally {
@@ -25,24 +41,32 @@ export default function TestPreviewPage() {
       }
     }
 
-    loadTest();
-  }, [task_id, test_id]);
+    loadTests();
+  }, [task_id]);
+
+  function goToTest(test) {
+    setSelectedTestId(test.id);
+  }
 
   async function handleMarkAsPassed() {
-    if (!test) return;
+    if (!selectedTest) return;
 
     setUpdating(true);
     try {
-      const response = await fetch(`/api/tasks/${task_id}/tests/${test_id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ test: { status: "pass" } }),
-      });
+      const response = await fetch(
+        `/api/tasks/${task_id}/tests/${selectedTest.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ test: { status: "pass" } }),
+        }
+      );
       if (!response.ok) {
         throw new Error("Unable to update test");
       }
       const data = await response.json();
-      setTest(data);
+      // Update the test in our local state
+      setTests((prev) => prev.map((t) => (t.id === data.id ? data : t)));
     } catch (err) {
       setError(err.message);
     } finally {
@@ -51,20 +75,24 @@ export default function TestPreviewPage() {
   }
 
   async function handleRequestChanges() {
-    if (!test) return;
+    if (!selectedTest) return;
 
     setUpdating(true);
     try {
-      const response = await fetch(`/api/tasks/${task_id}/tests/${test_id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ test: { status: "changes_needed" } }),
-      });
+      const response = await fetch(
+        `/api/tasks/${task_id}/tests/${selectedTest.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ test: { status: "changes_needed" } }),
+        }
+      );
       if (!response.ok) {
         throw new Error("Unable to update test");
       }
       const data = await response.json();
-      setTest(data);
+      // Update the test in our local state
+      setTests((prev) => prev.map((t) => (t.id === data.id ? data : t)));
     } catch (err) {
       setError(err.message);
     } finally {
@@ -117,7 +145,43 @@ export default function TestPreviewPage() {
     );
   }
 
-  if (!test) {
+  if (tests.length === 0) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-amber-50 flex items-center justify-center">
+        <div className="bg-white rounded-xl shadow-lg p-8 max-w-md text-center">
+          <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg
+              className="w-8 h-8 text-amber-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+              />
+            </svg>
+          </div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">
+            No Tests Found
+          </h2>
+          <p className="text-gray-600 mb-6">
+            There are no tests available to preview.
+          </p>
+          <Link
+            to={`/task/${task_id}/tests`}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+          >
+            Back to Tests
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (!selectedTest) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-amber-50 flex items-center justify-center">
         <div className="bg-white rounded-xl shadow-lg p-8 max-w-md text-center">
@@ -153,7 +217,7 @@ export default function TestPreviewPage() {
     );
   }
 
-  const actualOutput = test.actual_output;
+  const actualOutput = selectedTest.actual_output;
 
   if (!actualOutput) {
     return (
@@ -215,49 +279,102 @@ export default function TestPreviewPage() {
               </svg>
               Back to Tests
             </Link>
+
+            {/* Test Navigation Arrows */}
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => prevTest && goToTest(prevTest)}
+                disabled={!prevTest}
+                className="p-2 rounded-lg border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-white"
+                title={prevTest ? "Previous test" : "No previous test"}
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 19l-7-7 7-7"
+                  />
+                </svg>
+              </button>
+              <span className="px-2 text-sm text-gray-500 min-w-[60px] text-center">
+                {currentIndex >= 0
+                  ? `${currentIndex + 1} / ${tests.length}`
+                  : "—"}
+              </span>
+              <button
+                onClick={() => nextTest && goToTest(nextTest)}
+                disabled={!nextTest}
+                className="p-2 rounded-lg border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-white"
+                title={nextTest ? "Next test" : "No next test"}
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              </button>
+            </div>
+
             <div>
               <h1 className="text-lg font-semibold text-gray-900">
                 Test Preview
               </h1>
               <p className="text-sm text-gray-500 truncate max-w-md">
-                {test.api_endpoint || "Test Preview"}
+                {selectedTest.api_endpoint || "Test Preview"}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() =>
+                navigate(`/task/${task_id}/tests`, {
+                  state: { expandTestId: selectedTest.id, focusNotes: true },
+                })
+              }
+              className="px-3 py-1.5 rounded-lg border border-blue-200 bg-blue-50 text-blue-700 text-sm font-medium hover:bg-blue-100 transition-colors"
+            >
+              Request Changes
+            </button>
             <span
               className={`px-3 py-1 rounded-full text-sm font-medium ${
-                test.status === "pass"
+                selectedTest.status === "pass"
                   ? "bg-green-100 text-green-700"
-                  : test.status === "fail"
+                  : selectedTest.status === "fail"
                   ? "bg-red-100 text-red-700"
-                  : test.status === "pending"
+                  : selectedTest.status === "pending"
                   ? "bg-yellow-100 text-yellow-700"
-                  : test.status === "changes_needed"
+                  : selectedTest.status === "changes_needed"
                   ? "bg-purple-100 text-purple-700"
                   : "bg-gray-100 text-gray-700"
               }`}
             >
-              {test.status === "pass"
+              {selectedTest.status === "pass"
                 ? "Passed"
-                : test.status === "fail"
+                : selectedTest.status === "fail"
                 ? "Failed"
-                : test.status === "pending"
+                : selectedTest.status === "pending"
                 ? "Needs Review"
-                : test.status === "changes_needed"
+                : selectedTest.status === "changes_needed"
                 ? "Changes Needed"
-                : test.status}
+                : selectedTest.status}
             </span>
-            {test.status === "pending" && (
+            {selectedTest.status === "pending" && (
               <>
-                <button
-                  type="button"
-                  onClick={handleRequestChanges}
-                  disabled={updating}
-                  className="px-4 py-1.5 rounded-lg bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {updating ? "Updating..." : "Request Changes"}
-                </button>
                 <button
                   type="button"
                   onClick={handleMarkAsPassed}

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 export default function TestCard({
@@ -12,15 +12,18 @@ export default function TestCard({
   onRun,
   isPrimary,
   taskId,
+  initialExpanded,
+  focusNotes,
 }) {
+  const notesRef = useRef(null);
   const hasRun = !!test;
   const isPassed = testResult?.status === "passed" || test?.status === "pass";
   const isFailed = testResult?.status === "failed" || test?.status === "fail";
   const isError = testResult?.status === "error" || test?.status === "error";
-  const isPending = test?.status === "pending";
+  const isPending =
+    test?.status === "pending" || test?.status === "needs_review";
+  const isNeedsReview = test?.status === "needs_review";
   const isChangesNeeded = test?.status === "changes_needed";
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [showNotes, setShowNotes] = useState(false);
   const [notes, setNotes] = useState(test?.notes || "");
   const [isSavingNotes, setIsSavingNotes] = useState(false);
 
@@ -31,18 +34,25 @@ export default function TestCard({
   const inputData = fetchedData ?? test?.from_response;
 
   const canCollapse = !isPrimary && actualOutput;
-  const [isExpanded, setIsExpanded] = useState(!canCollapse);
+  const [isExpanded, setIsExpanded] = useState(!canCollapse || initialExpanded);
   const navigate = useNavigate();
+
+  // Focus notes textarea when focusNotes prop is true
+  useEffect(() => {
+    if (focusNotes && notesRef.current) {
+      // Small delay to ensure the element is rendered
+      setTimeout(() => {
+        notesRef.current?.focus();
+        notesRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }, 100);
+    }
+  }, [focusNotes]);
 
   function handleRun() {
     onRun();
-  }
-
-  function handleRequestChangesClick() {
-    if (!isExpanded) {
-      setIsExpanded(true);
-    }
-    setShowNotes(true);
   }
 
   async function handleSaveNotes() {
@@ -56,7 +66,6 @@ export default function TestCard({
       if (!response.ok) {
         throw new Error("Unable to update test");
       }
-      setShowNotes(false);
     } catch (err) {
       console.error(err);
     } finally {
@@ -80,20 +89,88 @@ export default function TestCard({
           : "border-gray-200"
       }`}
     >
-      {/* Line 1: Expander (left) + Buttons (right) */}
+      {/* Line 1: Status badge + API endpoint + Buttons */}
       <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-1">
-          {canCollapse && (
+        <div className="flex items-center gap-2">
+          {(hasRun && test?.status !== "created") || isPrimary ? (
+            <span
+              className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                isPassed
+                  ? "bg-green-100 text-green-700"
+                  : isFailed
+                  ? "bg-red-100 text-red-700"
+                  : isError
+                  ? "bg-orange-100 text-orange-700"
+                  : isPending
+                  ? "bg-yellow-100 text-yellow-700"
+                  : isChangesNeeded
+                  ? "bg-blue-100 text-blue-700"
+                  : "bg-gray-100 text-gray-700"
+              }`}
+            >
+              {isPassed
+                ? "Passed"
+                : isFailed
+                ? "Failed"
+                : isError
+                ? "Error"
+                : isPending
+                ? "Pending"
+                : isNeedsReview
+                ? "Needs Review"
+                : isChangesNeeded
+                ? "Changes Requested"
+                : test?.status || "Created"}
+            </span>
+          ) : null}
+          <p className="text-xs text-gray-500 truncate">
+            {endpoint || "No endpoint configured"}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {actualOutput && (
             <button
               type="button"
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="flex items-center gap-1 p-0.5 rounded hover:bg-gray-100 transition-colors"
-              aria-label={isExpanded ? "Collapse" : "Expand"}
+              onClick={() =>
+                navigate(`/task/${taskId}/tests/preview`, {
+                  state: { testId: test.id },
+                })
+              }
+              className="px-3 py-1 text-sm rounded-md font-medium cursor-pointer transition-colors bg-indigo-100 text-indigo-700 hover:bg-indigo-200"
             >
+              Preview
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={handleRun}
+            disabled={isRunning || isFetching}
+            className="p-1.5 rounded-md bg-gray-100 text-gray-600 hover:bg-gray-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            aria-label="Run test"
+          >
+            {isRunning ? (
               <svg
-                className={`w-4 h-4 text-gray-500 transition-transform ${
-                  isExpanded ? "rotate-90" : ""
-                }`}
+                className="w-4 h-4 animate-spin"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+            ) : (
+              <svg
+                className="w-4 h-4"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -102,88 +179,44 @@ export default function TestCard({
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M9 5l7 7-7 7"
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
                 />
               </svg>
-              {!isExpanded && (
-                <span className="text-xs text-gray-500">Show Details</span>
-              )}
-            </button>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handleRequestChangesClick}
-            className="px-3 py-1 text-sm rounded-md font-medium cursor-pointer transition-colors bg-blue-100 text-blue-700 hover:bg-blue-200"
-          >
-            Request Changes
-          </button>
-          {actualOutput && (
-            <button
-              type="button"
-              onClick={() =>
-                navigate(`/task/${taskId}/test/${test.id}/preview`)
-              }
-              className="px-3 py-1 text-sm rounded-md font-medium cursor-pointer transition-colors bg-indigo-100 text-indigo-700 hover:bg-indigo-200"
-            >
-              Show Review
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={handleRun}
-            disabled={isRunning || isFetching}
-            className="px-3 py-1 text-sm rounded-md bg-gray-900 text-white font-medium hover:bg-gray-700 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isRunning
-              ? "Running..."
-              : isPrimary || actualOutput
-              ? "Re-run Test"
-              : "Run Test"}
+            )}
           </button>
         </div>
       </div>
 
-      {/* Line 2: Status badge + API endpoint */}
-      <div
-        className={`flex items-center gap-2 ${
-          isExpanded || !canCollapse ? "mb-3" : ""
-        }`}
-      >
-        {(hasRun && test?.status !== "created") || isPrimary ? (
-          <span
-            className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-              isPassed
-                ? "bg-green-100 text-green-700"
-                : isFailed
-                ? "bg-red-100 text-red-700"
-                : isError
-                ? "bg-orange-100 text-orange-700"
-                : isPending
-                ? "bg-yellow-100 text-yellow-700"
-                : isChangesNeeded
-                ? "bg-blue-100 text-blue-700"
-                : "bg-gray-100 text-gray-700"
-            }`}
+      {/* Line 2: Show Details expander */}
+      {canCollapse && (
+        <div className={`${isExpanded ? "mb-3" : ""}`}>
+          <button
+            type="button"
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="flex items-center gap-1 p-0.5 rounded hover:bg-gray-100 transition-colors"
+            aria-label={isExpanded ? "Collapse" : "Expand"}
           >
-            {isPassed
-              ? "Passed"
-              : isFailed
-              ? "Failed"
-              : isError
-              ? "Error"
-              : isPending
-              ? "Needs Review"
-              : isChangesNeeded
-              ? "Changes Needed"
-              : test?.status || "Created"}
-          </span>
-        ) : null}
-        <p className="text-xs text-gray-500 truncate">
-          {endpoint || "No endpoint configured"}
-        </p>
-      </div>
+            <svg
+              className={`w-4 h-4 text-gray-500 transition-transform ${
+                isExpanded ? "rotate-90" : ""
+              }`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 5l7 7-7 7"
+              />
+            </svg>
+            <span className="text-xs text-gray-500">
+              {isExpanded ? "Hide Details" : "Show Details"}
+            </span>
+          </button>
+        </div>
+      )}
 
       {/* Collapsible content - always shown for primary tests, toggle for non-primary */}
       {(isExpanded || !canCollapse) && (
@@ -289,43 +322,35 @@ export default function TestCard({
           </div>
 
           {/* Notes textarea - shown when requesting changes */}
-          {showNotes && (
-            <div className="mt-3">
-              <div className="border border-gray-200 rounded-md overflow-hidden">
-                <div className="bg-blue-50 px-3 py-1.5 border-b border-gray-200">
-                  <h4 className="text-xs font-medium text-blue-700">Notes</h4>
-                  <p className="text-xs text-blue-500">
-                    In what way does the transformed output need to be changed?
-                  </p>
-                </div>
-                <div className="p-3">
-                  <textarea
-                    className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-xs resize-y focus:ring-0 focus:outline-none"
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    rows={3}
-                  />
-                  <div className="flex justify-end gap-2 mt-2">
-                    <button
-                      type="button"
-                      onClick={() => setShowNotes(false)}
-                      className="px-3 py-1 text-sm rounded-md font-medium cursor-pointer transition-colors bg-gray-100 text-gray-700 hover:bg-gray-200"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleSaveNotes}
-                      disabled={isSavingNotes}
-                      className="px-3 py-1 text-sm rounded-md font-medium cursor-pointer transition-colors bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {isSavingNotes ? "Saving..." : "Save & Request Changes"}
-                    </button>
-                  </div>
+          <div className="mt-3">
+            <div className="border border-gray-200 rounded-md overflow-hidden">
+              <div className="bg-blue-50 px-3 py-1.5 border-b border-gray-200">
+                <h4 className="text-xs font-medium text-blue-700">Notes</h4>
+                <p className="text-xs text-blue-500">
+                  In what way does the transformed output need to be different?
+                </p>
+              </div>
+              <div className="p-3">
+                <textarea
+                  ref={notesRef}
+                  className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-xs resize-y focus:ring-0 focus:outline-none"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  rows={3}
+                />
+                <div className="flex justify-end gap-2 mt-2">
+                  <button
+                    type="button"
+                    onClick={handleSaveNotes}
+                    disabled={isSavingNotes}
+                    className="px-3 py-1 text-sm rounded-md font-medium cursor-pointer transition-colors bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isSavingNotes ? "Saving..." : "Request Changes"}
+                  </button>
                 </div>
               </div>
             </div>
-          )}
+          </div>
 
           {/* Error message - shown when test has error */}
           {hasRun && isError && (

@@ -5,6 +5,11 @@ module Api
     before_action :set_task
     before_action :set_test, only: %i[show update run_job]
 
+    def index
+      tests = @task.tests.order(:created_at)
+      render json: tests.map { |test| serialize_test(test) }
+    end
+
     def show
       render json: serialize_test(@test)
     end
