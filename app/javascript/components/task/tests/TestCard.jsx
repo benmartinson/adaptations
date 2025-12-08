@@ -66,7 +66,7 @@ export default function TestCard({
 
   return (
     <div
-      className={`bg-white rounded-xl shadow-sm border p-6 ${
+      className={`bg-white rounded-lg shadow-sm border px-4 py-3 ${
         isPassed
           ? "border-green-300"
           : isFailed
@@ -80,21 +80,18 @@ export default function TestCard({
           : "border-gray-200"
       }`}
     >
-      <div
-        className={`flex items-center justify-between ${
-          isExpanded || !canCollapse ? "mb-4" : ""
-        }`}
-      >
-        <div className="flex items-center gap-3">
+      {/* Line 1: Expander (left) + Buttons (right) */}
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-1">
           {canCollapse && (
             <button
               type="button"
               onClick={() => setIsExpanded(!isExpanded)}
-              className="p-1 rounded hover:bg-gray-100 transition-colors"
+              className="flex items-center gap-1 p-0.5 rounded hover:bg-gray-100 transition-colors"
               aria-label={isExpanded ? "Collapse" : "Expand"}
             >
               <svg
-                className={`w-5 h-5 text-gray-500 transition-transform ${
+                className={`w-4 h-4 text-gray-500 transition-transform ${
                   isExpanded ? "rotate-90" : ""
                 }`}
                 fill="none"
@@ -108,56 +105,27 @@ export default function TestCard({
                   d="M9 5l7 7-7 7"
                 />
               </svg>
+              {!isExpanded && (
+                <span className="text-xs text-gray-500">Show Details</span>
+              )}
             </button>
           )}
-          <p className="text-sm text-gray-500 truncate max-w-md">
-            {endpoint || "No endpoint configured"}
-          </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={handleRequestChangesClick}
-            className="px-4 py-2 rounded-lg font-semibold cursor-pointer transition-colors bg-blue-100 text-blue-700 hover:bg-blue-200"
+            className="px-3 py-1 text-sm rounded-md font-medium cursor-pointer transition-colors bg-blue-100 text-blue-700 hover:bg-blue-200"
           >
             Request Changes
           </button>
-          {(hasRun && test?.status !== "created") || isPrimary ? (
-            <span
-              className={`px-3 py-1 rounded-full text-sm font-medium ${
-                isPassed
-                  ? "bg-green-100 text-green-700"
-                  : isFailed
-                  ? "bg-red-100 text-red-700"
-                  : isError
-                  ? "bg-orange-100 text-orange-700"
-                  : isPending
-                  ? "bg-yellow-100 text-yellow-700"
-                  : isChangesNeeded
-                  ? "bg-blue-100 text-blue-700"
-                  : "bg-gray-100 text-gray-700"
-              }`}
-            >
-              {isPassed
-                ? "Passed"
-                : isFailed
-                ? "Failed"
-                : isError
-                ? "Error"
-                : isPending
-                ? "Needs Review"
-                : isChangesNeeded
-                ? "Changes Needed"
-                : test?.status || "Created"}
-            </span>
-          ) : null}
           {actualOutput && (
             <button
               type="button"
               onClick={() =>
                 navigate(`/task/${taskId}/test/${test.id}/preview`)
               }
-              className="px-4 py-2 rounded-lg font-semibold cursor-pointer transition-colors bg-indigo-100 text-indigo-700 hover:bg-indigo-200"
+              className="px-3 py-1 text-sm rounded-md font-medium cursor-pointer transition-colors bg-indigo-100 text-indigo-700 hover:bg-indigo-200"
             >
               Show Review
             </button>
@@ -166,7 +134,7 @@ export default function TestCard({
             type="button"
             onClick={handleRun}
             disabled={isRunning || isFetching}
-            className="px-4 py-2 rounded-lg bg-gray-900 text-white font-semibold hover:bg-gray-700 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-3 py-1 text-sm rounded-md bg-gray-900 text-white font-medium hover:bg-gray-700 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isRunning
               ? "Running..."
@@ -177,20 +145,59 @@ export default function TestCard({
         </div>
       </div>
 
+      {/* Line 2: Status badge + API endpoint */}
+      <div
+        className={`flex items-center gap-2 ${
+          isExpanded || !canCollapse ? "mb-3" : ""
+        }`}
+      >
+        {(hasRun && test?.status !== "created") || isPrimary ? (
+          <span
+            className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+              isPassed
+                ? "bg-green-100 text-green-700"
+                : isFailed
+                ? "bg-red-100 text-red-700"
+                : isError
+                ? "bg-orange-100 text-orange-700"
+                : isPending
+                ? "bg-yellow-100 text-yellow-700"
+                : isChangesNeeded
+                ? "bg-blue-100 text-blue-700"
+                : "bg-gray-100 text-gray-700"
+            }`}
+          >
+            {isPassed
+              ? "Passed"
+              : isFailed
+              ? "Failed"
+              : isError
+              ? "Error"
+              : isPending
+              ? "Needs Review"
+              : isChangesNeeded
+              ? "Changes Needed"
+              : test?.status || "Created"}
+          </span>
+        ) : null}
+        <p className="text-xs text-gray-500 truncate">
+          {endpoint || "No endpoint configured"}
+        </p>
+      </div>
+
       {/* Collapsible content - always shown for primary tests, toggle for non-primary */}
       {(isExpanded || !canCollapse) && (
         <>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div className="border border-gray-200 rounded-lg overflow-hidden">
-              <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
-                <h4 className="text-sm font-medium text-gray-700">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            <div className="border border-gray-200 rounded-md overflow-hidden">
+              <div className="bg-gray-50 px-3 py-1.5 border-b border-gray-200">
+                <h4 className="text-xs font-medium text-gray-700">
                   Input Data
                 </h4>
-                <p className="text-xs text-gray-500">from_response</p>
               </div>
-              <div className="p-4 max-h-48 overflow-auto">
+              <div className="p-3 max-h-36 overflow-auto">
                 {isFetching && (
-                  <p className="text-sm text-gray-500">Fetching data...</p>
+                  <p className="text-xs text-gray-500">Fetching data...</p>
                 )}
                 {!isFetching && inputData && (
                   <pre className="text-xs text-gray-600 whitespace-pre-wrap">
@@ -199,19 +206,18 @@ export default function TestCard({
                   </pre>
                 )}
                 {!isFetching && !inputData && (
-                  <p className="text-sm text-gray-500">No data available</p>
+                  <p className="text-xs text-gray-500">No data available</p>
                 )}
               </div>
             </div>
 
-            <div className="border border-gray-200 rounded-lg overflow-hidden">
-              <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
-                <h4 className="text-sm font-medium text-gray-700">
+            <div className="border border-gray-200 rounded-md overflow-hidden">
+              <div className="bg-gray-50 px-3 py-1.5 border-b border-gray-200">
+                <h4 className="text-xs font-medium text-gray-700">
                   Transformed Output
                 </h4>
-                <p className="text-xs text-gray-500">actual_output</p>
               </div>
-              <div className="p-4 max-h-48 overflow-auto">
+              <div className="p-3 max-h-36 overflow-auto">
                 {actualOutput ? (
                   <pre className="text-xs text-gray-600 whitespace-pre-wrap">
                     {JSON.stringify(actualOutput, null, 2)?.slice(0, 1000)}
@@ -219,9 +225,9 @@ export default function TestCard({
                       "..."}
                   </pre>
                 ) : (
-                  <div className="flex flex-col items-center justify-center h-24 text-gray-400">
+                  <div className="flex flex-col items-center justify-center h-16 text-gray-400">
                     <svg
-                      className="w-8 h-8 mb-2"
+                      className="w-6 h-6 mb-1"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -233,8 +239,7 @@ export default function TestCard({
                         d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                       />
                     </svg>
-                    <p className="text-sm">No output yet</p>
-                    <p className="text-xs">Run the test to see output</p>
+                    <p className="text-xs">No output yet</p>
                   </div>
                 )}
               </div>
@@ -285,26 +290,26 @@ export default function TestCard({
 
           {/* Notes textarea - shown when requesting changes */}
           {showNotes && (
-            <div className="mt-4">
-              <div className="border border-gray-200 rounded-lg overflow-hidden ring-none shadow-none">
-                <div className="bg-blue-50 px-4 py-2 border-b border-gray-200">
-                  <h4 className="text-sm font-medium text-blue-700">Notes</h4>
+            <div className="mt-3">
+              <div className="border border-gray-200 rounded-md overflow-hidden">
+                <div className="bg-blue-50 px-3 py-1.5 border-b border-gray-200">
+                  <h4 className="text-xs font-medium text-blue-700">Notes</h4>
                   <p className="text-xs text-blue-500">
                     In what way does the transformed output need to be changed?
                   </p>
                 </div>
-                <div className="p-4">
+                <div className="p-3">
                   <textarea
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm resize-y focus:ring-0 focus:outline-none"
+                    className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-xs resize-y focus:ring-0 focus:outline-none"
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    rows={4}
+                    rows={3}
                   />
-                  <div className="flex justify-end gap-2 mt-3">
+                  <div className="flex justify-end gap-2 mt-2">
                     <button
                       type="button"
                       onClick={() => setShowNotes(false)}
-                      className="px-4 py-2 rounded-lg font-semibold cursor-pointer transition-colors bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      className="px-3 py-1 text-sm rounded-md font-medium cursor-pointer transition-colors bg-gray-100 text-gray-700 hover:bg-gray-200"
                     >
                       Cancel
                     </button>
@@ -312,7 +317,7 @@ export default function TestCard({
                       type="button"
                       onClick={handleSaveNotes}
                       disabled={isSavingNotes}
-                      className="px-4 py-2 rounded-lg font-semibold cursor-pointer transition-colors bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-3 py-1 text-sm rounded-md font-medium cursor-pointer transition-colors bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isSavingNotes ? "Saving..." : "Save & Request Changes"}
                     </button>
@@ -324,12 +329,12 @@ export default function TestCard({
 
           {/* Error message - shown when test has error */}
           {hasRun && isError && (
-            <div className="mt-4">
-              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-                <p className="text-sm text-orange-700 font-medium">
+            <div className="mt-3">
+              <div className="bg-orange-50 border border-orange-200 rounded-md p-3">
+                <p className="text-xs text-orange-700 font-medium">
                   Error during execution
                 </p>
-                <p className="text-sm text-orange-600 mt-1">{errorMessage}</p>
+                <p className="text-xs text-orange-600 mt-1">{errorMessage}</p>
               </div>
             </div>
           )}
