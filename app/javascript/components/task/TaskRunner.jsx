@@ -10,7 +10,6 @@ export default function TaskRunner() {
   const { task_id, tab } = useParams();
   const navigate = useNavigate();
   const [apiEndpoint, setApiEndpoint] = useState("");
-  const [resolvedApiEndpoint, setResolvedApiEndpoint] = useState("");
   const [systemTag, setSystemTag] = useState("");
   const [dataDescription, setDataDescription] = useState("");
   const [fetchingEndpoint, setFetchingEndpoint] = useState(false);
@@ -31,33 +30,11 @@ export default function TaskRunner() {
 
   const isGeneratingTransformCode = snapshot?.phase === "code_generation";
 
-  // Fetch parameters from API on page load
-  useEffect(() => {
-    async function fetchParameters() {
-      try {
-        const response = await fetch(`/api/tasks/${task_id}/parameters`);
-        if (response.ok) {
-          const params = await response.json();
-          updateParameters(params);
-        }
-      } catch (error) {
-        console.error("Error fetching parameters:", error);
-      }
-    }
-
-    if (task_id) {
-      fetchParameters();
-    }
-  }, [task_id]);
-
   useEffect(() => {
     if (!snapshot) return;
 
     if (snapshot.api_endpoint && !apiEndpoint) {
       setApiEndpoint(snapshot.api_endpoint);
-    }
-    if (snapshot.resolved_api_endpoint && !resolvedApiEndpoint) {
-      setResolvedApiEndpoint(snapshot.resolved_api_endpoint);
     }
     if (snapshot.system_tag && !systemTag) {
       setSystemTag(snapshot.system_tag);
@@ -108,45 +85,22 @@ export default function TaskRunner() {
     return () => clearInterval(interval);
   }, [isGeneratingTransformCode]);
 
-  // // Auto-switch to tests tab when transformCode is received
-  // useEffect(() => {
-  //   if (transformCode && tab !== "tests") {
-  //     navigate(`/task/${task_id}/tests`, { replace: true });
-  //   }
-  // }, [transformCode, task_id, navigate, tab]);
-
-  async function handleCreateParameters(localParams) {
-    const createdParams = [];
-    for (const param of localParams) {
-      try {
-        const response = await fetch(`/api/tasks/${task_id}/parameters`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            parameter: {
-              name: param.name,
-              example_value: param.example_value || "",
-            },
-          }),
-        });
-
-        if (response.ok) {
-          const newParam = await response.json();
-          createdParams.push(newParam);
-        }
-      } catch (error) {
-        console.error("Error creating parameter:", error);
-      }
+  async function handleFetchEndpoint() {
+    if (!apiEndpoint) {
+      setFormError("Please provide an API endpoint.");
+      return;
     }
-    return createdParams;
-  }
 
-  async function handleFetchEndpoint(
-    apiEndpoint,
-    systemTag,
-    dataDescription,
-    parameters
-  ) {
+    if (!systemTag) {
+      setFormError("Please provide a System Tag.");
+      return;
+    }
+
+    if (/\s/.test(systemTag)) {
+      setFormError("System Tag must be one word with no spaces.");
+      return;
+    }
+
     setFormError(null);
     setFetchingEndpoint(true);
     try {
@@ -292,7 +246,6 @@ export default function TaskRunner() {
           fetchingEndpoint={isGeneratingPreview}
           formError={formError}
           onFetchEndpoint={handleFetchEndpoint}
-          onCreateParameters={handleCreateParameters}
           isGeneratingPreview={isGeneratingPreview}
           generatingMessage={generatingMessage}
         />
@@ -306,7 +259,6 @@ export default function TaskRunner() {
           generatingTransformMessage={generatingTransformMessage}
           fromResponse={snapshot?.input_payload?.from_response}
           task={snapshot}
-          resolvedApiEndpoint={snapshot?.resolved_api_endpoint}
           onResponseUpdate={updateResponseJson}
         />
       )}
@@ -322,18 +274,7 @@ export default function TaskRunner() {
       )}
 
       {tab === "tests" && (
-        <RunTestsTab
-          task={snapshot}
-          parameters={parameters}
-          tests={tests}
-          onParameterUpdated={(updatedParam) => {
-            updateParameters(
-              parameters.map((p) =>
-                p.id === updatedParam.id ? updatedParam : p
-              )
-            );
-          }}
-        />
+        <RunTestsTab task={snapshot} tests={tests} onTestCreated={addTest} />
       )}
     </div>
   );

@@ -33,7 +33,7 @@ module Api
     end
 
     def update
-      test_params = params.require(:test).permit(:status, :description, :is_primary)
+      test_params = params.require(:test).permit(:status, :description, :is_primary, :notes)
       @test.update!(test_params)
 
       render json: serialize_test(@test)
@@ -65,6 +65,7 @@ module Api
         error_message: test.error_message,
         is_primary: test.is_primary,
         description: test.description,
+        notes: test.notes,
         attempts: test.attempts,
         created_at: test.created_at,
         updated_at: test.updated_at

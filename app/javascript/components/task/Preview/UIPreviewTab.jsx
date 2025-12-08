@@ -9,10 +9,11 @@ export default function UIPreviewTab({
   onNextStep,
   generatingTransformMessage,
   fromResponse,
-  taskId,
+  task,
   onResponseUpdate,
-  resolvedApiEndpoint: apiEndpoint,
 }) {
+  const apiEndpoint = task?.api_endpoint;
+  const taskId = task?.id;
   const [activeSubTab, setActiveSubTab] = useState("preview");
   const [fromResponseData, setFromResponseData] = useState(fromResponse);
   const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false);

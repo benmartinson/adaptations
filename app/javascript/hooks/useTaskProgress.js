@@ -129,6 +129,19 @@ export function mergeSnapshot(previous, incoming) {
     return incoming;
   }
 
+  // Merge tests by ID instead of replacing the entire array
+  let mergedTests = previous.tests;
+  if (incoming.tests && Array.isArray(incoming.tests)) {
+    const previousTests = previous.tests || [];
+    const incomingTestIds = new Set(incoming.tests.map((t) => t.id));
+
+    // Keep previous tests that aren't being updated, then add incoming tests
+    mergedTests = [
+      ...previousTests.filter((t) => !incomingTestIds.has(t.id)),
+      ...incoming.tests,
+    ];
+  }
+
   return {
     ...previous,
     ...incoming,
@@ -139,7 +152,7 @@ export function mergeSnapshot(previous, incoming) {
       incoming.output_payload || previous.output_payload || previous.output,
     output: incoming.output || previous.output,
     test_results: incoming.test_results || previous.test_results,
-    tests: incoming.tests ?? previous.tests,
+    tests: mergedTests,
     response_json: incoming.response_json || previous.response_json,
     transform_code: incoming.transform_code || previous.transform_code,
   };

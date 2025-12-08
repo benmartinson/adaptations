@@ -1,164 +1,233 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useRef } from "react";
+import { fetchEndpointData } from "../../../helpers";
+import TestCard from "./TestCard";
 
-export default function RunTestsTab({
-  task,
-  parameters,
-  tests,
-  onParameterUpdated,
-}) {
-  const navigate = useNavigate();
-  const [testValues, setTestValues] = useState({});
-  const [savingParams, setSavingParams] = useState({});
-  const [runningTests, setRunningTests] = useState(false);
+export default function RunTestsTab({ task, tests, onTestCreated }) {
+  const [runningTestIds, setRunningTestIds] = useState([]);
+  const [newTestEndpoint, setNewTestEndpoint] = useState("");
+  const [showAddTest, setShowAddTest] = useState(false);
+  const [fetchedDataMap, setFetchedDataMap] = useState({});
+  const [fetchingEndpoints, setFetchingEndpoints] = useState({});
+  const [isAddingTest, setIsAddingTest] = useState(false);
+  const [isCreatingPrimary, setIsCreatingPrimary] = useState(false);
+  const primaryTestCreatedRef = useRef(false);
 
-  const allParameters = parameters || [];
+  const apiEndpoint = task?.api_endpoint;
+  const responseJson = task?.response_json;
+
   const allTests = tests || [];
-  const hasTests = allTests.length > 0;
+  const primaryTest = allTests.find((t) => t.is_primary);
 
-  function handleReviewTests() {
-    if (hasTests) {
-      navigate(`/task/${task.id}/tests/preview`);
+  useEffect(() => {
+    if (!apiEndpoint) return;
+    fetchDataForEndpoint(apiEndpoint);
+  }, [apiEndpoint]);
+
+  // Auto-create and run primary test if none exists
+  useEffect(() => {
+    if (
+      !primaryTestCreatedRef.current &&
+      !primaryTest &&
+      apiEndpoint &&
+      responseJson &&
+      task?.id
+    ) {
+      primaryTestCreatedRef.current = true;
+      createAndRunPrimaryTest();
     }
-  }
+  }, [primaryTest, apiEndpoint, responseJson, task?.id]);
 
-  async function handleRunTests() {
-    setRunningTests(true);
+  async function createAndRunPrimaryTest() {
+    setIsCreatingPrimary(true);
     try {
-      const response = await fetch(`/api/tasks/${task.id}/run_tests`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to run tests");
+      const newTest = await createTest(apiEndpoint, responseJson, true);
+      if (newTest) {
+        await runTest(newTest.id);
       }
     } catch (error) {
-      console.error(error);
+      console.error("Error creating primary test:", error);
     } finally {
-      setRunningTests(false);
+      setIsCreatingPrimary(false);
     }
   }
 
-  function handleTestValuesChange(paramId, value) {
-    setTestValues((prev) => ({
-      ...prev,
-      [paramId]: value,
-    }));
-  }
-
-  async function handleSaveTestValues(param) {
-    const values =
-      testValues[param.id] ?? (param.example_values || []).join(", ");
-    const exampleValuesArray = values
-      .split(",")
-      .map((v) => v.trim())
-      .filter((v) => v.length > 0);
-
-    setSavingParams((prev) => ({ ...prev, [param.id]: true }));
+  async function runTest(testId) {
+    setRunningTestIds((prev) => [...prev, testId]);
     try {
       const response = await fetch(
-        `/api/tasks/${task.id}/parameters/${param.id}`,
+        `/api/tasks/${task.id}/tests/${testId}/run_job`,
         {
-          method: "PATCH",
+          method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            parameter: {
-              example_values: exampleValuesArray,
-            },
-          }),
         }
       );
 
       if (!response.ok) {
-        throw new Error("Failed to save test values");
+        throw new Error("Unable to run test");
       }
-
-      const updatedParam = await response.json();
-      onParameterUpdated?.(updatedParam);
     } catch (error) {
       console.error(error);
     } finally {
-      setSavingParams((prev) => ({ ...prev, [param.id]: false }));
+      setRunningTestIds((prev) => prev.filter((id) => id !== testId));
     }
   }
 
-  if (allParameters.length === 0) {
-    return <div className="text-center py-12 text-gray-500"></div>;
+  async function createTest(endpoint, expectedOutput, isPrimary = false) {
+    const data = await fetchEndpointData(endpoint);
+    if (!data) return null;
+
+    const response = await fetch(`/api/tasks/${task.id}/tests`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        test: {
+          api_endpoint: endpoint,
+          from_response: data,
+          expected_output: expectedOutput,
+          is_primary: isPrimary,
+        },
+      }),
+    });
+
+    if (!response.ok) return null;
+    const newTest = await response.json();
+    onTestCreated?.(newTest);
+    return newTest;
   }
+
+  async function fetchDataForEndpoint(endpoint) {
+    if (fetchedDataMap[endpoint] || fetchingEndpoints[endpoint]) return;
+
+    setFetchingEndpoints((prev) => ({ ...prev, [endpoint]: true }));
+    try {
+      const data = await fetchEndpointData(endpoint);
+      setFetchedDataMap((prev) => ({ ...prev, [endpoint]: data }));
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setFetchingEndpoints((prev) => ({ ...prev, [endpoint]: false }));
+    }
+  }
+
+  async function handleAddTest() {
+    setIsAddingTest(true);
+    try {
+      await createTest(newTestEndpoint || apiEndpoint, null, false);
+      setShowAddTest(false);
+      setNewTestEndpoint("");
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsAddingTest(false);
+    }
+  }
+
+  const otherTests = allTests.filter((t) => !t.is_primary);
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-end gap-3">
+      {showAddTest ? (
+        <div className="bg-white rounded-xl shadow-sm border border-dashed border-gray-300 p-6">
+          <h4 className="text-sm font-medium text-gray-700 mb-3">
+            Add New Test
+          </h4>
+          <div className="flex gap-3">
+            <input
+              type="url"
+              className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder={apiEndpoint || "Enter API endpoint URL"}
+              value={newTestEndpoint}
+              onChange={(e) => setNewTestEndpoint(e.target.value)}
+            />
+            <button
+              type="button"
+              onClick={handleAddTest}
+              disabled={isAddingTest}
+              className="px-4 py-2 rounded-lg bg-gray-900 text-white font-semibold hover:bg-gray-700 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isAddingTest ? "Adding..." : "Add Test"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setShowAddTest(false);
+                setNewTestEndpoint("");
+              }}
+              className="px-4 py-2 rounded-lg bg-gray-100 text-gray-700 font-semibold hover:bg-gray-200"
+            >
+              Cancel
+            </button>
+          </div>
+          <p className="text-xs text-gray-500 mt-2">
+            This test will run without expected output validation - it passes if
+            the transform executes without errors.
+          </p>
+        </div>
+      ) : (
         <button
           type="button"
-          onClick={handleRunTests}
-          disabled={runningTests}
-          className="px-6 py-2.5 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          onClick={() => setShowAddTest(true)}
+          className="w-full py-3 rounded-xl border-2 border-dashed border-gray-300 text-gray-500 hover:border-gray-400 hover:text-gray-600 transition-colors flex items-center justify-center gap-2"
         >
-          {runningTests
-            ? "Running Tests..."
-            : hasTests
-            ? "Re-Run Tests"
-            : "Run Tests"}
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 4v16m8-8H4"
+            />
+          </svg>
+          Add Test
         </button>
-        {hasTests && (
-          <button
-            type="button"
-            onClick={handleReviewTests}
-            className="px-6 py-2.5 rounded-lg bg-gray-900 text-white font-semibold hover:bg-gray-700 cursor-pointer"
-          >
-            Review Tests
-          </button>
-        )}
-      </div>
+      )}
 
-      {allParameters.map((param) => {
-        const currentValues =
-          testValues[param.id] ?? (param.example_values || []).join(", ");
-        const isSaving = savingParams[param.id];
+      {otherTests.map((test) => (
+        <TestCard
+          key={test.id}
+          test={test}
+          testResult={test}
+          endpoint={test.api_endpoint}
+          expectedOutput={test.expected_output}
+          fetchedData={fetchedDataMap[test.api_endpoint]}
+          isFetching={fetchingEndpoints[test.api_endpoint]}
+          isRunning={runningTestIds.includes(test.id)}
+          onRun={() => runTest(test.id)}
+          isPrimary={false}
+          taskId={task.id}
+        />
+      ))}
 
-        return (
-          <div
-            key={param.id}
-            className="bg-white rounded-xl shadow-sm border border-gray-200 p-6"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">
-                {param.name}
-              </h3>
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => handleSaveTestValues(param)}
-                  disabled={isSaving}
-                  className="px-4 py-2 rounded-lg bg-gray-900 text-white font-semibold hover:bg-gray-700 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                >
-                  {isSaving ? "Saving..." : "Save"}
-                </button>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <label className="block text-sm font-medium text-gray-700">
-                Test Values
-                <span className="text-gray-400 font-normal ml-2">
-                  (comma-separated)
-                </span>
-              </label>
-              <input
-                type="text"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono"
-                placeholder={`Enter test values for ${param.name}, separated by commas...`}
-                value={currentValues}
-                onChange={(e) =>
-                  handleTestValuesChange(param.id, e.target.value)
-                }
-              />
-            </div>
+      {isCreatingPrimary && !primaryTest && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center gap-3">
+            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-900"></div>
+            <span className="text-gray-600">
+              Creating and running primary test...
+            </span>
           </div>
-        );
-      })}
+        </div>
+      )}
+
+      {primaryTest && (
+        <TestCard
+          key={primaryTest.id}
+          test={primaryTest}
+          testResult={primaryTest}
+          endpoint={primaryTest.api_endpoint}
+          expectedOutput={responseJson}
+          fetchedData={fetchedDataMap[primaryTest.api_endpoint]}
+          isFetching={fetchingEndpoints[primaryTest.api_endpoint]}
+          isRunning={runningTestIds.includes(primaryTest.id)}
+          onRun={() => runTest(primaryTest.id)}
+          isPrimary
+          taskId={task.id}
+        />
+      )}
     </div>
   );
 }

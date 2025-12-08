@@ -115,6 +115,7 @@ module Api
         error_message: test.error_message,
         is_primary: test.is_primary,
         description: test.description,
+        notes: test.notes,
         attempts: test.attempts,
         created_at: test.created_at,
         updated_at: test.updated_at

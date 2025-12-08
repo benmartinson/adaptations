@@ -4,9 +4,11 @@ class Test < ApplicationRecord
 
   enum :status, {
     pending: "pending",
+    created: "created",
     needs_review: "needs_review",
+    changes_needed: "changes_needed",
     pass: "pass",
     fail: "fail",
     error: "error"
-  }, default: "pending"
+  }, default: "created"
 end

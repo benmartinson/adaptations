@@ -18,6 +18,11 @@ export default function TestCard({
   const isFailed = testResult?.status === "failed" || test?.status === "fail";
   const isError = testResult?.status === "error" || test?.status === "error";
   const isPending = test?.status === "pending";
+  const isChangesNeeded = test?.status === "changes_needed";
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [showNotes, setShowNotes] = useState(false);
+  const [notes, setNotes] = useState(test?.notes || "");
+  const [isSavingNotes, setIsSavingNotes] = useState(false);
 
   const actualOutput = testResult?.output ?? test?.actual_output;
   const errorMessage = testResult?.error ?? test?.error_message;
@@ -31,8 +36,32 @@ export default function TestCard({
 
   function handleRun() {
     onRun();
-    // setIsExpanded(false);
-    // navigate(`/task/${taskId}/test/${test.id}/preview`);
+  }
+
+  function handleRequestChangesClick() {
+    if (!isExpanded) {
+      setIsExpanded(true);
+    }
+    setShowNotes(true);
+  }
+
+  async function handleSaveNotes() {
+    setIsSavingNotes(true);
+    try {
+      const response = await fetch(`/api/tasks/${taskId}/tests/${test.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ test: { status: "changes_needed", notes } }),
+      });
+      if (!response.ok) {
+        throw new Error("Unable to update test");
+      }
+      setShowNotes(false);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSavingNotes(false);
+    }
   }
 
   return (
@@ -46,6 +75,8 @@ export default function TestCard({
           ? "border-orange-300"
           : isPending
           ? "border-yellow-300"
+          : isChangesNeeded
+          ? "border-blue-300"
           : "border-gray-200"
       }`}
     >
@@ -84,7 +115,14 @@ export default function TestCard({
           </p>
         </div>
         <div className="flex items-center gap-3">
-          {hasRun && test?.status !== "created" && (
+          <button
+            type="button"
+            onClick={handleRequestChangesClick}
+            className="px-4 py-2 rounded-lg font-semibold cursor-pointer transition-colors bg-blue-100 text-blue-700 hover:bg-blue-200"
+          >
+            Request Changes
+          </button>
+          {(hasRun && test?.status !== "created") || isPrimary ? (
             <span
               className={`px-3 py-1 rounded-full text-sm font-medium ${
                 isPassed
@@ -95,6 +133,8 @@ export default function TestCard({
                   ? "bg-orange-100 text-orange-700"
                   : isPending
                   ? "bg-yellow-100 text-yellow-700"
+                  : isChangesNeeded
+                  ? "bg-blue-100 text-blue-700"
                   : "bg-gray-100 text-gray-700"
               }`}
             >
@@ -105,11 +145,13 @@ export default function TestCard({
                 : isError
                 ? "Error"
                 : isPending
-                ? "Pending Review"
-                : test?.status}
+                ? "Needs Review"
+                : isChangesNeeded
+                ? "Changes Needed"
+                : test?.status || "Created"}
             </span>
-          )}
-          {actualOutput && !isPrimary && (
+          ) : null}
+          {actualOutput && (
             <button
               type="button"
               onClick={() =>
@@ -128,7 +170,7 @@ export default function TestCard({
           >
             {isRunning
               ? "Running..."
-              : actualOutput
+              : isPrimary || actualOutput
               ? "Re-run Test"
               : "Run Test"}
           </button>
@@ -162,6 +204,43 @@ export default function TestCard({
               </div>
             </div>
 
+            <div className="border border-gray-200 rounded-lg overflow-hidden">
+              <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
+                <h4 className="text-sm font-medium text-gray-700">
+                  Transformed Output
+                </h4>
+                <p className="text-xs text-gray-500">actual_output</p>
+              </div>
+              <div className="p-4 max-h-48 overflow-auto">
+                {actualOutput ? (
+                  <pre className="text-xs text-gray-600 whitespace-pre-wrap">
+                    {JSON.stringify(actualOutput, null, 2)?.slice(0, 1000)}
+                    {JSON.stringify(actualOutput, null, 2)?.length > 1000 &&
+                      "..."}
+                  </pre>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-24 text-gray-400">
+                    <svg
+                      className="w-8 h-8 mb-2"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.5}
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      />
+                    </svg>
+                    <p className="text-sm">No output yet</p>
+                    <p className="text-xs">Run the test to see output</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Expected Output - commented out
             <div className="border border-gray-200 rounded-lg overflow-hidden">
               <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
                 <h4 className="text-sm font-medium text-gray-700">
@@ -201,92 +280,57 @@ export default function TestCard({
                 )}
               </div>
             </div>
+            */}
           </div>
 
-          {/* Actual Output - only shown after test has run */}
-          {hasRun && (
+          {/* Notes textarea - shown when requesting changes */}
+          {showNotes && (
             <div className="mt-4">
-              {isError && (
-                <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-                  <p className="text-sm text-orange-700 font-medium">
-                    Error during execution
+              <div className="border border-gray-200 rounded-lg overflow-hidden ring-none shadow-none">
+                <div className="bg-blue-50 px-4 py-2 border-b border-gray-200">
+                  <h4 className="text-sm font-medium text-blue-700">Notes</h4>
+                  <p className="text-xs text-blue-500">
+                    In what way does the transformed output need to be changed?
                   </p>
-                  <p className="text-sm text-orange-600 mt-1">{errorMessage}</p>
                 </div>
-              )}
-
-              {(isPassed || isFailed || isPending) && actualOutput && (
-                <div
-                  className={`border rounded-lg overflow-hidden ${
-                    isPassed
-                      ? "border-green-200"
-                      : isFailed
-                      ? "border-red-200"
-                      : "border-yellow-200"
-                  }`}
-                >
-                  <div
-                    className={`px-4 py-2 border-b ${
-                      isPassed
-                        ? "bg-green-50 border-green-200"
-                        : isFailed
-                        ? "bg-red-50 border-red-200"
-                        : "bg-yellow-50 border-yellow-200"
-                    }`}
-                  >
-                    <h4
-                      className={`text-sm font-medium ${
-                        isPassed
-                          ? "text-green-700"
-                          : isFailed
-                          ? "text-red-700"
-                          : "text-yellow-700"
-                      }`}
+                <div className="p-4">
+                  <textarea
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm resize-y focus:ring-0 focus:outline-none"
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    rows={4}
+                  />
+                  <div className="flex justify-end gap-2 mt-3">
+                    <button
+                      type="button"
+                      onClick={() => setShowNotes(false)}
+                      className="px-4 py-2 rounded-lg font-semibold cursor-pointer transition-colors bg-gray-100 text-gray-700 hover:bg-gray-200"
                     >
-                      Actual Output
-                      {isFailed && (
-                        <span className="ml-2 text-xs font-normal">
-                          (differs from expected)
-                        </span>
-                      )}
-                      {isPassed && !hasExpectedOutput && (
-                        <span className="ml-2 text-xs font-normal">
-                          (executed successfully)
-                        </span>
-                      )}
-                      {isPassed && hasExpectedOutput && (
-                        <span className="ml-2 text-xs font-normal">
-                          (matches expected)
-                        </span>
-                      )}
-                      {isPending && (
-                        <span className="ml-2 text-xs font-normal">
-                          (needs review)
-                        </span>
-                      )}
-                    </h4>
-                  </div>
-                  <div className="p-4 max-h-48 overflow-auto bg-white">
-                    <pre className="text-xs text-gray-600 whitespace-pre-wrap">
-                      {JSON.stringify(actualOutput, null, 2)?.slice(0, 1000)}
-                      {JSON.stringify(actualOutput, null, 2)?.length > 1000 &&
-                        "..."}
-                    </pre>
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSaveNotes}
+                      disabled={isSavingNotes}
+                      className="px-4 py-2 rounded-lg font-semibold cursor-pointer transition-colors bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isSavingNotes ? "Saving..." : "Save & Request Changes"}
+                    </button>
                   </div>
                 </div>
-              )}
+              </div>
+            </div>
+          )}
 
-              {isFailed && (
-                <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-4">
-                  <p className="text-sm text-red-700 font-medium">
-                    Test failed: Output does not match expected response_json
-                  </p>
-                  <p className="text-sm text-red-600 mt-1">
-                    Review the differences above and regenerate the transform
-                    code if needed.
-                  </p>
-                </div>
-              )}
+          {/* Error message - shown when test has error */}
+          {hasRun && isError && (
+            <div className="mt-4">
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                <p className="text-sm text-orange-700 font-medium">
+                  Error during execution
+                </p>
+                <p className="text-sm text-orange-600 mt-1">{errorMessage}</p>
+              </div>
             </div>
           )}
         </>
