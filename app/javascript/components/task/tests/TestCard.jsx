@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import StatusBadge from "./StatusBadge";
 
 export default function TestCard({
   test,
@@ -73,21 +74,7 @@ export default function TestCard({
   }
 
   return (
-    <div
-      className={`bg-white rounded-lg shadow-sm border px-4 py-3 ${
-        isPassed
-          ? "border-green-300"
-          : isFailed
-          ? "border-red-300"
-          : isError
-          ? "border-orange-300"
-          : isPending
-          ? "border-yellow-300"
-          : isChangesNeeded
-          ? "border-blue-300"
-          : "border-gray-200"
-      }`}
-    >
+    <div className="bg-white rounded-lg shadow-sm border px-4 py-3 border-gray-200">
       {/* Primary test message */}
       {isPrimary && (
         <div className="mb-2 px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-md">
@@ -101,37 +88,10 @@ export default function TestCard({
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           {(hasRun && test?.status !== "created") || isPrimary ? (
-            <span
-              className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                isPassed
-                  ? "bg-green-100 text-green-700"
-                  : isFailed
-                  ? "bg-red-100 text-red-700"
-                  : isError
-                  ? "bg-orange-100 text-orange-700"
-                  : isPending
-                  ? "bg-yellow-100 text-yellow-700"
-                  : isNeedsReview
-                  ? "bg-red-100 text-red-700"
-                  : isChangesNeeded
-                  ? "bg-blue-100 text-blue-700"
-                  : "bg-gray-100 text-gray-700"
-              }`}
-            >
-              {isPassed
-                ? "Passed"
-                : isFailed
-                ? "Failed"
-                : isError
-                ? "Error"
-                : isPending
-                ? "Pending"
-                : isNeedsReview
-                ? "Needs Review"
-                : isChangesNeeded
-                ? "Changes Requested"
-                : test?.status || "Created"}
-            </span>
+            <StatusBadge
+              status={testResult?.status || test?.status}
+              size="sm"
+            />
           ) : null}
           <p className="text-xs text-gray-500 truncate">
             {endpoint || "No endpoint configured"}

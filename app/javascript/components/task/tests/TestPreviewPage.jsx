@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link, useLocation, useNavigate } from "react-router-dom";
 import PreviewList from "../Preview/PreviewList";
+import StatusBadge from "./StatusBadge";
 
 export default function TestPreviewPage() {
   const { task_id } = useParams();
@@ -330,9 +331,12 @@ export default function TestPreviewPage() {
             </div>
 
             <div>
-              <h1 className="text-lg font-semibold text-gray-900">
-                Test Preview
-              </h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg font-semibold text-gray-900">
+                  Test Preview
+                </h1>
+                <StatusBadge status={selectedTest.status} />
+              </div>
               <p className="text-sm text-gray-500 truncate max-w-md">
                 {selectedTest.api_endpoint || "Test Preview"}
               </p>
@@ -357,33 +361,6 @@ export default function TestPreviewPage() {
                 Auto-generated from initial config
               </span>
             )}
-            <span
-              className={`px-3 py-1 rounded-full text-sm font-medium ${
-                selectedTest.status === "pass"
-                  ? "bg-green-100 text-green-700"
-                  : selectedTest.status === "fail"
-                  ? "bg-red-100 text-red-700"
-                  : selectedTest.status === "pending"
-                  ? "bg-yellow-100 text-yellow-700"
-                  : selectedTest.status === "needs_review"
-                  ? "bg-red-100 text-red-700"
-                  : selectedTest.status === "changes_needed"
-                  ? "bg-purple-100 text-purple-700"
-                  : "bg-gray-100 text-gray-700"
-              }`}
-            >
-              {selectedTest.status === "pass"
-                ? "Passed"
-                : selectedTest.status === "fail"
-                ? "Failed"
-                : selectedTest.status === "pending"
-                ? "Pending"
-                : selectedTest.status === "needs_review"
-                ? "Needs Review"
-                : selectedTest.status === "changes_needed"
-                ? "Changes Needed"
-                : selectedTest.status}
-            </span>
             {selectedTest.status === "pending" ||
               (selectedTest.status === "needs_review" && (
                 <>
