@@ -339,17 +339,24 @@ export default function TestPreviewPage() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() =>
-                navigate(`/task/${task_id}/tests`, {
-                  state: { expandTestId: selectedTest.id, focusNotes: true },
-                })
-              }
-              className="px-3 py-1.5 rounded-lg border border-blue-200 bg-blue-50 text-blue-700 text-sm font-medium hover:bg-blue-100 transition-colors"
-            >
-              Request Changes
-            </button>
+            {!selectedTest.is_primary && (
+              <button
+                type="button"
+                onClick={() =>
+                  navigate(`/task/${task_id}/tests`, {
+                    state: { expandTestId: selectedTest.id, focusNotes: true },
+                  })
+                }
+                className="px-3 py-1.5 rounded-lg border border-blue-200 bg-blue-50 text-blue-700 text-sm font-medium hover:bg-blue-100 transition-colors"
+              >
+                Request Changes
+              </button>
+            )}
+            {selectedTest.is_primary && (
+              <span className="text-xs text-slate-500 italic">
+                Auto-generated from initial config
+              </span>
+            )}
             <span
               className={`px-3 py-1 rounded-full text-sm font-medium ${
                 selectedTest.status === "pass"

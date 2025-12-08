@@ -89,6 +89,15 @@ export default function TestCard({
           : "border-gray-200"
       }`}
     >
+      {/* Primary test message */}
+      {isPrimary && (
+        <div className="mb-2 px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-md">
+          <p className="text-xs text-slate-600">
+            This test was created automatically based on initial configuration.
+          </p>
+        </div>
+      )}
+
       {/* Line 1: Status badge + API endpoint + Buttons */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
@@ -321,36 +330,39 @@ export default function TestCard({
             */}
           </div>
 
-          {/* Notes textarea - shown when requesting changes */}
-          <div className="mt-3">
-            <div className="border border-gray-200 rounded-md overflow-hidden">
-              <div className="bg-blue-50 px-3 py-1.5 border-b border-gray-200">
-                <h4 className="text-xs font-medium text-blue-700">Notes</h4>
-                <p className="text-xs text-blue-500">
-                  In what way does the transformed output need to be different?
-                </p>
-              </div>
-              <div className="p-3">
-                <textarea
-                  ref={notesRef}
-                  className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-xs resize-y focus:ring-0 focus:outline-none"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  rows={3}
-                />
-                <div className="flex justify-end gap-2 mt-2">
-                  <button
-                    type="button"
-                    onClick={handleSaveNotes}
-                    disabled={isSavingNotes}
-                    className="px-3 py-1 text-sm rounded-md font-medium cursor-pointer transition-colors bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isSavingNotes ? "Saving..." : "Request Changes"}
-                  </button>
+          {/* Notes textarea - shown when requesting changes (not for primary tests) */}
+          {!isPrimary && (
+            <div className="mt-3">
+              <div className="border border-gray-200 rounded-md overflow-hidden">
+                <div className="bg-blue-50 px-3 py-1.5 border-b border-gray-200">
+                  <h4 className="text-xs font-medium text-blue-700">Notes</h4>
+                  <p className="text-xs text-blue-500">
+                    In what way does the transformed output need to be
+                    different?
+                  </p>
+                </div>
+                <div className="p-3">
+                  <textarea
+                    ref={notesRef}
+                    className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-xs resize-y focus:ring-0 focus:outline-none"
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    rows={3}
+                  />
+                  <div className="flex justify-end gap-2 mt-2">
+                    <button
+                      type="button"
+                      onClick={handleSaveNotes}
+                      disabled={isSavingNotes}
+                      className="px-3 py-1 text-sm rounded-md font-medium cursor-pointer transition-colors bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isSavingNotes ? "Saving..." : "Request Changes"}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Error message - shown when test has error */}
           {hasRun && isError && (
