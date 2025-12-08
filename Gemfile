@@ -21,7 +21,7 @@ gem "httparty"
 
 gem "ruby-gemini-api"
 
-gem "friendly_id", "~> 5.4.0"
+gem "friendly_id", "~> 5.6.0"
 
 # Use Active Model has_secure_password [https://guides.rubyonrails.org/active_model_basics.html#securepassword]
 # gem "bcrypt", "~> 3.1.7"
