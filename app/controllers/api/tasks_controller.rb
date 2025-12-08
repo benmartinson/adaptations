@@ -33,7 +33,13 @@ module Api
     end
 
     def run_tests
-      job = RunTransformTestsJob.perform_later(@task.id)
+      test_ids = @task.tests.pluck(:id)
+      if test_ids.empty?
+        render json: { error: "No tests found for this task" }, status: :unprocessable_entity
+        return
+      end
+
+      job = RunTransformTestsJob.perform_later(test_ids)
       @task.update!(job_id: job.job_id) if job.respond_to?(:job_id)
 
       render json: serialize_task(@task), status: :accepted

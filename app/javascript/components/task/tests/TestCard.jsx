@@ -20,8 +20,7 @@ export default function TestCard({
   const isPassed = testResult?.status === "passed" || test?.status === "pass";
   const isFailed = testResult?.status === "failed" || test?.status === "fail";
   const isError = testResult?.status === "error" || test?.status === "error";
-  const isPending =
-    test?.status === "pending" || test?.status === "needs_review";
+  const isPending = test?.status === "pending";
   const isNeedsReview = test?.status === "needs_review";
   const isChangesNeeded = test?.status === "changes_needed";
   const [notes, setNotes] = useState(test?.notes || "");
@@ -112,6 +111,8 @@ export default function TestCard({
                   ? "bg-orange-100 text-orange-700"
                   : isPending
                   ? "bg-yellow-100 text-yellow-700"
+                  : isNeedsReview
+                  ? "bg-red-100 text-red-700"
                   : isChangesNeeded
                   ? "bg-blue-100 text-blue-700"
                   : "bg-gray-100 text-gray-700"
@@ -147,7 +148,7 @@ export default function TestCard({
               }
               className="px-3 py-1 text-sm rounded-md font-medium cursor-pointer transition-colors bg-indigo-100 text-indigo-700 hover:bg-indigo-200"
             >
-              Preview
+              Review
             </button>
           )}
           <button

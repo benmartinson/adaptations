@@ -365,6 +365,8 @@ export default function TestPreviewPage() {
                   ? "bg-red-100 text-red-700"
                   : selectedTest.status === "pending"
                   ? "bg-yellow-100 text-yellow-700"
+                  : selectedTest.status === "needs_review"
+                  ? "bg-red-100 text-red-700"
                   : selectedTest.status === "changes_needed"
                   ? "bg-purple-100 text-purple-700"
                   : "bg-gray-100 text-gray-700"
@@ -375,23 +377,26 @@ export default function TestPreviewPage() {
                 : selectedTest.status === "fail"
                 ? "Failed"
                 : selectedTest.status === "pending"
+                ? "Pending"
+                : selectedTest.status === "needs_review"
                 ? "Needs Review"
                 : selectedTest.status === "changes_needed"
                 ? "Changes Needed"
                 : selectedTest.status}
             </span>
-            {selectedTest.status === "pending" && (
-              <>
-                <button
-                  type="button"
-                  onClick={handleMarkAsPassed}
-                  disabled={updating}
-                  className="px-4 py-1.5 rounded-lg bg-green-600 text-white text-sm font-semibold hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {updating ? "Updating..." : "Mark as Passed"}
-                </button>
-              </>
-            )}
+            {selectedTest.status === "pending" ||
+              (selectedTest.status === "needs_review" && (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleMarkAsPassed}
+                    disabled={updating}
+                    className="px-4 py-1.5 rounded-lg bg-green-600 text-white text-sm font-semibold hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {updating ? "Updating..." : "Mark as Passed"}
+                  </button>
+                </>
+              ))}
           </div>
         </div>
       </div>

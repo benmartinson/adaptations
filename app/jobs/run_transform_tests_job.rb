@@ -1,89 +1,128 @@
 class RunTransformTestsJob < ApplicationJob
   queue_as :default
 
-  rescue_from(ActiveRecord::RecordNotFound) do |_error|
-    Rails.logger.warn("[RunTransformTestsJob] Test not found, skipping job")
-  end
   rescue_from(StandardError) do |error|
     handle_failure(error)
   end
 
-  def perform(test_id)
-    @test = Test.find(test_id)
-    @task = @test.task
+  # Accepts either a single test_id or an array of test_ids
+  def perform(test_ids)
+    @test_ids = Array(test_ids)
+    @tests = Test.where(id: @test_ids).includes(:task)
+    
+    if @tests.empty?
+      Rails.logger.warn("[RunTransformTestsJob] No tests found, skipping job")
+      return
+    end
+
+    @task = @tests.first.task
     code_body = @task.transform_code
 
     if code_body.blank?
       raise StandardError, "No transform code found to test"
     end
 
-    broadcast_event(phase: "running", message: "Running test")
+    broadcast_event(phase: "running", message: "Running #{@tests.count} test(s)")
 
-    run_test(code_body)
+    run_tests(code_body)
   end
 
   private
 
-  attr_reader :test, :task
+  attr_reader :tests, :task
 
-  def run_test(code_body)
-    test.update!(status: "pending", attempts: test.attempts + 1)
+  def run_tests(code_body)
+    # Mark all tests as pending and increment attempts
+    tests.each do |test|
+      test.update!(status: "pending", attempts: test.attempts + 1)
+    end
 
-    begin
-      # Get the from_response data for this test
+    broadcast_event(
+      phase: "running", 
+      message: "Running #{tests.count} test(s)", 
+      tests: tests.map { |t| serialize_test(t.reload) },
+      final: false
+    )
+
+    # Prepare batch input for all tests
+    test_inputs = tests.map do |test|
       from_response = test.from_response
       if from_response.blank?
-        raise StandardError, "No from_response data available for test"
+        # Mark this test as error immediately
+        test.update!(status: "error", error_message: "No from_response data available for test")
+        next nil
       end
 
-      # Run the transform
       from_response_array = from_response.is_a?(Array) ? from_response : [from_response]
-      output = execute_code(code_body, from_response_array)
+      { test_id: test.id, input: from_response_array }
+    end.compact
 
-      # Determine status based on test type
-      if test.is_primary
-        # Primary test: passes if transform runs without error
-        test.update!(status: "pass", actual_output: output)
-      else
-        # Non-primary test: needs review after successful transform
-        test.update!(status: "pending", actual_output: output)
+    if test_inputs.empty?
+      broadcast_event(
+        phase: "completed",
+        message: "All tests failed - no valid inputs",
+        tests: tests.map { |t| serialize_test(t.reload) },
+        final: true
+      )
+      return
+    end
+
+    begin
+      # Run all tests in a single container
+      results = execute_batch(code_body, test_inputs)
+      
+      # Process results
+      results.each do |result|
+        test = tests.find { |t| t.id == result["test_id"] }
+        next unless test
+
+        if result["success"]
+          output = result["output"]
+          if test.is_primary
+            # Primary test: passes if transform runs without error
+            test.update!(status: "pass", actual_output: output)
+          else
+            # Non-primary test: needs review after successful transform
+            test.update!(status: "needs_review", actual_output: output)
+          end
+        else
+          test.update!(status: "error", error_message: result["error"])
+        end
       end
 
       broadcast_event(
         phase: "completed",
-        message: "Test completed",
-        tests: [serialize_test(test.reload)],
+        message: "Tests completed",
+        tests: tests.map { |t| serialize_test(t.reload) },
         final: true
       )
     rescue StandardError => e
-      test.update!(status: "error", error_message: e.message)
+      # If the entire batch fails, mark all tests as error
+      tests.each do |test|
+        test.update!(status: "error", error_message: e.message)
+      end
 
       broadcast_event(
         phase: "completed",
-        message: "Test failed with error",
-        tests: [serialize_test(test.reload)],
+        message: "Tests failed with error",
+        tests: tests.map { |t| serialize_test(t.reload) },
         final: true
       )
     end
   end
 
-  def outputs_match?(actual, expected)
-    return false if actual.nil? || expected.nil?
-    
-    # Normalize both to JSON strings for comparison
-    normalize(actual) == normalize(expected)
-  end
-
-  def normalize(obj)
-    JSON.parse(obj.to_json)
-  rescue
-    obj
-  end
-
-  def execute_code(code_body, input)
-    RubySandbox.run(code_body, input)
+  def execute_batch(code_body, test_inputs)
+    RubySandbox.run_batch(code_body, test_inputs)
   rescue StandardError
-    evaluate_inline(code_body, input)
+    # Fallback to inline evaluation for each test
+    test_inputs.map do |test_input|
+      begin
+        output = evaluate_inline(code_body, test_input[:input])
+        { "test_id" => test_input[:test_id], "success" => true, "output" => output }
+      rescue StandardError => e
+        { "test_id" => test_input[:test_id], "success" => false, "error" => e.message }
+      end
+    end
   end
 
   def evaluate_inline(code_body, input)
@@ -136,13 +175,16 @@ class RunTransformTestsJob < ApplicationJob
   end
 
   def handle_failure(error)
-    return unless test
+    return unless tests&.any?
 
-    test.update!(status: "error", error_message: error.message)
+    tests.each do |test|
+      test.update!(status: "error", error_message: error.message)
+    end
+    
     broadcast_event(
       phase: "error",
       message: error.message,
-      tests: [serialize_test(test.reload)],
+      tests: tests.map { |t| serialize_test(t.reload) },
       backtrace: Rails.env.development? ? Array(error.backtrace).first(5) : nil,
       final: true
     )

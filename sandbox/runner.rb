@@ -9,7 +9,7 @@ begin
   error_file  = File.join(SANDBOX_PATH, "out", "error.txt")
 
   code  = File.read(code_file)
-  input = JSON.parse(File.read(input_file))
+  input_data = JSON.parse(File.read(input_file))
 
   # Run code inside a new module safely
   sandbox = Module.new
@@ -18,10 +18,27 @@ begin
     #{code}
   RUBY
 
-  # Call the AI-defined method
-  result = sandbox.transformation_procedure(input)
-
-  File.write(out_file, JSON.dump(result))
+  # Check if input is batch format (array of {test_id, input} objects)
+  if input_data.is_a?(Array) && input_data.first.is_a?(Hash) && input_data.first.key?("test_id")
+    # Batch mode: run transformation for each test
+    results = input_data.map do |test_data|
+      test_id = test_data["test_id"]
+      input = test_data["input"]
+      
+      begin
+        output = sandbox.transformation_procedure(input)
+        { "test_id" => test_id, "success" => true, "output" => output }
+      rescue => e
+        { "test_id" => test_id, "success" => false, "error" => "#{e.class}: #{e.message}" }
+      end
+    end
+    
+    File.write(out_file, JSON.dump(results))
+  else
+    # Legacy single-input mode for backwards compatibility
+    result = sandbox.transformation_procedure(input_data)
+    File.write(out_file, JSON.dump(result))
+  end
 rescue => e
   File.write(error_file, "#{e.class}: #{e.message}\n#{e.backtrace.join("\n")}")
   exit 1
