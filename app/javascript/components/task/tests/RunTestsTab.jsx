@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import { fetchEndpointData } from "../../../helpers";
 import TestCard from "./TestCard";
+import AutomatedTests from "./AutomatedTests";
 
 export default function RunTestsTab({ task, tests, onTestCreated }) {
   const location = useLocation();
@@ -22,6 +23,14 @@ export default function RunTestsTab({ task, tests, onTestCreated }) {
 
   const allTests = tests || [];
   const primaryTest = allTests.find((t) => t.is_primary);
+  const hasAutomatedTests = allTests.some((t) => t.test_type === "automated");
+
+  // Switch to automated tab if automated tests exist
+  useEffect(() => {
+    if (hasAutomatedTests) {
+      setActiveTab("automated");
+    }
+  }, [hasAutomatedTests]);
 
   useEffect(() => {
     if (!apiEndpoint) return;
@@ -159,12 +168,14 @@ export default function RunTestsTab({ task, tests, onTestCreated }) {
       </div>
 
       {activeTab === "automated" && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <p className="text-gray-600 text-sm">
-            When using the gem inside your own app (see deploy tab), tests will
-            show up here for each unique endpoint variation hit.
-          </p>
-        </div>
+        <AutomatedTests
+          tests={allTests}
+          task={task}
+          fetchedDataMap={fetchedDataMap}
+          fetchingEndpoints={fetchingEndpoints}
+          runningTestIds={runningTestIds}
+          onRunTest={runTest}
+        />
       )}
 
       {activeTab === "manual" && (

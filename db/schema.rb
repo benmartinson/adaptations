@@ -198,6 +198,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_07_233024) do
     t.integer "parameter_id"
     t.string "status", default: "pending"
     t.integer "task_id", null: false
+    t.string "test_type", default: "manual"
     t.datetime "updated_at", null: false
     t.index ["parameter_id"], name: "index_tests_on_parameter_id"
     t.index ["task_id"], name: "index_tests_on_task_id"

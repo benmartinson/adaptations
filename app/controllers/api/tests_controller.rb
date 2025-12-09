@@ -71,6 +71,7 @@ module Api
         is_primary: test.is_primary,
         description: test.description,
         notes: test.notes,
+        test_type: test.test_type,
         attempts: test.attempts,
         created_at: test.created_at,
         updated_at: test.updated_at

@@ -5,7 +5,6 @@ import BookList from "./components/BookList";
 import Book from "./components/book/Book";
 import Author from "./components/author/Author";
 import Navbar from "./components/Navbar";
-import TryApi from "./components/api/TryApi";
 import TaskRunner from "./components/task/TaskRunner";
 import TaskList from "./components/task/TaskList";
 import TestPreviewPage from "./components/task/tests/TestPreviewPage";
@@ -18,7 +17,6 @@ root.render(
       <Route path="/books" element={<BookList />} />
       <Route path="/books/:isbn" element={<Book />} />
       <Route path="/author/:slug" element={<Author />} />
-      <Route path="/try_api" element={<TryApi />} />
       <Route path="/tasks" element={<TaskList />} />
       <Route
         path="/task/:task_id"

@@ -6,7 +6,9 @@ module Api
 
     def show
       begin
-        author = Author.friendly.find(params[:slug])
+        # author = Author.friendly.find(params[:slug])
+        importer = AuthorImporter.new(slug: params[:slug])
+        author = importer.import
         render json: author
       rescue ActiveRecord::RecordNotFound
         importer = AuthorImporter.new(slug: params[:slug])

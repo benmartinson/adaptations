@@ -11,4 +11,9 @@ class Test < ApplicationRecord
     fail: "fail",
     error: "error"
   }, default: "created"
+
+  enum :test_type, {
+    manual: "manual",
+    automated: "automated"
+  }, default: "manual"
 end

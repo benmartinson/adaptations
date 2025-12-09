@@ -6,9 +6,6 @@ Rails.application.routes.draw do
     get 'authors/:slug', to: 'author#show'
     get 'authors/:slug/books', to: 'author#books'
 
-    get 'try_api', to: 'try_api#index'
-    post 'try_api', to: 'try_api#index'
-
     resources :tasks, only: %i[index show create update] do
       member do
         post :run_job

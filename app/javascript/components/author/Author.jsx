@@ -5,6 +5,7 @@ import Label from "../common/Label";
 import ImageNotFound from "../common/ImageNotFound";
 import moment from "moment";
 import AuthorBooks from "./AuthorBooks";
+import PreviewList from "../task/Preview/PreviewList";
 
 export default function Author() {
   const { slug } = useParams();
@@ -19,7 +20,12 @@ export default function Author() {
   }, [slug]);
 
   console.log({ author });
-  if (!author || !author.id) return <p>Loading...</p>;
+  // if (!author || !author.id) return <p>Loading...</p>;
+  if (!author) return <p>Loading...</p>;
+
+  return (
+    <PreviewList items={[author]} toResponseText={JSON.stringify(author)} />
+  );
 
   return (
     <PageFrame>
