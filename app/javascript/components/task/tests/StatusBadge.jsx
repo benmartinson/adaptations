@@ -27,7 +27,7 @@ const STATUS_CONFIG = {
   },
   changes_needed: {
     className: "bg-purple-100 text-purple-700",
-    label: "Changes Needed",
+    label: "Changes Requested",
   },
   error: {
     className: "bg-orange-100 text-orange-700",

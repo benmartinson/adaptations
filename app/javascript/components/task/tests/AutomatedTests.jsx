@@ -8,8 +8,11 @@ export default function AutomatedTests({
   fetchingEndpoints,
   runningTestIds,
   onRunTest,
+  onTestUpdate,
 }) {
-  const automatedTests = tests.filter((t) => t.test_type === "automated");
+  const automatedTests = tests
+    .filter((t) => t.test_type === "automated")
+    .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
 
   if (automatedTests.length === 0) {
     return (
@@ -35,6 +38,7 @@ export default function AutomatedTests({
           isFetching={fetchingEndpoints[test.api_endpoint]}
           isRunning={runningTestIds.includes(test.id)}
           onRun={() => onRunTest(test.id)}
+          onTestUpdate={onTestUpdate}
           isPrimary={false}
           taskId={task.id}
         />

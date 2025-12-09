@@ -11,6 +11,7 @@ export default function TestCard({
   isFetching,
   isRunning,
   onRun,
+  onTestUpdate,
   isPrimary,
   taskId,
   initialExpanded,
@@ -18,18 +19,27 @@ export default function TestCard({
 }) {
   const notesRef = useRef(null);
   const hasRun = !!test;
-  const isPassed = testResult?.status === "passed" || test?.status === "pass";
-  const isFailed = testResult?.status === "failed" || test?.status === "fail";
   const isError = testResult?.status === "error" || test?.status === "error";
-  const isPending = test?.status === "pending";
-  const isNeedsReview = test?.status === "needs_review";
-  const isChangesNeeded = test?.status === "changes_needed";
   const [notes, setNotes] = useState(test?.notes || "");
   const [isSavingNotes, setIsSavingNotes] = useState(false);
+  const [showSavedMessage, setShowSavedMessage] = useState(false);
+  const [showInstructionMessage, setShowInstructionMessage] = useState(false);
+  const [hasRequestedChanges, setHasRequestedChanges] = useState(
+    test?.status === "changes_needed"
+  );
+
+  useEffect(() => {
+    setHasRequestedChanges(test?.status === "changes_needed");
+  }, [test?.status]);
+
+  useEffect(() => {
+    if (test?.notes !== undefined) {
+      setNotes(test.notes || "");
+    }
+  }, [test?.notes]);
 
   const actualOutput = testResult?.output ?? test?.actual_output;
   const errorMessage = testResult?.error ?? test?.error_message;
-  const hasExpectedOutput = expectedOutput != null;
 
   const inputData = fetchedData ?? test?.from_response;
 
@@ -37,10 +47,8 @@ export default function TestCard({
   const [isExpanded, setIsExpanded] = useState(!canCollapse || initialExpanded);
   const navigate = useNavigate();
 
-  // Focus notes textarea when focusNotes prop is true
   useEffect(() => {
     if (focusNotes && notesRef.current) {
-      // Small delay to ensure the element is rendered
       setTimeout(() => {
         notesRef.current?.focus();
         notesRef.current?.scrollIntoView({
@@ -55,7 +63,7 @@ export default function TestCard({
     onRun();
   }
 
-  async function handleSaveNotes() {
+  async function handleRequestChanges() {
     setIsSavingNotes(true);
     try {
       const response = await fetch(`/api/tasks/${taskId}/tests/${test.id}`, {
@@ -66,6 +74,39 @@ export default function TestCard({
       if (!response.ok) {
         throw new Error("Unable to update test");
       }
+      const updatedTest = await response.json();
+      onTestUpdate?.(updatedTest);
+      setHasRequestedChanges(true);
+      setShowSavedMessage(true);
+      setShowInstructionMessage(true);
+      setTimeout(() => {
+        setShowSavedMessage(false);
+        setShowInstructionMessage(false);
+      }, 2000);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSavingNotes(false);
+    }
+  }
+
+  async function handleNotesBlur() {
+    if (!hasRequestedChanges || !notes) return;
+
+    setIsSavingNotes(true);
+    try {
+      const response = await fetch(`/api/tasks/${taskId}/tests/${test.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ test: { notes } }),
+      });
+      if (!response.ok) {
+        throw new Error("Unable to update notes");
+      }
+      const updatedTest = await response.json();
+      onTestUpdate?.(updatedTest);
+      setShowSavedMessage(true);
+      setTimeout(() => setShowSavedMessage(false), 4000);
     } catch (err) {
       console.error(err);
     } finally {
@@ -308,17 +349,31 @@ export default function TestCard({
                     className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-xs resize-y focus:ring-0 focus:outline-none"
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
+                    onBlur={handleNotesBlur}
                     rows={3}
                   />
-                  <div className="flex justify-end gap-2 mt-2">
-                    <button
-                      type="button"
-                      onClick={handleSaveNotes}
-                      disabled={isSavingNotes}
-                      className="px-3 py-1 text-sm rounded-md font-medium cursor-pointer transition-colors bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {isSavingNotes ? "Saving..." : "Request Changes"}
-                    </button>
+                  <div className="flex justify-end items-center gap-2 mt-2">
+                    {showSavedMessage && (
+                      <span className="text-sm text-green-600 font-medium">
+                        Saved!
+                      </span>
+                    )}
+                    {showInstructionMessage && (
+                      <span className="text-sm text-gray-600 font-medium ml-1">
+                        Click 'Re-Generate Transformation' to update the
+                        transformation code.
+                      </span>
+                    )}
+                    {!hasRequestedChanges && (
+                      <button
+                        type="button"
+                        onClick={handleRequestChanges}
+                        disabled={isSavingNotes || !notes}
+                        className="px-3 py-1 text-sm rounded-md font-medium cursor-pointer transition-colors bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {isSavingNotes ? "Saving..." : "Request Changes"}
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

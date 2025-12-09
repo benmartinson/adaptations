@@ -35,7 +35,17 @@ class GenerateTransformCodeJob < ApplicationJob
     )
   end
 
-  def build_prompt()
+  def build_prompt
+    tests_needing_changes = task.tests.where(status: "changes_needed")
+
+    if tests_needing_changes.exists?
+      build_revision_prompt(tests_needing_changes)
+    else
+      build_initial_prompt
+    end
+  end
+
+  def build_initial_prompt
     from_response = task.input_payload.fetch("from_response", [])
     to_response = task.input_payload.fetch("to_response", [])
 
@@ -43,6 +53,45 @@ class GenerateTransformCodeJob < ApplicationJob
         Where the 'data' param is a list of records in this data format: #{from_response} 
         And transforms the data into a list of records in this format: #{to_response}
         This is important: only return the code, no other text or comments."
+  end
+
+  def build_revision_prompt(tests_needing_changes)
+    prompt = <<~PROMPT
+    Previously, you recieved the instructions
+    'Can you write a ruby data transformation: def transformation_procedure(data) ...something... end'
+    And were given an intial (from_response) and expected (expected_output) data format.
+      We've already attempted to write this transformation, but it needs changes. Here is the current code:
+
+      ```ruby
+      #{task.transform_code}
+      ```
+
+      The following test cases need to be fixed:
+
+    PROMPT
+
+    tests_needing_changes.each_with_index do |test, index|
+      prompt += <<~TEST_CASE
+        --- Test Case #{index + 1} ---
+        Input data (from_response):
+        #{test.from_response.to_json}
+
+        Expected output:
+        #{test.expected_output.to_json}
+
+        User feedback on what needs to change:
+        #{test.notes.presence || "No specific notes provided"}
+
+      TEST_CASE
+    end
+
+    prompt += <<~FOOTER
+      Please revise the transformation code to handle all the test cases above.
+      Return ONLY the revised code for: def transformation_procedure(data) ... end
+      No other text or comments. No code comments either. You may use helper methods if needed.
+    FOOTER
+
+    prompt
   end
 
   def generate_code_response(prompt)

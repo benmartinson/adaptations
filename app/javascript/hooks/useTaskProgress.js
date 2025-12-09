@@ -110,6 +110,15 @@ export default function useTaskProgress(taskId) {
     }));
   };
 
+  const updateTest = (updatedTest) => {
+    setSnapshot((prev) => ({
+      ...prev,
+      tests: (prev?.tests || []).map((t) =>
+        t.id === updatedTest.id ? { ...t, ...updatedTest } : t
+      ),
+    }));
+  };
+
   return {
     snapshot,
     events,
@@ -121,6 +130,7 @@ export default function useTaskProgress(taskId) {
     responseJson,
     updateResponseJson,
     addTest,
+    updateTest,
   };
 }
 

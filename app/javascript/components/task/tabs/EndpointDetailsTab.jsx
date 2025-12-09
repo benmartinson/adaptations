@@ -12,6 +12,7 @@ export default function EndpointDetailsTab({
   onFetchEndpoint,
   isGeneratingPreview,
   generatingMessage,
+  transformCode,
 }) {
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-4">
@@ -40,7 +41,9 @@ export default function EndpointDetailsTab({
             type="button"
             onClick={onFetchEndpoint}
             className="px-4 py-2 rounded-lg bg-gray-900 text-white font-semibold hover:bg-gray-800 disabled:opacity-50"
-            disabled={!apiEndpoint || !systemTag || fetchingEndpoint}
+            disabled={
+              !apiEndpoint || !systemTag || fetchingEndpoint || transformCode
+            }
           >
             {fetchingEndpoint ? "Fetching..." : "Generate Preview"}
           </button>
@@ -69,7 +72,7 @@ export default function EndpointDetailsTab({
           </label>
           <textarea
             className="w-full rounded-lg border border-gray-300 p-3 focus:ring-2 focus:ring-blue-500 resize-y"
-            placeholder="Describe the data returned by this endpoint to help the chatbot understand and transform it better..."
+            placeholder="Describe the data returned by this endpoint. Any specific fields, relationships, or patterns you want to highlight..."
             value={dataDescription}
             onChange={(event) => setDataDescription(event.target.value)}
             rows={3}

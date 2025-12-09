@@ -4,7 +4,13 @@ import { fetchEndpointData } from "../../../helpers";
 import TestCard from "./TestCard";
 import AutomatedTests from "./AutomatedTests";
 
-export default function RunTestsTab({ task, tests, onTestCreated }) {
+export default function RunTestsTab({
+  task,
+  tests,
+  onTestCreated,
+  onTestUpdate,
+  onRegenerateTransform,
+}) {
   const location = useLocation();
   const expandTestId = location.state?.expandTestId;
   const focusNotes = location.state?.focusNotes;
@@ -16,6 +22,7 @@ export default function RunTestsTab({ task, tests, onTestCreated }) {
   const [fetchingEndpoints, setFetchingEndpoints] = useState({});
   const [isAddingTest, setIsAddingTest] = useState(false);
   const [isCreatingPrimary, setIsCreatingPrimary] = useState(false);
+  const [isRunningAll, setIsRunningAll] = useState(false);
   const primaryTestCreatedRef = useRef(false);
 
   const apiEndpoint = task?.api_endpoint;
@@ -28,7 +35,7 @@ export default function RunTestsTab({ task, tests, onTestCreated }) {
   // Switch to automated tab if automated tests exist
   useEffect(() => {
     if (hasAutomatedTests) {
-      setActiveTab("automated");
+      setActiveTab("manual");
     }
   }, [hasAutomatedTests]);
 
@@ -86,6 +93,26 @@ export default function RunTestsTab({ task, tests, onTestCreated }) {
     }
   }
 
+  async function runAllTests() {
+    if (allTests.length === 0) return;
+
+    setIsRunningAll(true);
+    try {
+      const response = await fetch(`/api/tasks/${task.id}/run_tests`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (!response.ok) {
+        throw new Error("Unable to run tests");
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsRunningAll(false);
+    }
+  }
+
   async function createTest(endpoint, expectedOutput, isPrimary = false) {
     const data = await fetchEndpointData(endpoint);
     if (!data) return null;
@@ -136,56 +163,44 @@ export default function RunTestsTab({ task, tests, onTestCreated }) {
     }
   }
 
-  const otherTests = allTests.filter((t) => !t.is_primary);
+  const otherTests = allTests
+    .filter((t) => !t.is_primary && t.test_type !== "automated")
+    .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
   const hasChangesNeeded = allTests.some((t) => t.status === "changes_needed");
 
   return (
     <div className="space-y-3">
-      {/* Tab Switcher */}
-      <div className="flex gap-1 bg-gray-100 p-1 rounded-lg w-fit">
-        <button
-          type="button"
-          onClick={() => setActiveTab("manual")}
-          className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors cursor-pointer ${
-            activeTab === "manual"
-              ? "bg-white text-gray-900 shadow-sm"
-              : "text-gray-600 hover:text-gray-900"
-          }`}
-        >
-          Manual
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab("automated")}
-          className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors cursor-pointer ${
-            activeTab === "automated"
-              ? "bg-white text-gray-900 shadow-sm"
-              : "text-gray-600 hover:text-gray-900"
-          }`}
-        >
-          Automated
-        </button>
-      </div>
-
-      {activeTab === "automated" && (
-        <AutomatedTests
-          tests={allTests}
-          task={task}
-          fetchedDataMap={fetchedDataMap}
-          fetchingEndpoints={fetchingEndpoints}
-          runningTestIds={runningTestIds}
-          onRunTest={runTest}
-        />
-      )}
-
-      {activeTab === "manual" && (
-        <>
-          {/* Header row with Add Test and Re-Generate buttons */}
-          <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between">
+        <div className="flex gap-1 bg-gray-100 p-1 rounded-lg w-fit">
+          <button
+            type="button"
+            onClick={() => setActiveTab("manual")}
+            className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors cursor-pointer ${
+              activeTab === "manual"
+                ? "bg-white text-gray-900 shadow-sm"
+                : "text-gray-600 hover:text-gray-900"
+            }`}
+          >
+            Manual
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("automated")}
+            className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors cursor-pointer ${
+              activeTab === "automated"
+                ? "bg-white text-gray-900 shadow-sm"
+                : "text-gray-600 hover:text-gray-900"
+            }`}
+          >
+            Automated
+          </button>
+        </div>
+        <div className="flex items-center gap-2">
+          {activeTab === "manual" && (
             <button
               type="button"
               onClick={() => setShowAddTest(!showAddTest)}
-              className="text-sm text-gray-600 hover:text-gray-900 cursor-pointer flex items-center gap-1"
+              className="px-3 py-1.5 text-sm font-medium rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200 cursor-pointer flex items-center gap-1.5 transition-colors"
             >
               <svg
                 className="w-4 h-4"
@@ -202,15 +217,67 @@ export default function RunTestsTab({ task, tests, onTestCreated }) {
               </svg>
               Add Test
             </button>
+          )}
+          <button
+            type="button"
+            onClick={runAllTests}
+            disabled={isRunningAll || allTests.length === 0}
+            className="px-3 py-1.5 text-sm font-medium rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200 cursor-pointer flex items-center gap-1.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            {isRunningAll ? "Running..." : "Run All Tests"}
+          </button>
+          <div className="relative group">
             <button
               type="button"
               disabled={!hasChangesNeeded}
-              className="px-3  py-1 rounded-lg bg-gray-900 text-white font-semibold hover:bg-gray-700 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-400"
+              onClick={onRegenerateTransform}
+              className="px-3 py-1.5 rounded-md bg-gray-900 text-white text-sm font-medium hover:bg-gray-700 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-400"
             >
               Re-Generate Transformation
             </button>
+            {!hasChangesNeeded && (
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                No tests have requested changes
+                <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-800"></div>
+              </div>
+            )}
           </div>
+        </div>
+      </div>
 
+      {activeTab === "automated" && (
+        <AutomatedTests
+          tests={allTests}
+          task={task}
+          fetchedDataMap={fetchedDataMap}
+          fetchingEndpoints={fetchingEndpoints}
+          runningTestIds={runningTestIds}
+          onRunTest={runTest}
+          onTestUpdate={onTestUpdate}
+        />
+      )}
+
+      {activeTab === "manual" && (
+        <>
           {showAddTest && (
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
               <div className="flex gap-3">
@@ -254,6 +321,7 @@ export default function RunTestsTab({ task, tests, onTestCreated }) {
               isFetching={fetchingEndpoints[test.api_endpoint]}
               isRunning={runningTestIds.includes(test.id)}
               onRun={() => runTest(test.id)}
+              onTestUpdate={onTestUpdate}
               isPrimary={false}
               taskId={task.id}
               initialExpanded={expandTestId === test.id}
@@ -283,6 +351,7 @@ export default function RunTestsTab({ task, tests, onTestCreated }) {
               isFetching={fetchingEndpoints[primaryTest.api_endpoint]}
               isRunning={runningTestIds.includes(primaryTest.id)}
               onRun={() => runTest(primaryTest.id)}
+              onTestUpdate={onTestUpdate}
               isPrimary
               taskId={task.id}
               initialExpanded={expandTestId === primaryTest.id}

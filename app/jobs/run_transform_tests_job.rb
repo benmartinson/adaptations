@@ -153,6 +153,7 @@ class RunTransformTestsJob < ApplicationJob
       description: t.description,
       notes: t.notes,
       attempts: t.attempts,
+      test_type: t.test_type,
       created_at: t.created_at,
       updated_at: t.updated_at
     }
