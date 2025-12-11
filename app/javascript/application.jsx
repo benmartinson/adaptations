@@ -8,6 +8,7 @@ import Navbar from "./components/Navbar";
 import TaskRunner from "./components/task/TaskRunner";
 import TaskList from "./components/task/TaskList";
 import TestPreviewPage from "./components/task/tests/TestPreviewPage";
+import LinkRunner from "./components/link/LinkRunner";
 
 const root = createRoot(document.getElementById("react-root"));
 root.render(
@@ -27,6 +28,11 @@ root.render(
         path="/task/:task_id/tests/preview"
         element={<TestPreviewPage />}
       />
+      <Route
+        path="/link/:task_id"
+        element={<Navigate to="details" replace />}
+      />
+      <Route path="/link/:task_id/:tab" element={<LinkRunner />} />
     </Routes>
   </BrowserRouter>
 );

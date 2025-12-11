@@ -130,6 +130,7 @@ class RunTransformTestsJob < ApplicationJob
     sandbox_module.module_eval(code_body)
     receiver = Object.new
     receiver.extend(sandbox_module)
+    binding.pry
 
     if receiver.respond_to?(:transformation_procedure)
       receiver.public_send(:transformation_procedure, input)

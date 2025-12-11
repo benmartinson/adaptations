@@ -1,5 +1,5 @@
 class Task < ApplicationRecord
-  KINDS = %w[code_workflow].freeze
+  KINDS = %w[api_transform link].freeze
 
   has_many :tests, dependent: :destroy
 
@@ -24,7 +24,7 @@ class Task < ApplicationRecord
   end
 
   def mark_completed!(output: nil)
-    update!(
+  update!(
       status: "completed",
       finished_at: Time.current,
       output_payload: output || output_payload

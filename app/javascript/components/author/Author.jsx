@@ -19,7 +19,6 @@ export default function Author() {
       .then((data) => setAuthor(data));
   }, [slug]);
 
-  console.log({ author });
   // if (!author || !author.id) return <p>Loading...</p>;
   if (!author) return <p>Loading...</p>;
 

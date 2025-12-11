@@ -6,7 +6,10 @@ Rails.application.routes.draw do
     get 'authors/:slug', to: 'author#show'
     get 'authors/:slug/books', to: 'author#books'
 
-    resources :tasks, only: %i[index show create update] do
+    resources :tasks, only: %i[index show create update destroy] do
+      collection do
+        get :system_tags
+      end
       member do
         post :run_job
         post :run_tests

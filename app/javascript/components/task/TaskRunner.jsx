@@ -6,13 +6,13 @@ import UIPreviewTab from "./Preview/UIPreviewTab";
 import CreateTransformerTab from "./tabs/CreateTransformerTab";
 import RunTestsTab from "./tests/RunTestsTab";
 import DeployTab from "./tabs/DeployTab";
+import { fetchEndpointData } from "../../helpers";
 
 export default function TaskRunner() {
   const { task_id, tab } = useParams();
   const navigate = useNavigate();
   const [apiEndpoint, setApiEndpoint] = useState("");
   const [systemTag, setSystemTag] = useState("");
-  const [dataDescription, setDataDescription] = useState("");
   const [fetchingEndpoint, setFetchingEndpoint] = useState(false);
   const [formError, setFormError] = useState(null);
   const [generatingMessage, setGeneratingMessage] = useState("");
@@ -21,6 +21,8 @@ export default function TaskRunner() {
     useState("");
   const [isRegenerating, setIsRegenerating] = useState(false);
   const prevTransformCodeRef = useRef(null);
+  const prevResponseJsonRef = useRef(null);
+  const [fromResponseData, setFromResponseData] = useState(null);
 
   const {
     snapshot,
@@ -42,9 +44,6 @@ export default function TaskRunner() {
     }
     if (snapshot.system_tag && !systemTag) {
       setSystemTag(snapshot.system_tag);
-    }
-    if (snapshot.data_description && !dataDescription) {
-      setDataDescription(snapshot.data_description);
     }
   }, [snapshot]);
 
@@ -69,6 +68,14 @@ export default function TaskRunner() {
     return () => clearInterval(interval);
   }, [isGeneratingPreview]);
 
+  useEffect(() => {
+    if (responseJson && !fromResponseData && apiEndpoint) {
+      fetchEndpointData(apiEndpoint).then((data) => {
+        setFromResponseData(data);
+      });
+    }
+  }, [responseJson, fromResponseData, apiEndpoint]);
+
   // Switching text for transform generation
   useEffect(() => {
     if (!isGeneratingTransformCode) {
@@ -89,22 +96,7 @@ export default function TaskRunner() {
     return () => clearInterval(interval);
   }, [isGeneratingTransformCode]);
 
-  async function handleFetchEndpoint() {
-    if (!apiEndpoint) {
-      setFormError("Please provide an API endpoint.");
-      return;
-    }
-
-    if (!systemTag) {
-      setFormError("Please provide a System Tag.");
-      return;
-    }
-
-    if (/\s/.test(systemTag)) {
-      setFormError("System Tag must be one word with no spaces.");
-      return;
-    }
-
+  async function handleFetchEndpoint(dataDescription) {
     setFormError(null);
     setFetchingEndpoint(true);
     try {
@@ -140,11 +132,6 @@ export default function TaskRunner() {
   }
 
   async function handleGenerateTransform() {
-    const fromResponseData = snapshot?.input_payload?.from_response;
-    if (!fromResponseData || !responseJson) {
-      return;
-    }
-
     setGeneratingTransform(true);
     navigate(`/task/${task_id}/transformer`);
 
@@ -220,6 +207,14 @@ export default function TaskRunner() {
     }
   }, [transformCode, isRegenerating, task_id, navigate]);
 
+  // Navigate to preview tab when responseJson becomes available
+  useEffect(() => {
+    if (responseJson && !prevResponseJsonRef.current && tab === "endpoint") {
+      navigate(`/task/${task_id}/preview`);
+    }
+    prevResponseJsonRef.current = responseJson;
+  }, [responseJson, tab, task_id, navigate]);
+
   const tabs = [
     { id: "endpoint", label: "Endpoint Details", enabled: true },
     { id: "preview", label: "UI Preview", enabled: !!responseJson },
@@ -252,7 +247,7 @@ export default function TaskRunner() {
               d="M15 19l-7-7 7-7"
             />
           </svg>
-          All Tasks
+          All Processes
         </Link>
       </div>
 
@@ -287,12 +282,11 @@ export default function TaskRunner() {
       {/* Tab Content */}
       {tab === "endpoint" && (
         <EndpointDetailsTab
+          taskId={task_id}
           apiEndpoint={apiEndpoint}
           setApiEndpoint={setApiEndpoint}
           systemTag={systemTag}
           setSystemTag={setSystemTag}
-          dataDescription={dataDescription}
-          setDataDescription={setDataDescription}
           fetchingEndpoint={isGeneratingPreview}
           formError={formError}
           onFetchEndpoint={handleFetchEndpoint}
@@ -308,9 +302,6 @@ export default function TaskRunner() {
           isGeneratingTransformCode={isGeneratingTransformCode}
           onNextStep={() => navigate(`/task/${task_id}/transformer`)}
           generatingTransformMessage={generatingTransformMessage}
-          fromResponse={snapshot?.input_payload?.from_response}
-          task={snapshot}
-          onResponseUpdate={updateResponseJson}
         />
       )}
 
@@ -319,8 +310,11 @@ export default function TaskRunner() {
           isGeneratingTransformCode={isGeneratingTransformCode}
           generatingTransformMessage={generatingTransformMessage}
           onGenerateTransform={handleGenerateTransform}
-          onBackStep={() => navigate(`/task/${task_id}/preview`)}
           transformCode={transformCode}
+          fromResponse={fromResponseData}
+          toResponse={responseJson}
+          taskId={task_id}
+          onResponseUpdate={updateResponseJson}
         />
       )}
 

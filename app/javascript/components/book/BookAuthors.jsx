@@ -12,7 +12,6 @@ export default function BookAuthors({ authors, contributors }) {
     })),
   ];
 
-  console.log({ allAuthors });
   return (
     <div className="font-fancy inline-flex gap-2 text-[20px] leading-[28px] font-light text-[#1e1915] mt-0.5">
       {allAuthors.map((item, index) => {

@@ -1,7 +1,7 @@
 # Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
 
 basic:
-  kind: code_workflow
+  kind: api_transform
   status: pending
   tokens_prompt: 0
   tokens_completion: 0
@@ -11,7 +11,7 @@ basic:
   metadata: {}
 
 running:
-  kind: code_workflow
+  kind: api_transform
   status: running
   tokens_prompt: 10
   tokens_completion: 5

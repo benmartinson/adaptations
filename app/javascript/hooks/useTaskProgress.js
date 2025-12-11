@@ -103,6 +103,10 @@ export default function useTaskProgress(taskId) {
     }));
   };
 
+  const dataDescription = useMemo(() => {
+    return snapshot?.data_description;
+  }, [snapshot]);
+
   const addTest = (newTest) => {
     setSnapshot((prev) => ({
       ...prev,
@@ -130,6 +134,7 @@ export default function useTaskProgress(taskId) {
     responseJson,
     updateResponseJson,
     addTest,
+    dataDescription,
     updateTest,
   };
 }
@@ -164,6 +169,7 @@ export function mergeSnapshot(previous, incoming) {
     test_results: incoming.test_results || previous.test_results,
     tests: mergedTests,
     response_json: incoming.response_json || previous.response_json,
+    data_description: incoming.data_description || previous.data_description,
     transform_code: incoming.transform_code || previous.transform_code,
   };
 }

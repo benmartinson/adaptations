@@ -2,11 +2,16 @@ module Api
   class TasksController < ApplicationController
     skip_before_action :verify_authenticity_token
 
-    before_action :set_task, only: %i[show update run_job run_tests]
+    before_action :set_task, only: %i[show update destroy run_job run_tests]
 
     def index
       tasks = Task.recent.limit(limit_param)
       render json: tasks.map { |task| serialize_task(task) }
+    end
+
+    def system_tags
+      tags = Task.where.not(system_tag: [nil, ""]).distinct.pluck(:system_tag).sort
+      render json: tags
     end
 
     def show
@@ -23,6 +28,11 @@ module Api
       @task.update!(task_params)
 
       render json: serialize_task(@task)
+    end
+
+    def destroy
+      @task.destroy!
+      head :no_content
     end
 
     def run_job
@@ -56,25 +66,33 @@ module Api
     end
 
     def task_params
-      payload = params.require(:task).permit(:kind, :api_endpoint, :system_tag, :data_description, metadata: {}, input_payload: {}, response_json: {})
+      payload = params.require(:task).permit(:kind, :api_endpoint, :system_tag, :to_system_tag, :data_description, metadata: {}, input_payload: {}, output_payload: {})
 
       result = {}
       result[:kind] = payload[:kind] if payload[:kind].present?
       result[:api_endpoint] = payload[:api_endpoint] if payload.key?(:api_endpoint)
       result[:system_tag] = payload[:system_tag] if payload.key?(:system_tag)
+      result[:to_system_tag] = payload[:to_system_tag] if payload.key?(:to_system_tag)
       result[:data_description] = payload[:data_description] if payload.key?(:data_description)
       result[:metadata] = payload[:metadata] if payload[:metadata].present?
       result[:input_payload] = payload[:input_payload] if payload[:input_payload].present?
-      result[:response_json] = payload[:response_json] if payload[:response_json].present?
+      result[:output_payload] = payload[:output_payload] if payload[:output_payload].present?
+
+      # Handle response_json which can be either a string or a hash
+      if params[:task].key?(:response_json)
+        result[:response_json] = params[:task][:response_json]
+      end
+
       result
     end
 
     def run_job_params
-      payload = params.require(:task).permit(:api_endpoint, :system_tag, :data_description, metadata: {}, input_payload: {})
+      payload = params.require(:task).permit(:api_endpoint, :system_tag, :to_system_tag, :data_description, metadata: {}, input_payload: {})
 
       result = {}
       result[:api_endpoint] = payload[:api_endpoint] if payload.key?(:api_endpoint)
       result[:system_tag] = payload[:system_tag] if payload.key?(:system_tag)
+      result[:to_system_tag] = payload[:to_system_tag] if payload.key?(:to_system_tag)
       result[:data_description] = payload[:data_description] if payload.key?(:data_description)
       result[:metadata] = payload[:metadata] if payload[:metadata].present?
       result[:input_payload] = payload[:input_payload] if payload[:input_payload].present?
@@ -88,6 +106,7 @@ module Api
         status: task.status,
         api_endpoint: task.api_endpoint,
         system_tag: task.system_tag,
+        to_system_tag: task.to_system_tag,
         data_description: task.data_description,
         response_json: task.response_json,
         transform_code: task.transform_code,

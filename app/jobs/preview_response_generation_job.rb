@@ -78,15 +78,11 @@ class PreviewResponseGenerationJob < ApplicationJob
       api_endpoint: api_endpoint,
       system_tag: system_tag,
       data_description: data_description,
-    )
-    
-    task.mark_completed!(
-      output: {
-        "response_json" => response_json,
-        "system_tag" => system_tag,
-        "data_description" => data_description,
+      output_payload: {
+        from_response: from_response
       }
     )
+    
     broadcast_event(
       phase: "completed",
       message: "Workflow completed successfully",

@@ -2,7 +2,7 @@ require "test_helper"
 
 class TaskTest < ActiveSupport::TestCase
   # test "is valid with default attributes" do
-  #   task = Task.new(kind: "code_workflow")
+  #   task = Task.new(kind: "api_transform")
   #   assert task.valid?
   #   assert_equal "pending", task.status
   # end
@@ -18,7 +18,7 @@ class TaskTest < ActiveSupport::TestCase
   # end
 
   # test "mark_completed stores output payload" do
-  #   task = Task.create!(kind: "code_workflow")
+  #   task = Task.create!(kind: "api_transform")
   #   payload = { "code" => "def hi; end" }
 
   #   task.mark_completed!(output: payload)

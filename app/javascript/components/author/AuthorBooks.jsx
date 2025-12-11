@@ -14,8 +14,6 @@ export default function AuthorBooks({ slug }) {
       .then((data) => setBooks(data));
   }, [slug]);
 
-  console.log({ books });
-
   const bookItems = books.map((book) => {
     let primaryEdition = book.editions?.length > 0 ? book.editions[0] : null;
     let imageUrl = null;

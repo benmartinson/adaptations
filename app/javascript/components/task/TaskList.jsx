@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import moment from "moment";
+import Modal from "../common/Modal";
 
 export default function TaskList() {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [creating, setCreating] = useState(false);
+  const [showNewProcessModal, setShowNewProcessModal] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -29,8 +32,9 @@ export default function TaskList() {
     }
   }
 
-  async function handleNewTask() {
+  async function handleCreateTask(kind) {
     setCreating(true);
+    setShowNewProcessModal(false);
     try {
       const response = await fetch("/api/tasks", {
         method: "POST",
@@ -39,7 +43,7 @@ export default function TaskList() {
         },
         body: JSON.stringify({
           task: {
-            kind: "code_workflow",
+            kind,
             metadata: { source: "web-ui" },
           },
         }),
@@ -50,11 +54,36 @@ export default function TaskList() {
       }
 
       const task = await response.json();
-      navigate(`/task/${task.id}`);
+      const route = kind === "link" ? `/link/${task.id}` : `/task/${task.id}`;
+      navigate(route);
     } catch (error) {
       console.error(error);
       setError(error.message);
       setCreating(false);
+    }
+  }
+
+  async function handleDeleteTask(e, taskId) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!confirm("Are you sure you want to delete this process?")) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/tasks/${taskId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("Unable to delete task");
+      }
+
+      setTasks((prev) => prev.filter((t) => t.id !== taskId));
+    } catch (error) {
+      console.error(error);
+      setError(error.message);
     }
   }
 
@@ -100,13 +129,13 @@ export default function TaskList() {
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-gray-900">Tasks</h1>
+        <h1 className="text-3xl font-bold text-gray-900">Processes</h1>
         <button
-          onClick={handleNewTask}
+          onClick={() => setShowNewProcessModal(true)}
           disabled={creating}
           className="px-4 py-2 rounded-lg bg-gray-900 text-white font-semibold hover:bg-gray-800 disabled:opacity-50"
         >
-          {creating ? "Creating..." : "New Task"}
+          {creating ? "Creating..." : "New Process"}
         </button>
       </div>
 
@@ -119,7 +148,9 @@ export default function TaskList() {
           {tasks.map((task) => (
             <Link
               key={task.id}
-              to={`/task/${task.id}`}
+              to={
+                task.kind === "link" ? `/link/${task.id}` : `/task/${task.id}`
+              }
               className="block bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow"
             >
               <div className="flex items-start justify-between gap-4">
@@ -132,7 +163,6 @@ export default function TaskList() {
                     >
                       {task.status}
                     </span>
-                    <span className="text-xs text-gray-500">ID: {task.id}</span>
                   </div>
 
                   {task.api_endpoint && (
@@ -146,40 +176,109 @@ export default function TaskList() {
                     </div>
                   )}
 
+                  {task.system_tag && (
+                    <div className="mb-2">
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                        System Tag
+                      </label>
+                      <p className="text-sm text-gray-900 font-mono break-all">
+                        {task.system_tag}
+                      </p>
+                    </div>
+                  )}
+
                   <div className="flex gap-6 text-xs text-gray-500">
                     <div>
                       <span className="font-medium">Created:</span>{" "}
-                      {formatDate(task.created_at)}
+                      {moment(formatDate(task.created_at)).format("MM/DD/YYYY")}
                     </div>
                     {task.updated_at && (
                       <div>
                         <span className="font-medium">Updated:</span>{" "}
-                        {formatDate(task.updated_at)}
+                        {moment(formatDate(task.updated_at)).format(
+                          "MM/DD/YYYY"
+                        )}
                       </div>
                     )}
                   </div>
                 </div>
 
-                <div className="text-gray-400 hover:text-gray-600">
-                  <svg
-                    className="w-6 h-6"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={(e) => handleDeleteTask(e, task.id)}
+                    className="p-1.5 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                    title="Delete process"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 5l7 7-7 7"
-                    />
-                  </svg>
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                  <div className="text-gray-400">
+                    <svg
+                      className="w-6 h-6"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 5l7 7-7 7"
+                      />
+                    </svg>
+                  </div>
                 </div>
               </div>
             </Link>
           ))}
         </div>
       )}
+
+      <Modal
+        isOpen={showNewProcessModal}
+        onClose={() => setShowNewProcessModal(false)}
+        title="Create New Process"
+        size="sm"
+      >
+        <div className="space-y-3">
+          <p className="text-sm text-gray-600 mb-4">
+            Select the type of process you want to create:
+          </p>
+          <button
+            onClick={() => handleCreateTask("api_transform")}
+            className="w-full p-4 text-left rounded-lg border border-gray-200 hover:border-gray-900 hover:bg-gray-50 transition-colors group"
+          >
+            <div className="font-semibold text-gray-900 group-hover:text-gray-900">
+              API Transform
+            </div>
+            <div className="text-sm text-gray-500 mt-1">
+              Transform data from an external API endpoint
+            </div>
+          </button>
+          <button
+            onClick={() => handleCreateTask("link")}
+            className="w-full p-4 text-left rounded-lg border border-gray-200 hover:border-gray-900 hover:bg-gray-50 transition-colors group"
+          >
+            <div className="font-semibold text-gray-900 group-hover:text-gray-900">
+              Link
+            </div>
+            <div className="text-sm text-gray-500 mt-1">
+              Create a link-based process
+            </div>
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 }

@@ -1,12 +1,12 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import useTaskProgress from "../../../hooks/useTaskProgress";
 
 export default function EndpointDetailsTab({
+  taskId,
   apiEndpoint,
   setApiEndpoint,
   systemTag,
   setSystemTag,
-  dataDescription,
-  setDataDescription,
   fetchingEndpoint,
   formError,
   onFetchEndpoint,
@@ -14,10 +14,20 @@ export default function EndpointDetailsTab({
   generatingMessage,
   transformCode,
 }) {
+  const { dataDescription: snapshotDataDescription } = useTaskProgress(taskId);
+  const [dataDescription, setDataDescription] = useState("");
+
+  useEffect(() => {
+    if (snapshotDataDescription && !dataDescription) {
+      setDataDescription(snapshotDataDescription);
+    }
+  }, [snapshotDataDescription]);
+
+  function handleFetchEndpoint() {
+    onFetchEndpoint(dataDescription);
+  }
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-4">
-      <h2 className="text-xl font-semibold text-gray-900">API Endpoint</h2>
-
       {formError && (
         <div className="bg-red-50 border border-red-200 text-sm text-red-700 rounded-xl px-4 py-3">
           {formError}
@@ -26,7 +36,7 @@ export default function EndpointDetailsTab({
 
       <div className="space-y-3">
         <label className="block text-sm font-medium text-gray-700">
-          Enter API Endpoint
+          API Endpoint Example
         </label>
         <div className="flex flex-col gap-3 md:flex-row">
           <input
@@ -39,7 +49,7 @@ export default function EndpointDetailsTab({
           />
           <button
             type="button"
-            onClick={onFetchEndpoint}
+            onClick={handleFetchEndpoint}
             className="px-4 py-2 rounded-lg bg-gray-900 text-white font-semibold hover:bg-gray-800 disabled:opacity-50"
             disabled={
               !apiEndpoint || !systemTag || fetchingEndpoint || transformCode

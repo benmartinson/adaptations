@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_07_233024) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_10_185950) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -165,7 +165,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_07_233024) do
     t.datetime "finished_at"
     t.json "input_payload", default: {}
     t.string "job_id"
-    t.string "kind", default: "code_workflow", null: false
+    t.string "kind", default: "api_transform", null: false
     t.datetime "last_progress_at"
     t.json "metadata", default: {}
     t.json "output_payload", default: {}
@@ -173,6 +173,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_07_233024) do
     t.datetime "started_at"
     t.string "status", default: "pending", null: false
     t.string "system_tag"
+    t.string "to_system_tag"
     t.integer "tokens_completion", default: 0, null: false
     t.integer "tokens_prompt", default: 0, null: false
     t.integer "tokens_total", default: 0, null: false
