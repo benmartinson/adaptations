@@ -245,8 +245,7 @@ export default function TestCard({
                 )}
                 {!isFetching && inputData && (
                   <pre className="text-xs text-gray-600 whitespace-pre-wrap">
-                    {JSON.stringify(inputData, null, 2)?.slice(0, 1000)}
-                    {JSON.stringify(inputData, null, 2)?.length > 1000 && "..."}
+                    {JSON.stringify(inputData, null, 2)}
                   </pre>
                 )}
                 {!isFetching && !inputData && (
@@ -264,9 +263,7 @@ export default function TestCard({
               <div className="p-3 max-h-36 overflow-auto">
                 {actualOutput ? (
                   <pre className="text-xs text-gray-600 whitespace-pre-wrap">
-                    {JSON.stringify(actualOutput, null, 2)?.slice(0, 1000)}
-                    {JSON.stringify(actualOutput, null, 2)?.length > 1000 &&
-                      "..."}
+                    {JSON.stringify(actualOutput, null, 2)}
                   </pre>
                 ) : (
                   <div className="flex flex-col items-center justify-center h-16 text-gray-400">

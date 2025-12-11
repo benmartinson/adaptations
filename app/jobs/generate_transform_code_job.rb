@@ -50,10 +50,10 @@ class GenerateTransformCodeJob < ApplicationJob
     to_response = task.input_payload.fetch("to_response", [])
 
     "Can you write a ruby data transformation: def transformation_procedure(data) ...something... end 
-        Where the 'data' param is a list of records in this data format: #{from_response} 
-        And transforms the data into a list of records in this format: #{to_response}
+        Where the 'data' param is fetched data from an api endpoint and the example given is this data format: #{from_response} 
+        And you need to write a transformation function that transforms the data into a list of records in this format: #{to_response}
         \n\n Here are specific extra instructions given by the user: #{task.data_description}
-        This is important: only return the code, no other text or comments."
+        This is important: only return the code, no other text or comments. You may use helper methods if needed."
   end
 
   def build_revision_prompt(tests_needing_changes)
