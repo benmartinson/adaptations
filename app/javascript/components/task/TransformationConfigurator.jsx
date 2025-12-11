@@ -14,16 +14,16 @@ export default function TransformationConfigurator({
   const [saveStatus, setSaveStatus] = useState(null);
   const [dataDescription, setDataDescription] = useState("");
   const [explanationSaveStatus, setExplanationSaveStatus] = useState(null);
+  // const { snapshot, updateResponseJson } = useTaskProgress(task_id);
+  const fromResponseText = fromResponse
+    ? JSON.stringify(fromResponse, null, 2)
+    : "";
 
   useEffect(() => {
     if (snapshotDataDescription !== undefined) {
       setDataDescription(snapshotDataDescription || "");
     }
   }, [snapshotDataDescription]);
-
-  const fromResponseText = fromResponse
-    ? JSON.stringify(fromResponse, null, 2)
-    : "";
 
   useEffect(() => {
     if (toResponse) {

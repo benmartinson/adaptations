@@ -11,6 +11,7 @@ export default function CreateTransformerTab({
   toResponse,
   taskId,
   onResponseUpdate,
+  isLinkTask = false,
 }) {
   function handleGenerateTransform() {
     onGenerateTransform();
@@ -23,6 +24,12 @@ export default function CreateTransformerTab({
     { id: "data-selector", label: "Data Selector" },
     { id: "transform-code", label: "Transform Code" },
   ];
+
+  useEffect(() => {
+    if (transformCode) {
+      setActiveSubTab("transform-code");
+    }
+  }, [transformCode]);
 
   // Show loading state when generating
   if (isGeneratingTransformCode) {
@@ -84,6 +91,7 @@ export default function CreateTransformerTab({
           toResponse={toResponse}
           taskId={taskId}
           onResponseUpdate={onResponseUpdate}
+          isLinkTask={isLinkTask}
         />
       )}
 

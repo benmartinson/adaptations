@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import useTaskProgress from "../../hooks/useTaskProgress";
 import LinkDetailsTab from "../task/tabs/LinkDetailsTab";
-import TransformationConfigurator from "../task/TransformationConfigurator";
+import CreateTransformerTab from "../task/tabs/CreateTransformerTab";
 
 export default function LinkRunner() {
   const { task_id, tab } = useParams();
@@ -13,10 +13,14 @@ export default function LinkRunner() {
   const [availableSystemTags, setAvailableSystemTags] = useState([]);
   const [allTasks, setAllTasks] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [localFromResponse, setLocalFromResponse] = useState(null);
+  const [localToResponse, setLocalToResponse] = useState(null);
 
   const { snapshot, updateResponseJson } = useTaskProgress(task_id);
   const [isGeneratingTransformCode, setIsGeneratingTransformCode] =
     useState(false);
+  const [generatingTransformMessage, setGeneratingTransformMessage] =
+    useState("");
 
   useEffect(() => {
     async function loadTasks() {
@@ -51,10 +55,21 @@ export default function LinkRunner() {
     }
   }, [snapshot]);
 
+  // Clear local state when snapshot updates (WebSocket broadcast)
+  useEffect(() => {
+    if (snapshot?.input_payload?.from_response) {
+      setLocalFromResponse(null);
+    }
+    if (snapshot?.response_json) {
+      setLocalToResponse(null);
+    }
+  }, [snapshot?.input_payload?.from_response, snapshot?.response_json]);
+
   // Reset generating state when transform code is received
   useEffect(() => {
     if (snapshot?.transform_code && isGeneratingTransformCode) {
       setIsGeneratingTransformCode(false);
+      setGeneratingTransformMessage("");
     }
   }, [snapshot?.transform_code]);
 
@@ -71,18 +86,9 @@ export default function LinkRunner() {
     setFormError(null);
 
     try {
-      // Find the tasks from our loaded data
       const fromTask = allTasks.find((t) => t.system_tag === fromSystemTag);
       const toTask = allTasks.find((t) => t.system_tag === toSystemTag);
-      // Fetch the data from the "from" task's api_endpoint
-      const apiResponse = await fetch(fromTask.api_endpoint);
-      console.log("apiResponse", apiResponse);
-      if (!apiResponse.ok) {
-        throw new Error("Failed to fetch data from API endpoint");
-      }
-      const apiData = await apiResponse.json();
 
-      // Update the link task with the data
       const updateResponse = await fetch(`/api/tasks/${task_id}`, {
         method: "PATCH",
         headers: {
@@ -92,7 +98,7 @@ export default function LinkRunner() {
           task: {
             system_tag: fromSystemTag,
             to_system_tag: toSystemTag,
-            output_payload: { from_response: apiData },
+            input_payload: { from_response: fromTask.response_json },
             response_json: toTask.api_endpoint,
           },
         }),
@@ -101,6 +107,9 @@ export default function LinkRunner() {
       if (!updateResponse.ok) {
         throw new Error("Failed to update link task");
       }
+
+      setLocalFromResponse(fromTask.response_json);
+      setLocalToResponse(toTask.api_endpoint);
 
       // Navigate to the transformer tab
       navigate(`/link/${task_id}/transformer`);
@@ -112,10 +121,19 @@ export default function LinkRunner() {
     }
   }
 
-  const hasLinkData = snapshot?.output_payload && snapshot?.response_json;
+  const hasLinkData = snapshot?.input_payload && snapshot?.response_json;
 
-  async function handleGenerateTransform() {
+  async function handleGenerateTransform(dataDescription) {
     setIsGeneratingTransformCode(true);
+    setGeneratingTransformMessage("Generating Transformation Code...");
+
+    const interval = setInterval(() => {
+      setGeneratingTransformMessage((prev) =>
+        prev === "Generating Transformation Code..."
+          ? "Background process, may take several seconds"
+          : "Generating Transformation Code..."
+      );
+    }, 3000);
 
     try {
       const taskResponse = await fetch(`/api/tasks/${task_id}/run_job`, {
@@ -126,10 +144,12 @@ export default function LinkRunner() {
         body: JSON.stringify({
           task: {
             input_payload: {
-              from_response: snapshot?.output_payload?.from_response,
-              to_response: snapshot?.response_json,
+              from_response:
+                localFromResponse || snapshot?.input_payload?.from_response,
+              to_response: localToResponse || snapshot?.response_json,
               task_type: "generate_transform_code",
             },
+            data_description: dataDescription,
           },
         }),
       });
@@ -140,7 +160,12 @@ export default function LinkRunner() {
     } catch (error) {
       console.error(error);
       setIsGeneratingTransformCode(false);
+      setGeneratingTransformMessage("");
+      clearInterval(interval);
     }
+
+    // Cleanup interval when component unmounts or when generation completes
+    return () => clearInterval(interval);
   }
 
   const tabs = [
@@ -215,45 +240,19 @@ export default function LinkRunner() {
       )}
 
       {tab === "transformer" && (
-        <div className="space-y-4">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex items-center justify-between">
-            <div>
-              <h3 className="font-medium text-gray-900">
-                Generate Transform Code
-              </h3>
-              <p className="text-sm text-gray-500">
-                Once you've configured the transformation, generate the code.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={handleGenerateTransform}
-              disabled={isGeneratingTransformCode}
-              className="px-4 py-2 rounded-lg bg-gray-900 text-white font-semibold hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isGeneratingTransformCode ? "Generating..." : "Generate Code"}
-            </button>
-          </div>
-
-          {snapshot?.transform_code && (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-              <p className="text-gray-600 mb-3 font-medium">Transform Code</p>
-              <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-sm font-mono whitespace-pre-wrap">
-                {snapshot.transform_code}
-              </pre>
-            </div>
-          )}
-
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-            <TransformationConfigurator
-              fromResponse={snapshot?.output_payload?.from_response}
-              toResponse={snapshot?.response_json}
-              taskId={task_id}
-              onResponseUpdate={updateResponseJson}
-              isLinkTask={true}
-            />
-          </div>
-        </div>
+        <CreateTransformerTab
+          isGeneratingTransformCode={isGeneratingTransformCode}
+          generatingTransformMessage={generatingTransformMessage}
+          onGenerateTransform={handleGenerateTransform}
+          transformCode={snapshot?.transform_code}
+          fromResponse={
+            localFromResponse || snapshot?.input_payload?.from_response
+          }
+          toResponse={localToResponse || snapshot?.response_json}
+          taskId={task_id}
+          onResponseUpdate={updateResponseJson}
+          isLinkTask={true}
+        />
       )}
     </div>
   );

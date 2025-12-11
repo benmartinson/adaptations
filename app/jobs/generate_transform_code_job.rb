@@ -47,29 +47,54 @@ class GenerateTransformCodeJob < ApplicationJob
 
   def build_initial_prompt
     from_response = task.input_payload.fetch("from_response", [])
-    to_response = task.input_payload.fetch("to_response", [])
+    to_response = task.response_json
 
-    "Can you write a ruby data transformation: def transformation_procedure(data) ...something... end 
-        Where the 'data' param is fetched data from an api endpoint and the example given is this data format: #{from_response} 
+    if task.kind == "link"
+      "Can you write a ruby data transformation: def transformation_procedure(data) ...something... end
+        Where the 'data' param is fetched data from an api endpoint and the example given is this data format: #{from_response}
+        And you need to write a transformation function that prepares this data to call the target API endpoint: #{to_response}
+        The transformation should return data in the format expected by the target API endpoint.
+        \n\n Here are specific extra instructions given by the user: #{task.data_description}
+        This is important: only return the code, no other text or comments. You may use helper methods if needed."
+    else
+      "Can you write a ruby data transformation: def transformation_procedure(data) ...something... end
+        Where the 'data' param is fetched data from an api endpoint and the example given is this data format: #{from_response}
         And you need to write a transformation function that transforms the data into a list of records in this format: #{to_response}
         \n\n Here are specific extra instructions given by the user: #{task.data_description}
         This is important: only return the code, no other text or comments. You may use helper methods if needed."
+    end
   end
 
   def build_revision_prompt(tests_needing_changes)
-    prompt = <<~PROMPT
-    Previously, you recieved the instructions
-    'Can you write a ruby data transformation: def transformation_procedure(data) ...something... end'
-    And were given an intial (from_response) and expected (expected_output) data format.
-      We've already attempted to write this transformation, but it needs changes. Here is the current code:
+    if task.kind == "link"
+      prompt = <<~PROMPT
+      Previously, you recieved the instructions
+      'Can you write a ruby data transformation: def transformation_procedure(data) ...something... end'
+      And were given data from a source API and a target API endpoint.
+        We've already attempted to write this transformation, but it needs changes. Here is the current code:
 
-      ```ruby
-      #{task.transform_code}
-      ```
+        ```ruby
+        #{task.transform_code}
+        ```
 
-      The following test cases need to be fixed:
+        The following test cases need to be fixed:
 
-    PROMPT
+      PROMPT
+    else
+      prompt = <<~PROMPT
+      Previously, you recieved the instructions
+      'Can you write a ruby data transformation: def transformation_procedure(data) ...something... end'
+      And were given an intial (from_response) and expected (expected_output) data format.
+        We've already attempted to write this transformation, but it needs changes. Here is the current code:
+
+        ```ruby
+        #{task.transform_code}
+        ```
+
+        The following test cases need to be fixed:
+
+      PROMPT
+    end
 
     tests_needing_changes.each_with_index do |test, index|
       prompt += <<~TEST_CASE
@@ -86,11 +111,20 @@ class GenerateTransformCodeJob < ApplicationJob
       TEST_CASE
     end
 
-    prompt += <<~FOOTER
-      Please revise the transformation code to handle all the test cases above.
-      Return ONLY the revised code for: def transformation_procedure(data) ... end
-      No other text or comments. No code comments either. You may use helper methods if needed.
-    FOOTER
+    if task.kind == "link"
+      prompt += <<~FOOTER
+        Please revise the transformation code to handle all the test cases above.
+        The transformation should prepare data to call the target API endpoint.
+        Return ONLY the revised code for: def transformation_procedure(data) ... end
+        No other text or comments. No code comments either. You may use helper methods if needed.
+      FOOTER
+    else
+      prompt += <<~FOOTER
+        Please revise the transformation code to handle all the test cases above.
+        Return ONLY the revised code for: def transformation_procedure(data) ... end
+        No other text or comments. No code comments either. You may use helper methods if needed.
+      FOOTER
+    end
 
     prompt
   end
