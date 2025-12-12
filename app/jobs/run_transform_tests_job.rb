@@ -124,20 +124,6 @@ class RunTransformTestsJob < ApplicationJob
     end
   end
 
-  def evaluate_inline(code_body, input)
-    sandbox_module = Module.new
-    sandbox_module.module_eval(code_body)
-    receiver = Object.new
-    receiver.extend(sandbox_module)
-
-    if receiver.respond_to?(:transformation_procedure)
-      receiver.public_send(:transformation_procedure, input)
-    else
-      raise StandardError, "transformation_procedure is not defined in generated code"
-    end
-  rescue StandardError => e
-    raise(StandardError, "Inline evaluation failed: #{e.message}")
-  end
 
   def serialize_test(t)
     {

@@ -100,30 +100,6 @@ class PreviewResponseGenerationJob < ApplicationJob
     response
   end
 
-  def fetch_endpoint_data(url)
-    return [] if url.blank?
-    
-    uri = URI.parse(url)
-    http = Net::HTTP.new(uri.host, uri.port)
-    
-    if uri.scheme == "https"
-      http.use_ssl = true
-      http.verify_mode = OpenSSL::SSL::VERIFY_NONE
-    end
-    
-    request = Net::HTTP::Get.new(uri.request_uri)
-    response = http.request(request)
-    
-    if response.is_a?(Net::HTTPSuccess)
-      JSON.parse(response.body)
-    else
-      Rails.logger.error("[PreviewResponseGenerationJob] Failed to fetch endpoint: #{response.code} #{response.message}")
-      []
-    end
-  rescue StandardError => e
-    Rails.logger.error("[PreviewResponseGenerationJob] Error fetching endpoint: #{e.message}")
-    []
-  end
 
   def extract_json(raw_response)
     # Find the first occurrence of '[' or '{'

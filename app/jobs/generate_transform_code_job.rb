@@ -18,9 +18,11 @@ class GenerateTransformCodeJob < ApplicationJob
   attr_reader :task
 
   def run_code_generation
+    task.update!(error_message: nil)
     broadcast_event(
       phase: "code_generation",
       message: "Generating transformation code",
+      error_message: nil
     )
 
     code_prompt = build_prompt()

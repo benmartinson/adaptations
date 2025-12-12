@@ -156,6 +156,8 @@ module Api
                     "PreviewResponseGenerationJob"
                   when "generate_transform_code"
                     "GenerateTransformCodeJob"
+                  when "generate_link_preview"
+                    "GenerateLinkPreviewJob"
                   else
                     ""
                   end

@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import useTaskProgress from "../../hooks/useTaskProgress";
 import LinkDetailsTab from "../task/tabs/LinkDetailsTab";
 import CreateTransformerTab from "../task/tabs/CreateTransformerTab";
+import UIPreviewTab from "../task/Preview/UIPreviewTab";
 
 export default function LinkRunner() {
   const { task_id, tab } = useParams();
@@ -21,6 +22,8 @@ export default function LinkRunner() {
     useState(false);
   const [generatingTransformMessage, setGeneratingTransformMessage] =
     useState("");
+  const [isGeneratingPreview, setIsGeneratingPreview] = useState(false);
+  const [generatingPreviewMessage, setGeneratingPreviewMessage] = useState("");
 
   useEffect(() => {
     async function loadTasks() {
@@ -72,6 +75,14 @@ export default function LinkRunner() {
       setGeneratingTransformMessage("");
     }
   }, [snapshot?.transform_code]);
+
+  // Reset generating preview state when preview response is received
+  useEffect(() => {
+    if (snapshot?.output_payload?.preview_response && isGeneratingPreview) {
+      setIsGeneratingPreview(false);
+      setGeneratingPreviewMessage("");
+    }
+  }, [snapshot?.output_payload?.preview_response]);
 
   function handleFromSystemTagChange(value) {
     setFromSystemTag(value);
@@ -168,9 +179,55 @@ export default function LinkRunner() {
     return () => clearInterval(interval);
   }
 
+  async function handleGeneratePreview() {
+    setIsGeneratingPreview(true);
+    setGeneratingPreviewMessage("Generating Link Preview...");
+
+    const interval = setInterval(() => {
+      setGeneratingPreviewMessage((prev) =>
+        prev === "Generating Link Preview..."
+          ? "Running transformations in sequence"
+          : "Generating Link Preview..."
+      );
+    }, 3000);
+
+    try {
+      const taskResponse = await fetch(`/api/tasks/${task_id}/run_job`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          task: {
+            input_payload: {
+              task_type: "generate_link_preview",
+            },
+          },
+        }),
+      });
+
+      if (!taskResponse.ok) {
+        throw new Error("Unable to run link preview job");
+      }
+    } catch (error) {
+      console.error(error);
+      setIsGeneratingPreview(false);
+      setGeneratingPreviewMessage("");
+      clearInterval(interval);
+    }
+
+    // Cleanup interval when component unmounts or when generation completes
+    return () => clearInterval(interval);
+  }
+
   const tabs = [
     { id: "details", label: "Link Details", enabled: true },
     { id: "transformer", label: "Create Transformation", enabled: hasLinkData },
+    {
+      id: "preview",
+      label: "UI Preview",
+      enabled: hasLinkData && snapshot?.transform_code,
+    },
   ];
 
   return (
@@ -252,6 +309,20 @@ export default function LinkRunner() {
           taskId={task_id}
           onResponseUpdate={updateResponseJson}
           isLinkTask={true}
+          navigate={navigate}
+          onGeneratePreview={handleGeneratePreview}
+          isGeneratingPreview={isGeneratingPreview}
+          setIsGeneratingPreview={setIsGeneratingPreview}
+          generatingPreviewMessage={generatingPreviewMessage}
+        />
+      )}
+
+      {tab === "preview" && (
+        <UIPreviewTab
+          responseJson={snapshot?.output_payload?.preview_response}
+          isGeneratingTransformCode={isGeneratingPreview}
+          generatingTransformMessage={generatingPreviewMessage}
+          onNextStep={() => navigate(`/link/${task_id}/transformer`)}
         />
       )}
     </div>

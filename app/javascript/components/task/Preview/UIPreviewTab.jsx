@@ -40,9 +40,6 @@ export default function UIPreviewTab({
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="text-center py-12 text-gray-500">
             <p className="text-lg">No preview available yet.</p>
-            <p className="text-sm mt-2">
-              Please fetch an endpoint first from the Endpoint Details tab.
-            </p>
           </div>
         </div>
       )}
