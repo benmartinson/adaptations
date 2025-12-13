@@ -14,16 +14,34 @@ export default function LinkRunner() {
   const [availableSystemTags, setAvailableSystemTags] = useState([]);
   const [allTasks, setAllTasks] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [localFromResponse, setLocalFromResponse] = useState(null);
-  const [localToResponse, setLocalToResponse] = useState(null);
-
   const { snapshot, updateResponseJson } = useTaskProgress(task_id);
+  const [localToResponse, setLocalToResponse] = useState(null);
+  const [localFromResponse, setLocalFromResponse] = useState(
+    snapshot?.input_payload?.from_response
+  );
   const [isGeneratingTransformCode, setIsGeneratingTransformCode] =
     useState(false);
   const [generatingTransformMessage, setGeneratingTransformMessage] =
     useState("");
   const [isGeneratingPreview, setIsGeneratingPreview] = useState(false);
   const [generatingPreviewMessage, setGeneratingPreviewMessage] = useState("");
+
+  useEffect(() => {
+    if (snapshot?.input_payload?.from_response) {
+      setLocalFromResponse(snapshot?.input_payload?.from_response);
+    } else if (fromSystemTag && !localFromResponse) {
+      // Get data from the response_json of the task identified by system_tag
+      const fromTask = allTasks.find((t) => t.system_tag === fromSystemTag);
+      if (fromTask?.response_json) {
+        setLocalFromResponse(fromTask.response_json);
+      }
+    }
+  }, [
+    snapshot?.input_payload?.from_response,
+    fromSystemTag,
+    allTasks,
+    localFromResponse,
+  ]);
 
   useEffect(() => {
     async function loadTasks() {
@@ -302,9 +320,7 @@ export default function LinkRunner() {
           generatingTransformMessage={generatingTransformMessage}
           onGenerateTransform={handleGenerateTransform}
           transformCode={snapshot?.transform_code}
-          fromResponse={
-            localFromResponse || snapshot?.input_payload?.from_response
-          }
+          fromResponse={localFromResponse}
           toResponse={localToResponse || snapshot?.response_json}
           taskId={task_id}
           onResponseUpdate={updateResponseJson}

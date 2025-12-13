@@ -26,7 +26,7 @@ export default function LinkDetailsTab({
             From System Tag <span className="text-red-500">*</span>
           </label>
           <select
-            className="w-full rounded-lg border border-gray-300 p-3 focus:ring-2 focus:ring-blue-500 bg-white"
+            className="w-60 rounded-lg border border-gray-300 p-3 focus:ring-2 focus:ring-blue-500 bg-white"
             value={fromSystemTag}
             onChange={(event) => setFromSystemTag(event.target.value)}
           >
@@ -47,7 +47,7 @@ export default function LinkDetailsTab({
             To System Tag <span className="text-red-500">*</span>
           </label>
           <select
-            className="w-full rounded-lg border border-gray-300 p-3 focus:ring-2 focus:ring-blue-500 bg-white"
+            className="w-60 rounded-lg border border-gray-300 p-3 focus:ring-2 focus:ring-blue-500 bg-white"
             value={toSystemTag}
             onChange={(event) => setToSystemTag(event.target.value)}
           >
