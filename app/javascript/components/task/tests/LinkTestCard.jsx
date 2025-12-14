@@ -54,8 +54,30 @@ export default function LinkTestCard({
     }
   }, [focusNotes]);
 
+  // Don't render if test has been deleted
+  if (test?.deleted) {
+    return null;
+  }
+
   function handleRun() {
     onRun();
+  }
+
+  async function handleDelete() {
+    if (window.confirm("Are you sure you want to delete this test?")) {
+      try {
+        const response = await fetch(`/api/tasks/${taskId}/tests/${test.id}`, {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+        });
+
+        if (response.ok) {
+          onTestUpdate?.({ ...test, deleted: true });
+        }
+      } catch (error) {
+        console.error("Failed to delete test:", error);
+      }
+    }
   }
 
   async function handleRequestChanges() {
@@ -190,6 +212,28 @@ export default function LinkTestCard({
               </svg>
             )}
           </button>
+          {!isPrimary && (
+            <button
+              type="button"
+              onClick={handleDelete}
+              className="p-1.5 rounded-md bg-red-100 text-red-600 hover:bg-red-200 cursor-pointer"
+              aria-label="Delete test"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          )}
         </div>
       </div>
 
@@ -228,7 +272,7 @@ export default function LinkTestCard({
       {(isExpanded || !canCollapse) && (
         <>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-            <div className="border border-gray-200 rounded-md overflow-hidden">
+            <div className="border border-gray-200 rounded-md overflow-hidden h-18">
               <div className="bg-gray-50 px-3 py-1.5 border-b border-gray-200">
                 <h4 className="text-xs font-medium text-gray-700">
                   From API Endpoint
@@ -253,6 +297,38 @@ export default function LinkTestCard({
                     {fromEndpoint || "No endpoint configured"}
                   </code>
                 </div>
+              </div>
+            </div>
+
+            <div className="border border-gray-200 rounded-md overflow-hidden">
+              <div className="bg-gray-50 px-3 py-1.5 border-b border-gray-200">
+                <h4 className="text-xs font-medium text-gray-700">
+                  Transformed Output
+                </h4>
+              </div>
+              <div className="p-3 max-h-36 overflow-auto">
+                {actualOutput ? (
+                  <pre className="text-xs text-gray-600 whitespace-pre-wrap">
+                    {JSON.stringify(actualOutput, null, 2)}
+                  </pre>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-16 text-gray-400">
+                    <svg
+                      className="w-6 h-6 mb-1"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.5}
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      />
+                    </svg>
+                    <p className="text-xs">No output yet</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>

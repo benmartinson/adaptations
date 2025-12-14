@@ -40,7 +40,6 @@ export default function TestCard({
 
   const actualOutput = testResult?.output ?? test?.actual_output;
   const errorMessage = testResult?.error ?? test?.error_message;
-
   const inputData = fetchedData ?? test?.from_response;
 
   const canCollapse = !isPrimary && actualOutput;
@@ -59,8 +58,30 @@ export default function TestCard({
     }
   }, [focusNotes]);
 
+  // Don't render if test has been deleted
+  if (test?.deleted) {
+    return null;
+  }
+
   function handleRun() {
     onRun();
+  }
+
+  async function handleDelete() {
+    if (window.confirm("Are you sure you want to delete this test?")) {
+      try {
+        const response = await fetch(`/api/tasks/${taskId}/tests/${test.id}`, {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+        });
+
+        if (response.ok) {
+          onTestUpdate?.({ ...test, deleted: true });
+        }
+      } catch (error) {
+        console.error("Failed to delete test:", error);
+      }
+    }
   }
 
   async function handleRequestChanges() {
@@ -195,6 +216,28 @@ export default function TestCard({
               </svg>
             )}
           </button>
+          {!isPrimary && (
+            <button
+              type="button"
+              onClick={handleDelete}
+              className="p-1.5 rounded-md bg-red-100 text-red-600 hover:bg-red-200 cursor-pointer"
+              aria-label="Delete test"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          )}
         </div>
       </div>
 

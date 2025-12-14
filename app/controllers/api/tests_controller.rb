@@ -3,7 +3,7 @@ module Api
     skip_before_action :verify_authenticity_token
 
     before_action :set_task
-    before_action :set_test, only: %i[show update run_job]
+    before_action :set_test, only: %i[show update run_job destroy]
 
     def index
       tests = @task.tests.order(:created_at)
@@ -42,6 +42,11 @@ module Api
       @test.update!(test_params)
 
       render json: serialize_test(@test)
+    end
+
+    def destroy
+      @test.destroy!
+      head :no_content
     end
 
     private

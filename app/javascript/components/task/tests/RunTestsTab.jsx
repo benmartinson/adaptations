@@ -105,7 +105,12 @@ export default function RunTestsTab({
     }
   }
 
-  async function createTest(endpoint, expectedOutput, isPrimary = false) {
+  async function createTest(
+    endpoint,
+    expectedOutput,
+    isPrimary = false,
+    customFromEndpoint = null
+  ) {
     let testData;
 
     if (isLinkTask) {
@@ -114,7 +119,7 @@ export default function RunTestsTab({
       const toTask = allTasks?.find((t) => t.system_tag === toSystemTag);
 
       testData = {
-        from_response: fromTask?.api_endpoint,
+        from_response: customFromEndpoint || fromTask?.api_endpoint,
         expected_output: toTask?.api_endpoint,
         is_primary: isPrimary,
       };
@@ -160,7 +165,13 @@ export default function RunTestsTab({
   async function handleAddTest() {
     setIsAddingTest(true);
     try {
-      await createTest(newTestEndpoint || apiEndpoint, null, false);
+      if (isLinkTask) {
+        // For link tasks, pass the entered endpoint as customFromEndpoint
+        await createTest(null, null, false, newTestEndpoint);
+      } else {
+        // For regular tasks, use the normal flow
+        await createTest(newTestEndpoint || apiEndpoint, null, false);
+      }
       setShowAddTest(false);
       setNewTestEndpoint("");
     } catch (error) {
@@ -205,7 +216,7 @@ export default function RunTestsTab({
           )}
         </div>
         <div className="flex items-center gap-2">
-          {activeTab === "manual" && !isLinkTask && (
+          {activeTab === "manual" && (
             <button
               type="button"
               onClick={() => setShowAddTest(!showAddTest)}
@@ -287,13 +298,17 @@ export default function RunTestsTab({
 
       {activeTab === "manual" && (
         <>
-          {showAddTest && !isLinkTask && (
+          {showAddTest && (
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
               <div className="flex gap-3">
                 <input
                   type="url"
                   className="flex-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:ring-0 focus:outline-none"
-                  placeholder={apiEndpoint || "Enter API endpoint URL"}
+                  placeholder={
+                    isLinkTask
+                      ? `Enter API endpoint URL that the \'${fromTask?.system_tag}\' process handles`
+                      : apiEndpoint || "Enter API endpoint URL"
+                  }
                   value={newTestEndpoint}
                   onChange={(e) => setNewTestEndpoint(e.target.value)}
                 />
