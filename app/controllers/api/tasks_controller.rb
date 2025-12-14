@@ -49,7 +49,11 @@ module Api
         return
       end
 
-      job = RunTransformTestsJob.perform_later(test_ids)
+      if @task.kind == "link"
+        job = RunLinkTransformsJob.perform_later(test_ids)
+      else
+        job = RunTransformTestsJob.perform_later(test_ids)
+      end
       @task.update!(job_id: job.job_id) if job.respond_to?(:job_id)
 
       render json: serialize_task(@task), status: :accepted
@@ -156,8 +160,6 @@ module Api
                     "PreviewResponseGenerationJob"
                   when "generate_transform_code"
                     "GenerateTransformCodeJob"
-                  when "generate_link_preview"
-                    "GenerateLinkPreviewJob"
                   else
                     ""
                   end

@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import useTaskProgress from "../../hooks/useTaskProgress";
 import LinkDetailsTab from "../task/tabs/LinkDetailsTab";
 import CreateTransformerTab from "../task/tabs/CreateTransformerTab";
-import UIPreviewTab from "../task/Preview/UIPreviewTab";
+import RunTestsTab from "../task/tests/RunTestsTab";
 
 export default function LinkRunner() {
   const { task_id, tab } = useParams();
@@ -23,8 +23,8 @@ export default function LinkRunner() {
     useState(false);
   const [generatingTransformMessage, setGeneratingTransformMessage] =
     useState("");
-  const [isGeneratingPreview, setIsGeneratingPreview] = useState(false);
-  const [generatingPreviewMessage, setGeneratingPreviewMessage] = useState("");
+  const [isGeneratingTests, setIsGeneratingTests] = useState(false);
+  const [tests, setTests] = useState([]);
 
   useEffect(() => {
     if (snapshot?.input_payload?.from_response) {
@@ -42,6 +42,18 @@ export default function LinkRunner() {
     allTasks,
     localFromResponse,
   ]);
+
+  useEffect(() => {
+    console.log({ localToResponse });
+    if (snapshot?.response_json && !localToResponse) {
+      setLocalToResponse(snapshot?.response_json);
+    } else if (toSystemTag && !localToResponse) {
+      const toTask = allTasks.find((t) => t.system_tag === toSystemTag);
+      if (toTask?.api_endpoint) {
+        setLocalToResponse(toTask.api_endpoint);
+      }
+    }
+  }, [snapshot?.response_json, toSystemTag, allTasks, localToResponse]);
 
   useEffect(() => {
     async function loadTasks() {
@@ -64,6 +76,23 @@ export default function LinkRunner() {
     }
     loadTasks();
   }, []);
+
+  useEffect(() => {
+    async function loadTests() {
+      try {
+        const response = await fetch(`/api/tasks/${task_id}/tests`);
+        if (response.ok) {
+          const testsData = await response.json();
+          setTests(testsData);
+        }
+      } catch (error) {
+        console.error("Failed to load tests:", error);
+      }
+    }
+    if (task_id) {
+      loadTests();
+    }
+  }, [task_id]);
 
   useEffect(() => {
     if (!snapshot) return;
@@ -94,14 +123,6 @@ export default function LinkRunner() {
     }
   }, [snapshot?.transform_code]);
 
-  // Reset generating preview state when preview response is received
-  useEffect(() => {
-    if (snapshot?.output_payload?.preview_response && isGeneratingPreview) {
-      setIsGeneratingPreview(false);
-      setGeneratingPreviewMessage("");
-    }
-  }, [snapshot?.output_payload?.preview_response]);
-
   function handleFromSystemTagChange(value) {
     setFromSystemTag(value);
     // Clear toSystemTag if it matches the newly selected fromSystemTag
@@ -118,7 +139,7 @@ export default function LinkRunner() {
       const fromTask = allTasks.find((t) => t.system_tag === fromSystemTag);
       const toTask = allTasks.find((t) => t.system_tag === toSystemTag);
 
-      const updateResponse = await fetch(`/api/tasks/${task_id}`, {
+      const updateResponse = await fetch(`/api/tasks/${task_id}/`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -141,7 +162,7 @@ export default function LinkRunner() {
       setLocalToResponse(toTask.api_endpoint);
 
       // Navigate to the transformer tab
-      navigate(`/link/${task_id}/transformer`);
+      navigate(`/link/${task_id}/tests`);
     } catch (error) {
       console.error("Continue error:", error);
       setFormError(error.message);
@@ -197,53 +218,70 @@ export default function LinkRunner() {
     return () => clearInterval(interval);
   }
 
-  async function handleGeneratePreview() {
-    setIsGeneratingPreview(true);
-    setGeneratingPreviewMessage("Generating Link Preview...");
-
-    const interval = setInterval(() => {
-      setGeneratingPreviewMessage((prev) =>
-        prev === "Generating Link Preview..."
-          ? "Running transformations in sequence"
-          : "Generating Link Preview..."
-      );
-    }, 3000);
+  async function handleGenerateTests() {
+    setIsGeneratingTests(true);
+    console.log({ localFromResponse, localToResponse });
 
     try {
-      const taskResponse = await fetch(`/api/tasks/${task_id}/run_job`, {
+      // Find the source and target tasks
+      const fromTask = allTasks.find((t) => t.system_tag === fromSystemTag);
+      const toTask = allTasks.find((t) => t.system_tag === toSystemTag);
+      console.log({ fromTask, toTask });
+
+      // First, create a primary test for the link
+      const testResponse = await fetch(`/api/tasks/${task_id}/tests`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          task: {
-            input_payload: {
-              task_type: "generate_link_preview",
-            },
+          test: {
+            from_response: fromTask?.api_endpoint,
+            expected_output: toTask?.api_endpoint,
+            is_primary: true,
           },
         }),
       });
 
-      if (!taskResponse.ok) {
-        throw new Error("Unable to run link preview job");
+      if (!testResponse.ok) {
+        throw new Error("Unable to create test");
       }
+
+      const newTest = await testResponse.json();
+
+      // Update local tests state
+      setTests((prev) => [...prev, newTest]);
+
+      // Then run the test using the link transforms job
+      const jobResponse = await fetch(
+        `/api/tasks/${task_id}/tests/${newTest.id}/run_job`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!jobResponse.ok) {
+        throw new Error("Unable to run link transform test");
+      }
+
+      // Navigate to tests tab
+      navigate(`/link/${task_id}/tests`);
     } catch (error) {
       console.error(error);
-      setIsGeneratingPreview(false);
-      setGeneratingPreviewMessage("");
-      clearInterval(interval);
+    } finally {
+      setIsGeneratingTests(false);
     }
-
-    // Cleanup interval when component unmounts or when generation completes
-    return () => clearInterval(interval);
   }
 
   const tabs = [
     { id: "details", label: "Link Details", enabled: true },
     { id: "transformer", label: "Create Transformation", enabled: hasLinkData },
     {
-      id: "preview",
-      label: "UI Preview",
+      id: "tests",
+      label: "Run Tests",
       enabled: hasLinkData && snapshot?.transform_code,
     },
   ];
@@ -326,19 +364,23 @@ export default function LinkRunner() {
           onResponseUpdate={updateResponseJson}
           isLinkTask={true}
           navigate={navigate}
-          onGeneratePreview={handleGeneratePreview}
-          isGeneratingPreview={isGeneratingPreview}
-          setIsGeneratingPreview={setIsGeneratingPreview}
-          generatingPreviewMessage={generatingPreviewMessage}
+          onGenerateTests={handleGenerateTests}
+          isGeneratingTests={isGeneratingTests}
         />
       )}
 
-      {tab === "preview" && (
-        <UIPreviewTab
-          responseJson={snapshot?.output_payload?.preview_response}
-          isGeneratingTransformCode={isGeneratingPreview}
-          generatingTransformMessage={generatingPreviewMessage}
-          onNextStep={() => navigate(`/link/${task_id}/transformer`)}
+      {tab === "tests" && (
+        <RunTestsTab
+          task={snapshot}
+          tests={tests}
+          onTestCreated={(newTest) => setTests((prev) => [...prev, newTest])}
+          onTestUpdate={(updatedTest) =>
+            setTests((prev) =>
+              prev.map((t) => (t.id === updatedTest.id ? updatedTest : t))
+            )
+          }
+          onRegenerateTransform={() => {}}
+          isLinkTask={true}
         />
       )}
     </div>

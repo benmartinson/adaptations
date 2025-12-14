@@ -12,9 +12,8 @@ export default function CreateTransformerTab({
   taskId,
   onResponseUpdate,
   isLinkTask = false,
-  onGeneratePreview,
-  isGeneratingPreview,
-  setIsGeneratingPreview,
+  onGenerateTests,
+  isGeneratingTests,
 }) {
   const { snapshot } = useTaskProgress(taskId);
 
@@ -30,18 +29,18 @@ export default function CreateTransformerTab({
     { id: "transform-code", label: "Transform Code" },
   ];
 
-  useEffect(() => {
-    if (transformCode) {
-      if (isGeneratingPreview) {
-        setIsGeneratingPreview(false);
-      }
-      setActiveSubTab("transform-code");
-    }
-  }, [transformCode]);
+  // useEffect(() => {
+  //   if (transformCode) {
+  //     if (isGeneratingPreview) {
+  //       setIsGeneratingPreview(false);
+  //     }
+  //     setActiveSubTab("transform-code");
+  //   }
+  // }, [transformCode]);
 
   useEffect(() => {
-    if (snapshot?.error_message && isGeneratingPreview) {
-      setIsGeneratingPreview(false);
+    if (snapshot?.error_message && isGeneratingTests) {
+      setIsGeneratingTests(false);
     }
   }, [snapshot?.error_message]);
 
@@ -127,11 +126,11 @@ export default function CreateTransformerTab({
           {isLinkTask && transformCode && (
             <button
               type="button"
-              onClick={onGeneratePreview}
+              onClick={onGenerateTests}
               className="px-4 py-2 rounded-lg bg-gray-900 text-white font-semibold hover:bg-gray-700 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={isGeneratingTransformCode || isGeneratingPreview}
+              disabled={isGeneratingTransformCode || isGeneratingTests}
             >
-              {isGeneratingPreview ? "Generating Preview" : "Generate Preview"}
+              {isGeneratingTests ? "Generating Tests" : "Generate Tests"}
             </button>
           )}
         </div>

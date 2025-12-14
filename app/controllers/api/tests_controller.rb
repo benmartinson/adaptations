@@ -15,7 +15,7 @@ module Api
     end
 
     def create
-      test_data = params.require(:test).permit(:api_endpoint, :is_primary, :description, from_response: {}, expected_output: {})
+      test_data = params.require(:test).permit(:api_endpoint, :is_primary, :description, :from_response, :expected_output)
 
       test = @task.tests.create!(
         api_endpoint: test_data[:api_endpoint] || @task.api_endpoint,

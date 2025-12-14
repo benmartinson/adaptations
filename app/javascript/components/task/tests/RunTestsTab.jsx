@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import { fetchEndpointData } from "../../../helpers";
 import TestCard from "./TestCard";
+import LinkTestCard from "./LinkTestCard";
 import AutomatedTests from "./AutomatedTests";
 
 export default function RunTestsTab({
@@ -10,6 +11,7 @@ export default function RunTestsTab({
   onTestCreated,
   onTestUpdate,
   onRegenerateTransform,
+  isLinkTask = false,
 }) {
   const location = useLocation();
   const expandTestId = location.state?.expandTestId;
@@ -27,6 +29,17 @@ export default function RunTestsTab({
 
   const apiEndpoint = task?.api_endpoint;
   const responseJson = task?.response_json;
+
+  // For link tests, get the from and to endpoints from the test data
+  const getLinkTestEndpoints = (test) => {
+    if (!isLinkTask) return { fromEndpoint: null, toEndpoint: null };
+    return {
+      fromEndpoint: test.from_response,
+      toEndpoint: test.expected_output,
+    };
+  };
+
+  const TestComponent = isLinkTask ? LinkTestCard : TestCard;
 
   const allTests = tests || [];
   const primaryTest = allTests.find((t) => t.is_primary);
@@ -310,24 +323,34 @@ export default function RunTestsTab({
             </div>
           )}
 
-          {otherTests.map((test) => (
-            <TestCard
-              key={test.id}
-              test={test}
-              testResult={test}
-              endpoint={test.api_endpoint}
-              expectedOutput={test.expected_output}
-              fetchedData={fetchedDataMap[test.api_endpoint]}
-              isFetching={fetchingEndpoints[test.api_endpoint]}
-              isRunning={runningTestIds.includes(test.id)}
-              onRun={() => runTest(test.id)}
-              onTestUpdate={onTestUpdate}
-              isPrimary={false}
-              taskId={task.id}
-              initialExpanded={expandTestId === test.id}
-              focusNotes={expandTestId === test.id && focusNotes}
-            />
-          ))}
+          {otherTests.map((test) => {
+            const linkEndpoints = getLinkTestEndpoints(test);
+            return (
+              <TestComponent
+                key={test.id}
+                test={test}
+                testResult={test}
+                {...(isLinkTask
+                  ? {
+                      fromEndpoint: linkEndpoints.fromEndpoint,
+                      toEndpoint: linkEndpoints.toEndpoint,
+                    }
+                  : {
+                      endpoint: test.api_endpoint,
+                      expectedOutput: test.expected_output,
+                      fetchedData: fetchedDataMap[test.api_endpoint],
+                      isFetching: fetchingEndpoints[test.api_endpoint],
+                    })}
+                isRunning={runningTestIds.includes(test.id)}
+                onRun={() => runTest(test.id)}
+                onTestUpdate={onTestUpdate}
+                isPrimary={false}
+                taskId={task.id}
+                initialExpanded={expandTestId === test.id}
+                focusNotes={expandTestId === test.id && focusNotes}
+              />
+            );
+          })}
 
           {isCreatingPrimary && !primaryTest && (
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -340,24 +363,35 @@ export default function RunTestsTab({
             </div>
           )}
 
-          {primaryTest && (
-            <TestCard
-              key={primaryTest.id}
-              test={primaryTest}
-              testResult={primaryTest}
-              endpoint={primaryTest.api_endpoint}
-              expectedOutput={responseJson}
-              fetchedData={fetchedDataMap[primaryTest.api_endpoint]}
-              isFetching={fetchingEndpoints[primaryTest.api_endpoint]}
-              isRunning={runningTestIds.includes(primaryTest.id)}
-              onRun={() => runTest(primaryTest.id)}
-              onTestUpdate={onTestUpdate}
-              isPrimary
-              taskId={task.id}
-              initialExpanded={expandTestId === primaryTest.id}
-              focusNotes={expandTestId === primaryTest.id && focusNotes}
-            />
-          )}
+          {primaryTest &&
+            (() => {
+              const linkEndpoints = getLinkTestEndpoints(primaryTest);
+              return (
+                <TestComponent
+                  key={primaryTest.id}
+                  test={primaryTest}
+                  testResult={primaryTest}
+                  {...(isLinkTask
+                    ? {
+                        fromEndpoint: linkEndpoints.fromEndpoint,
+                        toEndpoint: linkEndpoints.toEndpoint,
+                      }
+                    : {
+                        endpoint: primaryTest.api_endpoint,
+                        expectedOutput: responseJson,
+                        fetchedData: fetchedDataMap[primaryTest.api_endpoint],
+                        isFetching: fetchingEndpoints[primaryTest.api_endpoint],
+                      })}
+                  isRunning={runningTestIds.includes(primaryTest.id)}
+                  onRun={() => runTest(primaryTest.id)}
+                  onTestUpdate={onTestUpdate}
+                  isPrimary
+                  taskId={task.id}
+                  initialExpanded={expandTestId === primaryTest.id}
+                  focusNotes={expandTestId === primaryTest.id && focusNotes}
+                />
+              );
+            })()}
         </>
       )}
     </div>
