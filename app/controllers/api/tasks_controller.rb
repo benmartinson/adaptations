@@ -44,13 +44,14 @@ module Api
 
     def run_tests
       test_ids = @task.tests.pluck(:id)
+      Test.where(id: test_ids).update_all(status: "pending")
       if test_ids.empty?
         render json: { error: "No tests found for this task" }, status: :unprocessable_entity
         return
       end
 
       if @task.kind == "link"
-        job = RunLinkTransformsJob.perform_later(test_ids)
+        job = RunLinkTransformTestsJob.perform_later(test_ids)
       else
         job = RunTransformTestsJob.perform_later(test_ids)
       end

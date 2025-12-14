@@ -1,4 +1,4 @@
-class RunLinkTransformsJob < ApplicationJob
+class RunLinkTransformTestsJob < ApplicationJob
   queue_as :default
 
   rescue_from(ActiveRecord::RecordNotFound) do |_error|
@@ -12,6 +12,7 @@ class RunLinkTransformsJob < ApplicationJob
   def perform(test_ids)
     @test_ids = Array(test_ids)
     @tests = Test.where(id: @test_ids).includes(:task)
+    @task = Task.where(kind: "link").find_by(id: @tests.first.task_id)
 
     if @tests.empty?
       Rails.logger.warn("[RunLinkTransformsJob] No tests found, skipping job")
@@ -39,34 +40,28 @@ class RunLinkTransformsJob < ApplicationJob
       final: false
     )
 
-    begin
+    begin      
       test_inputs = tests.map do |test|
+        from_task = Task.where(kind: "api_transform").find_by(system_tag: task.system_tag)
+        to_task = Task.where(kind: "api_transform").find_by(system_tag: task.to_system_tag)
         {
           test_id: test.id,
-          input: test.from_response
-          expected_output: test.expected_output
+          from_api_endpoint: test.from_response,
+          from_transform: from_task.transform_code,
+          to_transform: to_task.transform_code,
+          link_transform: task.transform_code,
         }
       end
 
-      # Process results for each test
-      results = execute_batch(test_inputs, from_task, to_task)
+      results = execute_batch(test_inputs)
 
-      # Process results
       results.each do |result|
         test = tests.find { |t| t.id == result["test_id"] }
         next unless test
-
         if result["success"]
-          output = result["output"]
-          if test.is_primary
-            # Primary test: passes if transform runs without error
-            test.update!(status: "pass", actual_output: output)
-          else
-            # Non-primary test: needs review after successful transform
-            test.update!(status: "needs_review", actual_output: output)
-          end
+          test.update!(status: "pass", actual_output: result["output"], error_message: nil)
         else
-          test.update!(status: "error", error_message: result["error"])
+          test.update!(status: "error", error_message: result["error"], actual_output: result["output"])
         end
       end
 
@@ -91,30 +86,21 @@ class RunLinkTransformsJob < ApplicationJob
     end
   end
 
-  def execute_batch(test_inputs, from_task, to_task)
-    # Run link transformations for each test input
+  def execute_batch(test_inputs)
     test_inputs.map do |test_input|
       begin
-        # Step 1: For link tests, test.from_response contains the from_task.api_endpoint URL
-        # Fetch data from that URL to get the actual input data
-        from_data = fetch_endpoint_data(test_input[:input])
-        first_output = execute_transform(from_task.transform_code, from_data)
+        from_data = fetch_endpoint_data(test_input[:from_api_endpoint])
+        first_output = execute_transform(test_input[:from_transform], from_data)
+        second_output = execute_transform(test_input[:link_transform], first_output)
 
-        # Step 2: Run link task transformation
-        second_output = execute_transform(task.transform_code, first_output)
-
-        # Step 3: Use second_output as endpoint for to_task
         to_endpoint = second_output.to_s.strip
         if to_endpoint.blank?
           raise StandardError, "Link transformation did not produce a valid endpoint"
         end
 
-        # Step 4: Fetch data from generated endpoint
         to_data = fetch_endpoint_data(to_endpoint)
-
-        # Step 5: Run final transformation
-        final_output = execute_transform(to_task.transform_code, [to_data])
-
+        final_output = execute_transform(test_input[:to_transform], to_data)
+        # final_output = execute_transform(test_input[:to_transform], [to_data])
         { "test_id" => test_input[:test_id], "success" => true, "output" => final_output }
       rescue StandardError => e
         { "test_id" => test_input[:test_id], "success" => false, "error" => e.message }

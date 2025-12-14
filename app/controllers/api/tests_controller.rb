@@ -55,7 +55,11 @@ module Api
     end
 
     def enqueue_job(task, test)
-      job = RunTransformTestsJob.perform_later(test.id)
+      if task.kind == "link"
+        job = RunLinkTransformTestsJob.perform_later(test.id)
+      else
+        job = RunTransformTestsJob.perform_later(test.id)
+      end
       task.update!(job_id: job.job_id) if job.respond_to?(:job_id)
     end
 

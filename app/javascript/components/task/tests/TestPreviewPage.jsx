@@ -3,6 +3,41 @@ import { useParams, Link, useLocation, useNavigate } from "react-router-dom";
 import PreviewList from "../Preview/PreviewList";
 import StatusBadge from "./StatusBadge";
 
+// Reusable error state component
+function PreviewErrorState({ icon, title, description, backToPath }) {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-red-50 flex items-center justify-center">
+      <div className="bg-white rounded-xl shadow-lg p-8 max-w-md text-center">
+        <div
+          className={`w-16 h-16 ${icon.bgColor} rounded-full flex items-center justify-center mx-auto mb-4`}
+        >
+          <svg
+            className={`w-8 h-8 ${icon.textColor}`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d={icon.path}
+            />
+          </svg>
+        </div>
+        <h2 className="text-xl font-semibold text-gray-900 mb-2">{title}</h2>
+        <p className="text-gray-600 mb-6">{description}</p>
+        <Link
+          to={backToPath}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+        >
+          Back to Tests
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 export default function TestPreviewPage() {
   const { task_id } = useParams();
   const location = useLocation();
@@ -20,6 +55,8 @@ export default function TestPreviewPage() {
   const prevTest = currentIndex > 0 ? tests[currentIndex - 1] : null;
   const nextTest =
     currentIndex < tests.length - 1 ? tests[currentIndex + 1] : null;
+
+  const taskType = location.pathname.includes("/link/") ? "link" : "task";
 
   useEffect(() => {
     async function loadTests() {
@@ -112,109 +149,25 @@ export default function TestPreviewPage() {
     );
   }
 
-  if (error) {
+  if (error || tests.length === 0 || !selectedTest) {
+    const message = error
+      ? error
+      : tests.length === 0
+      ? "No tests found"
+      : !selectedTest
+      ? "No selected test"
+      : null;
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-red-50 flex items-center justify-center">
-        <div className="bg-white rounded-xl shadow-lg p-8 max-w-md text-center">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg
-              className="w-8 h-8 text-red-600"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">
-            Error Loading Preview
-          </h2>
-          <p className="text-gray-600 mb-6">{error}</p>
-          <Link
-            to={`/task/${task_id}/tests`}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-          >
-            Back to Tests
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  if (tests.length === 0) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-amber-50 flex items-center justify-center">
-        <div className="bg-white rounded-xl shadow-lg p-8 max-w-md text-center">
-          <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg
-              className="w-8 h-8 text-amber-600"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-              />
-            </svg>
-          </div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">
-            No Tests Found
-          </h2>
-          <p className="text-gray-600 mb-6">
-            There are no tests available to preview.
-          </p>
-          <Link
-            to={`/task/${task_id}/tests`}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-          >
-            Back to Tests
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  if (!selectedTest) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-amber-50 flex items-center justify-center">
-        <div className="bg-white rounded-xl shadow-lg p-8 max-w-md text-center">
-          <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg
-              className="w-8 h-8 text-amber-600"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-              />
-            </svg>
-          </div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">
-            Test Not Found
-          </h2>
-          <p className="text-gray-600 mb-6">
-            Unable to find the requested test.
-          </p>
-          <Link
-            to={`/task/${task_id}/tests`}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-          >
-            Back to Tests
-          </Link>
-        </div>
-      </div>
+      <PreviewErrorState
+        icon={{
+          bgColor: "bg-red-100",
+          textColor: "text-red-600",
+          path: "M6 18L18 6M6 6l12 12",
+        }}
+        title="Error Loading Preview"
+        description={message}
+        backToPath={`/${task_type}/${task_id}/tests`}
+      />
     );
   }
 
@@ -222,37 +175,16 @@ export default function TestPreviewPage() {
 
   if (!actualOutput) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-amber-50 flex items-center justify-center">
-        <div className="bg-white rounded-xl shadow-lg p-8 max-w-md text-center">
-          <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg
-              className="w-8 h-8 text-amber-600"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-              />
-            </svg>
-          </div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">
-            No Output Available
-          </h2>
-          <p className="text-gray-600 mb-6">
-            This test hasn't been run yet or has no output to preview.
-          </p>
-          <Link
-            to={`/task/${task_id}/tests`}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-          >
-            Back to Tests
-          </Link>
-        </div>
-      </div>
+      <PreviewErrorState
+        icon={{
+          bgColor: "bg-amber-100",
+          textColor: "text-amber-600",
+          path: "M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z",
+        }}
+        title="No Output Available"
+        description="This test hasn't been run yet or has no output to preview."
+        backToPath={`/${taskType}/${task_id}/tests`}
+      />
     );
   }
 
@@ -262,7 +194,7 @@ export default function TestPreviewPage() {
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link
-              to={`/task/${task_id}/tests`}
+              to={`/${taskType}/${task_id}/tests`}
               className="inline-flex items-center gap-2 px-3 py-1.5 text-sm bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
             >
               <svg

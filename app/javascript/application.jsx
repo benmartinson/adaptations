@@ -32,6 +32,10 @@ root.render(
         path="/link/:task_id"
         element={<Navigate to="details" replace />}
       />
+      <Route
+        path="/link/:task_id/tests/preview"
+        element={<TestPreviewPage />}
+      />
       <Route path="/link/:task_id/:tab" element={<LinkRunner />} />
     </Routes>
   </BrowserRouter>

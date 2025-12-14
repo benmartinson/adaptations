@@ -35,6 +35,9 @@ export default function TaskRunner() {
   } = useTaskProgress(task_id);
 
   const isGeneratingTransformCode = snapshot?.phase === "code_generation";
+  useEffect(() => {
+    console.log("tests", tests);
+  }, [tests]);
 
   useEffect(() => {
     if (!snapshot) return;

@@ -14,7 +14,8 @@ export default function LinkRunner() {
   const [availableSystemTags, setAvailableSystemTags] = useState([]);
   const [allTasks, setAllTasks] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
-  const { snapshot, updateResponseJson } = useTaskProgress(task_id);
+  const { snapshot, updateResponseJson, tests, addTest, updateTest } =
+    useTaskProgress(task_id);
   const [localToResponse, setLocalToResponse] = useState(null);
   const [localFromResponse, setLocalFromResponse] = useState(
     snapshot?.input_payload?.from_response
@@ -24,7 +25,9 @@ export default function LinkRunner() {
   const [generatingTransformMessage, setGeneratingTransformMessage] =
     useState("");
   const [isGeneratingTests, setIsGeneratingTests] = useState(false);
-  const [tests, setTests] = useState([]);
+  useEffect(() => {
+    console.log("tests", tests);
+  }, [tests]);
 
   useEffect(() => {
     if (snapshot?.input_payload?.from_response) {
@@ -44,7 +47,6 @@ export default function LinkRunner() {
   ]);
 
   useEffect(() => {
-    console.log({ localToResponse });
     if (snapshot?.response_json && !localToResponse) {
       setLocalToResponse(snapshot?.response_json);
     } else if (toSystemTag && !localToResponse) {
@@ -76,23 +78,6 @@ export default function LinkRunner() {
     }
     loadTasks();
   }, []);
-
-  useEffect(() => {
-    async function loadTests() {
-      try {
-        const response = await fetch(`/api/tasks/${task_id}/tests`);
-        if (response.ok) {
-          const testsData = await response.json();
-          setTests(testsData);
-        }
-      } catch (error) {
-        console.error("Failed to load tests:", error);
-      }
-    }
-    if (task_id) {
-      loadTests();
-    }
-  }, [task_id]);
 
   useEffect(() => {
     if (!snapshot) return;
@@ -220,13 +205,11 @@ export default function LinkRunner() {
 
   async function handleGenerateTests() {
     setIsGeneratingTests(true);
-    console.log({ localFromResponse, localToResponse });
 
     try {
       // Find the source and target tasks
       const fromTask = allTasks.find((t) => t.system_tag === fromSystemTag);
       const toTask = allTasks.find((t) => t.system_tag === toSystemTag);
-      console.log({ fromTask, toTask });
 
       // First, create a primary test for the link
       const testResponse = await fetch(`/api/tasks/${task_id}/tests`, {
@@ -249,8 +232,8 @@ export default function LinkRunner() {
 
       const newTest = await testResponse.json();
 
-      // Update local tests state
-      setTests((prev) => [...prev, newTest]);
+      // Update local snapshot immediately (same pattern as TaskRunner)
+      addTest(newTest);
 
       // Then run the test using the link transforms job
       const jobResponse = await fetch(
@@ -373,14 +356,13 @@ export default function LinkRunner() {
         <RunTestsTab
           task={snapshot}
           tests={tests}
-          onTestCreated={(newTest) => setTests((prev) => [...prev, newTest])}
-          onTestUpdate={(updatedTest) =>
-            setTests((prev) =>
-              prev.map((t) => (t.id === updatedTest.id ? updatedTest : t))
-            )
-          }
+          onTestCreated={addTest}
+          onTestUpdate={updateTest}
           onRegenerateTransform={() => {}}
-          isLinkTask={true}
+          isLinkTask
+          allTasks={allTasks}
+          fromSystemTag={fromSystemTag}
+          toSystemTag={toSystemTag}
         />
       )}
     </div>

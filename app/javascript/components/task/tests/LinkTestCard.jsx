@@ -6,7 +6,6 @@ export default function LinkTestCard({
   test,
   testResult,
   fromEndpoint,
-  toEndpoint,
   isRunning,
   onRun,
   onTestUpdate,
@@ -252,34 +251,6 @@ export default function LinkTestCard({
                   </svg>
                   <code className="text-xs text-gray-600 break-all">
                     {fromEndpoint || "No endpoint configured"}
-                  </code>
-                </div>
-              </div>
-            </div>
-
-            <div className="border border-gray-200 rounded-md overflow-hidden">
-              <div className="bg-gray-50 px-3 py-1.5 border-b border-gray-200">
-                <h4 className="text-xs font-medium text-gray-700">
-                  To API Endpoint
-                </h4>
-              </div>
-              <div className="p-3">
-                <div className="flex items-center gap-2">
-                  <svg
-                    className="w-4 h-4 text-green-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9"
-                    />
-                  </svg>
-                  <code className="text-xs text-gray-600 break-all">
-                    {toEndpoint || "No endpoint configured"}
                   </code>
                 </div>
               </div>
