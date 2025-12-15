@@ -4,6 +4,7 @@ import useTaskProgress from "../../hooks/useTaskProgress";
 import LinkDetailsTab from "../task/tabs/LinkDetailsTab";
 import CreateTransformerTab from "../task/tabs/CreateTransformerTab";
 import RunTestsTab from "../task/tests/RunTestsTab";
+import DeployTab from "../task/tabs/DeployTab";
 
 export default function LinkRunner() {
   const { task_id, tab } = useParams();
@@ -25,9 +26,6 @@ export default function LinkRunner() {
   const [generatingTransformMessage, setGeneratingTransformMessage] =
     useState("");
   const [isGeneratingTests, setIsGeneratingTests] = useState(false);
-  useEffect(() => {
-    console.log("tests", tests);
-  }, [tests]);
 
   useEffect(() => {
     if (snapshot?.input_payload?.from_response) {
@@ -267,6 +265,11 @@ export default function LinkRunner() {
       label: "Run Tests",
       enabled: hasLinkData && snapshot?.transform_code,
     },
+    {
+      id: "deploy",
+      label: "Deploy",
+      enabled: hasLinkData && snapshot?.transform_code,
+    },
   ];
 
   return (
@@ -365,6 +368,8 @@ export default function LinkRunner() {
           toSystemTag={toSystemTag}
         />
       )}
+
+      {tab === "deploy" && <DeployTab task={snapshot} isLinkTask />}
     </div>
   );
 }

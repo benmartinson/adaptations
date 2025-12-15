@@ -19,7 +19,7 @@ module Api
 
       test = @task.tests.create!(
         api_endpoint: test_data[:api_endpoint] || @task.api_endpoint,
-        from_response: test_data[:from_response],
+        from_response: JSON.parse(test_data[:from_response]),
         expected_output: test_data[:expected_output],
         is_primary: test_data[:is_primary] || false,
         description: test_data[:description],

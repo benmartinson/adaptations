@@ -1,33 +1,43 @@
 import React from "react";
 
-export default function DeployTab({ task }) {
+export default function DeployTab({ task, isLinkTask = false }) {
   const systemTag = task?.system_tag || "your_system_tag";
+  const toSystemTag = task?.to_system_tag || "your_target_system_tag";
   const exampleEndpoint = task?.api_endpoint || "https://api.example.com/data";
 
+  const className = isLinkTask ? "LinkTransformProcess" : "TransformProcess";
+  const systemTagParam = isLinkTask ? "from_system_tag" : "system_tag";
+
   const basicExample = `# Basic usage
-result = TransformProcess.new(
-  system_tag: "${systemTag}",
+result = ${className}.new(
+  ${systemTagParam}: "${systemTag}"${
+    isLinkTask ? `,\n  to_system_tag: "${toSystemTag}"` : ""
+  },
   api_endpoint: "${exampleEndpoint}"
 ).call`;
 
   const withLoggingExample = `# With automated test logging
-result = TransformProcess.new(
-  system_tag: "${systemTag}",
+result = ${className}.new(
+  ${systemTagParam}: "${systemTag}"${
+    isLinkTask ? `,\n  to_system_tag: "${toSystemTag}"` : ""
+  },
   api_endpoint: "${exampleEndpoint}",
   log_tests: true
 ).call`;
 
   const errorHandlingExample = `# With error handling
 begin
-  result = TransformProcess.new(
-    system_tag: "${systemTag}",
+  result = ${className}.new(
+    ${systemTagParam}: "${systemTag}"${
+    isLinkTask ? `,\n    to_system_tag: "${toSystemTag}"` : ""
+  },
     api_endpoint: "${exampleEndpoint}",
     log_tests: true
   ).call
-rescue TransformProcess::NotFoundError => e
+rescue ${className}::NotFoundError => e
   # Task not found or has no transform code
   Rails.logger.error("Transform not found: #{e.message}")
-rescue TransformProcess::TransformError => e
+rescue ${className}::TransformError => e
   # API fetch failed or transform execution failed
   Rails.logger.error("Transform failed: #{e.message}")
 end`;
@@ -36,12 +46,12 @@ end`;
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-6">
       <div>
         <h2 className="text-lg font-semibold text-gray-900 mb-2">
-          Using TransformProcess
+          Using {isLinkTask ? "LinkTransformProcess" : "TransformProcess"}
         </h2>
         <p className="text-gray-600 text-sm">
           Use the{" "}
           <code className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-800">
-            TransformProcess
+            {className}
           </code>{" "}
           class to fetch data from an API endpoint and run your transformation
           code.
@@ -86,11 +96,25 @@ end`;
         <ul className="space-y-2 text-sm text-gray-600">
           <li>
             <code className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-800">
-              system_tag
+              {systemTagParam}
             </code>
             <span className="text-red-500 ml-1">*</span>
-            <span className="ml-2">— The unique identifier for your task</span>
+            <span className="ml-2">
+              — The unique identifier for {isLinkTask ? "the source" : "your"}{" "}
+              task
+            </span>
           </li>
+          {isLinkTask && (
+            <li>
+              <code className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-800">
+                to_system_tag
+              </code>
+              <span className="text-red-500 ml-1">*</span>
+              <span className="ml-2">
+                — The unique identifier for the target task
+              </span>
+            </li>
+          )}
           <li>
             <code className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-800">
               api_endpoint

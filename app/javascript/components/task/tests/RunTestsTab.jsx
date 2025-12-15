@@ -35,16 +35,8 @@ export default function RunTestsTab({
 
   const allTests = tests || [];
   const primaryTest = allTests.find((t) => t.is_primary);
-  const hasAutomatedTests = allTests.some((t) => t.test_type === "automated");
 
   const CardComponent = isLinkTask ? LinkTestCard : TestCard;
-
-  // Switch to automated tab if automated tests exist
-  useEffect(() => {
-    if (hasAutomatedTests) {
-      setActiveTab("manual");
-    }
-  }, [hasAutomatedTests]);
 
   useEffect(() => {
     if (!apiEndpoint) return;
@@ -107,31 +99,25 @@ export default function RunTestsTab({
 
   async function createTest(
     endpoint,
-    expectedOutput,
     isPrimary = false,
     customFromEndpoint = null
   ) {
     let testData;
 
     if (isLinkTask) {
-      // For link tasks, create test with endpoint URLs
       const fromTask = allTasks?.find((t) => t.system_tag === fromSystemTag);
-      const toTask = allTasks?.find((t) => t.system_tag === toSystemTag);
 
       testData = {
         from_response: customFromEndpoint || fromTask?.api_endpoint,
-        expected_output: toTask?.api_endpoint,
         is_primary: isPrimary,
       };
     } else {
-      // For regular tasks, fetch data first
       const data = await fetchEndpointData(endpoint);
       if (!data) return null;
 
       testData = {
         api_endpoint: endpoint,
-        from_response: data,
-        expected_output: expectedOutput,
+        from_response: JSON.stringify(data),
         is_primary: isPrimary,
       };
     }
@@ -145,6 +131,8 @@ export default function RunTestsTab({
     if (!response.ok) return null;
     const newTest = await response.json();
     onTestCreated?.(newTest);
+    // Automatically run the test after creation
+    runTest(newTest.id);
     return newTest;
   }
 
@@ -167,10 +155,10 @@ export default function RunTestsTab({
     try {
       if (isLinkTask) {
         // For link tasks, pass the entered endpoint as customFromEndpoint
-        await createTest(null, null, false, newTestEndpoint);
+        await createTest(null, false, newTestEndpoint);
       } else {
         // For regular tasks, use the normal flow
-        await createTest(newTestEndpoint || apiEndpoint, null, false);
+        await createTest(newTestEndpoint || apiEndpoint, false);
       }
       setShowAddTest(false);
       setNewTestEndpoint("");
@@ -201,19 +189,17 @@ export default function RunTestsTab({
           >
             Manual
           </button>
-          {!isLinkTask && (
-            <button
-              type="button"
-              onClick={() => setActiveTab("automated")}
-              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors cursor-pointer ${
-                activeTab === "automated"
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              Automated
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => setActiveTab("automated")}
+            className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors cursor-pointer ${
+              activeTab === "automated"
+                ? "bg-white text-gray-900 shadow-sm"
+                : "text-gray-600 hover:text-gray-900"
+            }`}
+          >
+            Automated
+          </button>
         </div>
         <div className="flex items-center gap-2">
           {activeTab === "manual" && (

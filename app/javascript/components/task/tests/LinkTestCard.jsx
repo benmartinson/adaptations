@@ -152,7 +152,7 @@ export default function LinkTestCard({
             />
           ) : null}
           <p className="text-xs text-gray-500 truncate">
-            Link transformation test
+            {!isExpanded ? fromEndpoint : "Link transformation test"}
           </p>
         </div>
         <div className="flex items-center gap-2">

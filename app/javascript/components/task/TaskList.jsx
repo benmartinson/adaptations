@@ -87,6 +87,14 @@ export default function TaskList() {
     }
   }
 
+  function getKindColor(kind) {
+    switch (kind) {
+      case "link":
+        return "bg-blue-100 text-blue-800 border-blue-200";
+      case "api_transform":
+        return "bg-green-100 text-green-800 border-green-200";
+    }
+  }
   function getStatusColor(status) {
     switch (status) {
       case "completed":
@@ -157,11 +165,13 @@ export default function TaskList() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-3 mb-2">
                     <span
-                      className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(
-                        task.status
+                      className={`px-3 py-1 rounded-full text-xs font-semibold border ${getKindColor(
+                        task.kind
                       )}`}
                     >
-                      {task.status}
+                      {task.kind === "link"
+                        ? "Link Transform"
+                        : "API Transform"}
                     </span>
                   </div>
 
@@ -176,16 +186,29 @@ export default function TaskList() {
                     </div>
                   )}
 
-                  {task.system_tag && (
-                    <div className="mb-2">
-                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                        System Tag
-                      </label>
-                      <p className="text-sm text-gray-900 font-mono break-all">
-                        {task.system_tag}
-                      </p>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-12">
+                    {task.system_tag && (
+                      <div className="mb-2">
+                        <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                          {task.kind === "link" ? "From" : "System Tag"}
+                        </label>
+                        <p className="text-sm text-gray-900 font-mono break-all">
+                          {task.system_tag}
+                        </p>
+                      </div>
+                    )}
+
+                    {task.to_system_tag && task.kind === "link" && (
+                      <div className="mb-2">
+                        <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                          To
+                        </label>
+                        <p className="text-sm text-gray-900 font-mono break-all">
+                          {task.to_system_tag}
+                        </p>
+                      </div>
+                    )}
+                  </div>
 
                   <div className="flex gap-6 text-xs text-gray-500">
                     <div>
