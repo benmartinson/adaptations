@@ -178,7 +178,7 @@ export default function TaskList() {
                   {task.api_endpoint && (
                     <div className="mb-2">
                       <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                        API Endpoint
+                        API Endpoint Example
                       </label>
                       <p className="text-sm text-gray-900 font-mono break-all">
                         {task.api_endpoint}
@@ -206,21 +206,6 @@ export default function TaskList() {
                         <p className="text-sm text-gray-900 font-mono break-all">
                           {task.to_system_tag}
                         </p>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex gap-6 text-xs text-gray-500">
-                    <div>
-                      <span className="font-medium">Created:</span>{" "}
-                      {moment(formatDate(task.created_at)).format("MM/DD/YYYY")}
-                    </div>
-                    {task.updated_at && (
-                      <div>
-                        <span className="font-medium">Updated:</span>{" "}
-                        {moment(formatDate(task.updated_at)).format(
-                          "MM/DD/YYYY"
-                        )}
                       </div>
                     )}
                   </div>

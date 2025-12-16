@@ -82,6 +82,14 @@ class PreviewResponseGenerationJob < ApplicationJob
         from_response: from_response
       }
     )
+
+    # Create TaskUIFile record for the generated bundle
+    task.task_ui_files.create!(
+      file_name: "/public/ai_bundles/previewlist-XEW44Z6M.js",
+      is_active: true
+    )
+
+    
     
     broadcast_event(
       phase: "completed",

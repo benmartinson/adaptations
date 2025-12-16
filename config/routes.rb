@@ -14,6 +14,7 @@ Rails.application.routes.draw do
       member do
         post :run_job
         post :run_tests
+        get :ui_files
       end
       resources :tests, only: %i[index create show update destroy] do
         member do

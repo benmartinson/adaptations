@@ -2,6 +2,7 @@ class Task < ApplicationRecord
   KINDS = %w[api_transform link].freeze
 
   has_many :tests, dependent: :destroy
+  has_many :task_ui_files, dependent: :destroy
 
   enum :status, {
     pending: "pending",

@@ -302,6 +302,7 @@ export default function TaskRunner() {
           isGeneratingTransformCode={isGeneratingTransformCode}
           onNextStep={() => navigate(`/task/${task_id}/transformer`)}
           generatingTransformMessage={generatingTransformMessage}
+          taskId={task_id}
         />
       )}
 
