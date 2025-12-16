@@ -45,7 +45,7 @@ class TransformProcess
     receiver.extend(sandbox_module)
 
     if receiver.respond_to?(:transformation_procedure)
-      receiver.public_send(:transformation_procedure, input.is_a?(Array) ? input : [input])
+      receiver.public_send(:transformation_procedure, input)
     else
       raise TransformError, "transformation_procedure is not defined in transform code"
     end

@@ -13,16 +13,24 @@ class AuthorImporter
   end
 
   def import
-    author_key = @author_key || @service_procedure.run_service("SearchAuthorFromSlug", {slug: @slug})
+    # author_key = @author_key || @service_procedure.run_service("SearchAuthorFromSlug", {slug: @slug})
     
-    author_data = @service_procedure.run_service("AuthorData", {author_key: author_key})
-    author_data_test = TransformProcess.new(
-      system_tag: "authors",
-      api_endpoint: "https://openlibrary.org/authors/#{author_key}.json",
+    # author_data = @service_procedure.run_service("AuthorData", {author_key: author_key})
+    # author_data_test = TransformProcess.new(
+    #   system_tag: "authors",
+    #   api_endpoint: "https://openlibrary.org/authors/#{author_key}.json",
+    #   log_tests: true
+    # ).call
+
+    author_data = LinkTransformProcess.new(
+      from_system_tag: "SearchAuthors",
+      to_system_tag: "authors",
+      api_endpoint: "https://openlibrary.org/search/authors.json?q=#{@slug}",
       log_tests: true
     ).call
     # build_author(author_data, author_key)
-    author_test = author_data_test.first
+    # author_test = author_data_test.first
+    author_data.first
   end
 
   def build_author(author_data, author_key)

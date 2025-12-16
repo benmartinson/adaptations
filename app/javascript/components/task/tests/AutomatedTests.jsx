@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import TestCard from "./TestCard";
+import LinkTestCard from "./LinkTestCard";
 
 export default function AutomatedTests({
   tests,
@@ -28,11 +29,11 @@ export default function AutomatedTests({
   return (
     <div className="space-y-3">
       {automatedTests.map((test) => (
-        <TestCard
+        <LinkTestCard
           key={test.id}
           test={test}
           testResult={test}
-          endpoint={test.api_endpoint}
+          fromEndpoint={test.from_response}
           expectedOutput={test.expected_output}
           fetchedData={fetchedDataMap[test.api_endpoint]}
           isFetching={fetchingEndpoints[test.api_endpoint]}

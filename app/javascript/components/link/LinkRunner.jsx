@@ -26,6 +26,8 @@ export default function LinkRunner() {
   const [generatingTransformMessage, setGeneratingTransformMessage] =
     useState("");
   const [isGeneratingTests, setIsGeneratingTests] = useState(false);
+  const fromTask = allTasks.find((t) => t.system_tag === fromSystemTag);
+  const toTask = allTasks.find((t) => t.system_tag === toSystemTag);
 
   useEffect(() => {
     if (snapshot?.input_payload?.from_response) {
@@ -119,9 +121,6 @@ export default function LinkRunner() {
     setFormError(null);
 
     try {
-      const fromTask = allTasks.find((t) => t.system_tag === fromSystemTag);
-      const toTask = allTasks.find((t) => t.system_tag === toSystemTag);
-
       const updateResponse = await fetch(`/api/tasks/${task_id}/`, {
         method: "PATCH",
         headers: {
@@ -369,7 +368,9 @@ export default function LinkRunner() {
         />
       )}
 
-      {tab === "deploy" && <DeployTab task={snapshot} isLinkTask />}
+      {tab === "deploy" && (
+        <DeployTab task={snapshot} fromTask={fromTask} isLinkTask />
+      )}
     </div>
   );
 }
