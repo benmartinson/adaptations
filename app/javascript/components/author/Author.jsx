@@ -5,12 +5,13 @@ import Label from "../common/Label";
 import ImageNotFound from "../common/ImageNotFound";
 import moment from "moment";
 import AuthorBooks from "./AuthorBooks";
-import PreviewList from "../task/Preview/PreviewList";
 
 export default function Author() {
   const { slug } = useParams();
   const [author, setAuthor] = useState(null);
   const [imageError, setImageError] = useState(false);
+  const [PreviewList, setPreviewList] = useState(null);
+  const [previewListError, setPreviewListError] = useState(null);
 
   useEffect(() => {
     const url = `/api/authors/${slug}`;
@@ -19,8 +20,42 @@ export default function Author() {
       .then((data) => setAuthor(data));
   }, [slug]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadPreviewList() {
+      try {
+        setPreviewListError(null);
+        const res = await fetch("/api/ai_bundles/preview_list");
+        if (!res.ok) throw new Error(`Bundle endpoint failed: ${res.status}`);
+        const data = await res.json();
+        if (!data?.url) throw new Error("Bundle endpoint did not return a url");
+
+        const mod = await import(data.url);
+        if (!mod?.default)
+          throw new Error("Remote module had no default export");
+
+        if (!cancelled) setPreviewList(() => mod.default);
+      } catch (e) {
+        if (!cancelled)
+          setPreviewListError(
+            e?.message || "Failed to load PreviewList bundle"
+          );
+      }
+    }
+
+    loadPreviewList();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // if (!author || !author.id) return <p>Loading...</p>;
   if (!author) return <p>Loading...</p>;
+
+  if (previewListError)
+    return <p>Error loading preview bundle: {previewListError}</p>;
+  if (!PreviewList) return <p>Loading preview bundle...</p>;
 
   return (
     <PreviewList items={[author]} toResponseText={JSON.stringify(author)} />

@@ -10,6 +10,11 @@ import TaskList from "./components/task/TaskList";
 import TestPreviewPage from "./components/task/tests/TestPreviewPage";
 import LinkRunner from "./components/link/LinkRunner";
 
+// Expose React globally so remotely-bundled components can share the same React instance.
+if (typeof window !== "undefined") {
+  window.React = React;
+}
+
 const root = createRoot(document.getElementById("react-root"));
 root.render(
   <BrowserRouter>

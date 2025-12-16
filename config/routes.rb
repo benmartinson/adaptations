@@ -5,6 +5,7 @@ Rails.application.routes.draw do
     # get 'authors', to: 'author#index'
     get 'authors/:slug', to: 'author#show'
     get 'authors/:slug/books', to: 'author#books'
+    get "ai_bundles/preview_list", to: "ai_bundles#preview_list"
 
     resources :tasks, only: %i[index show create update destroy] do
       collection do
