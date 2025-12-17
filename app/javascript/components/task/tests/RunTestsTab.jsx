@@ -14,7 +14,6 @@ export default function RunTestsTab({
   isLinkTask = false,
   allTasks,
   fromSystemTag,
-  toSystemTag,
 }) {
   const location = useLocation();
   const expandTestId = location.state?.expandTestId;
@@ -27,8 +26,9 @@ export default function RunTestsTab({
   const [fetchingEndpoints, setFetchingEndpoints] = useState({});
   const [isAddingTest, setIsAddingTest] = useState(false);
   const [isRunningAll, setIsRunningAll] = useState(false);
-  const primaryTestCreatedRef = useRef(false);
-  const fromTask = allTasks?.find((t) => t.system_tag === fromSystemTag);
+  const fromTask = isLinkTask
+    ? allTasks?.find((t) => t.system_tag === fromSystemTag)
+    : task;
 
   const apiEndpoint = task?.api_endpoint;
   const responseJson = task?.response_json;
@@ -45,16 +45,16 @@ export default function RunTestsTab({
 
   // Auto-create primary test if none exists
   useEffect(() => {
-    if (
-      !primaryTestCreatedRef.current &&
-      !primaryTest &&
-      task?.id &&
-      fromTask
-    ) {
-      primaryTestCreatedRef.current = true;
-      createTest(fromTask?.api_endpoint, null, true);
+    console.log({
+      primaryTest,
+      task,
+      fromTask,
+      result: !primaryTest && task?.id && fromTask,
+    });
+    if (!primaryTest && task?.id && fromTask) {
+      createTest(fromTask?.api_endpoint, true);
     }
-  }, [primaryTest, task?.id, fromTask]);
+  }, [primaryTest, task?.id, fromTask, isLinkTask, allTasks]);
 
   async function runTest(testId) {
     setRunningTestIds((prev) => [...prev, testId]);
@@ -108,6 +108,7 @@ export default function RunTestsTab({
       const fromTask = allTasks?.find((t) => t.system_tag === fromSystemTag);
 
       testData = {
+        api_endpoint: fromTask?.api_endpoint,
         from_response: customFromEndpoint || fromTask?.api_endpoint,
         is_primary: isPrimary,
       };

@@ -200,62 +200,6 @@ export default function LinkRunner() {
     return () => clearInterval(interval);
   }
 
-  async function handleGenerateTests() {
-    setIsGeneratingTests(true);
-
-    try {
-      // Find the source and target tasks
-      const fromTask = allTasks.find((t) => t.system_tag === fromSystemTag);
-      const toTask = allTasks.find((t) => t.system_tag === toSystemTag);
-
-      // First, create a primary test for the link
-      const testResponse = await fetch(`/api/tasks/${task_id}/tests`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          test: {
-            from_response: fromTask?.api_endpoint,
-            expected_output: toTask?.api_endpoint,
-            is_primary: true,
-          },
-        }),
-      });
-
-      if (!testResponse.ok) {
-        throw new Error("Unable to create test");
-      }
-
-      const newTest = await testResponse.json();
-
-      // Update local snapshot immediately (same pattern as TaskRunner)
-      addTest(newTest);
-
-      // Then run the test using the link transforms job
-      const jobResponse = await fetch(
-        `/api/tasks/${task_id}/tests/${newTest.id}/run_job`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      if (!jobResponse.ok) {
-        throw new Error("Unable to run link transform test");
-      }
-
-      // Navigate to tests tab
-      navigate(`/link/${task_id}/tests`);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setIsGeneratingTests(false);
-    }
-  }
-
   const tabs = [
     { id: "details", label: "Link Details", enabled: true },
     { id: "transformer", label: "Create Transformation", enabled: hasLinkData },
@@ -349,8 +293,6 @@ export default function LinkRunner() {
           onResponseUpdate={updateResponseJson}
           isLinkTask={true}
           navigate={navigate}
-          onGenerateTests={handleGenerateTests}
-          isGeneratingTests={isGeneratingTests}
         />
       )}
 

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import TransformationConfigurator from "../TransformationConfigurator";
 import useTaskProgress from "../../../hooks/useTaskProgress";
+import { useNavigate } from "react-router-dom";
 
 export default function CreateTransformerTab({
   isGeneratingTransformCode,
@@ -12,14 +13,10 @@ export default function CreateTransformerTab({
   taskId,
   onResponseUpdate,
   isLinkTask = false,
-  onGenerateTests,
-  isGeneratingTests,
 }) {
   const { snapshot } = useTaskProgress(taskId);
+  const navigate = useNavigate();
 
-  function handleGenerateTransform() {
-    onGenerateTransform();
-  }
   const [activeSubTab, setActiveSubTab] = useState(
     transformCode ? "transform-code" : "data-selector"
   );
@@ -28,21 +25,6 @@ export default function CreateTransformerTab({
     { id: "data-selector", label: "Data Selector" },
     { id: "transform-code", label: "Transform Code" },
   ];
-
-  // useEffect(() => {
-  //   if (transformCode) {
-  //     if (isGeneratingPreview) {
-  //       setIsGeneratingPreview(false);
-  //     }
-  //     setActiveSubTab("transform-code");
-  //   }
-  // }, [transformCode]);
-
-  useEffect(() => {
-    if (snapshot?.error_message && isGeneratingTests) {
-      setIsGeneratingTests(false);
-    }
-  }, [snapshot?.error_message]);
 
   // Show loading state when generating
   if (isGeneratingTransformCode) {
@@ -113,7 +95,7 @@ export default function CreateTransformerTab({
         <div className="flex gap-2">
           <button
             type="button"
-            onClick={handleGenerateTransform}
+            onClick={onGenerateTransform}
             className="px-4 py-2 rounded-lg bg-gray-200 text-gray-900 font-semibold hover:bg-gray-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={isGeneratingTransformCode}
           >
@@ -123,14 +105,14 @@ export default function CreateTransformerTab({
               ? "Re-generate Code"
               : "Generate Code"}
           </button>
-          {isLinkTask && transformCode && (
+          {transformCode && (
             <button
               type="button"
-              onClick={onGenerateTests}
+              onClick={() => navigate(`/task/${taskId}/tests`)}
               className="px-4 py-2 rounded-lg bg-gray-900 text-white font-semibold hover:bg-gray-700 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={isGeneratingTransformCode || isGeneratingTests}
+              disabled={isGeneratingTransformCode}
             >
-              {isGeneratingTests ? "Generating Tests" : "Generate Tests"}
+              Generate Tests
             </button>
           )}
         </div>
