@@ -48,8 +48,7 @@ export default function TaskRunner() {
   }, [snapshot]);
 
   const isGeneratingPreview =
-    fetchingEndpoint ||
-    (snapshot?.phase === "preview_generation" && !responseJson);
+    fetchingEndpoint || snapshot?.phase === "preview_generation";
 
   useEffect(() => {
     if (!isGeneratingPreview) {

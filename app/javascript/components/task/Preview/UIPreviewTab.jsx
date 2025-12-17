@@ -10,6 +10,7 @@ function DynamicUIFile({ file, responseJson }) {
 
     async function loadComponent() {
       try {
+        console.log({ file });
         setError(null);
         const mod = await import(file.file_name);
         if (!mod?.default)
@@ -17,6 +18,7 @@ function DynamicUIFile({ file, responseJson }) {
 
         if (!cancelled) setComponent(() => mod.default);
       } catch (e) {
+        console.error(e);
         if (!cancelled)
           setError(e?.message || `Failed to load ${file.file_name}`);
       }
@@ -36,15 +38,15 @@ function DynamicUIFile({ file, responseJson }) {
     );
   }
 
-  if (!Component) {
+  if (!Component || !responseJson) {
     return (
       <div className="text-center py-8">
         <p className="text-gray-500">Loading UI component...</p>
       </div>
     );
   }
-
-  return <Component toResponseText={JSON.stringify(responseJson, null, 2)} />;
+  console.log({ responseJson });
+  return <Component data={responseJson} />;
 }
 
 export default function UIPreviewTab({
