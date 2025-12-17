@@ -10,7 +10,6 @@ function DynamicUIFile({ file, responseJson }) {
 
     async function loadComponent() {
       try {
-        console.log({ file });
         setError(null);
         const mod = await import(file.file_name);
         if (!mod?.default)
@@ -45,7 +44,6 @@ function DynamicUIFile({ file, responseJson }) {
       </div>
     );
   }
-  console.log({ responseJson });
   return <Component data={responseJson} />;
 }
 

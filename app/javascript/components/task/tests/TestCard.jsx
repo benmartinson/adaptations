@@ -41,7 +41,6 @@ export default function TestCard({
   const actualOutput = testResult?.output ?? test?.actual_output;
   const errorMessage = testResult?.error ?? test?.error_message;
   const inputData = fetchedData ?? test?.from_response;
-  console.log("inputData", inputData);
 
   const canCollapse = !isPrimary && actualOutput;
   const [isExpanded, setIsExpanded] = useState(!canCollapse || initialExpanded);
