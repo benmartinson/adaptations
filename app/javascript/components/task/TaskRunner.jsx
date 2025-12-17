@@ -17,13 +17,10 @@ export default function TaskRunner() {
   const [formError, setFormError] = useState(null);
   const [generatingMessage, setGeneratingMessage] = useState("");
   const [generatingTransform, setGeneratingTransform] = useState(false);
-  const [generatingTransformMessage, setGeneratingTransformMessage] =
-    useState("");
   const [isRegenerating, setIsRegenerating] = useState(false);
   const prevTransformCodeRef = useRef(null);
   const prevResponseJsonRef = useRef(null);
   const [fromResponseData, setFromResponseData] = useState(null);
-
   const {
     snapshot,
     responseJson,
@@ -33,8 +30,27 @@ export default function TaskRunner() {
     addTest,
     updateTest,
   } = useTaskProgress(task_id);
+  const isGeneratingPreview =
+    fetchingEndpoint || snapshot?.phase === "preview_generation";
 
   const isGeneratingTransformCode = snapshot?.phase === "code_generation";
+
+  // Run all tests after successful regeneration
+  useEffect(() => {
+    if (
+      isRegenerating &&
+      transformCode &&
+      transformCode !== prevTransformCodeRef.current
+    ) {
+      setIsRegenerating(false);
+      // Navigate to tests tab and run all tests
+      navigate(`/task/${task_id}/tests`);
+      fetch(`/api/tasks/${task_id}/run_tests`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      }).catch((error) => console.error("Failed to run tests:", error));
+    }
+  }, [transformCode, isRegenerating, task_id, navigate]);
 
   useEffect(() => {
     if (!snapshot) return;
@@ -46,9 +62,6 @@ export default function TaskRunner() {
       setSystemTag(snapshot.system_tag);
     }
   }, [snapshot]);
-
-  const isGeneratingPreview =
-    fetchingEndpoint || snapshot?.phase === "preview_generation";
 
   useEffect(() => {
     if (!isGeneratingPreview) {
@@ -74,26 +87,6 @@ export default function TaskRunner() {
       });
     }
   }, [responseJson, fromResponseData, apiEndpoint]);
-
-  // Switching text for transform generation
-  useEffect(() => {
-    if (!isGeneratingTransformCode) {
-      setGeneratingTransformMessage("");
-      return;
-    }
-
-    setGeneratingTransformMessage("Generating Transformation Code...");
-
-    const interval = setInterval(() => {
-      setGeneratingTransformMessage((prev) =>
-        prev === "Generating Transformation Code..."
-          ? "Background process, may take several seconds"
-          : "Generating Transformation Code..."
-      );
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, [isGeneratingTransformCode]);
 
   async function handleFetchEndpoint(dataDescription) {
     setFormError(null);
@@ -121,7 +114,7 @@ export default function TaskRunner() {
       if (!taskResponse.ok) {
         throw new Error("Unable to run task");
       }
-
+      navigate(`/task/${task_id}/preview`);
       setFetchingEndpoint(false);
     } catch (error) {
       console.error(error);
@@ -188,31 +181,6 @@ export default function TaskRunner() {
       setIsRegenerating(false);
     }
   }
-
-  // Run all tests after successful regeneration
-  useEffect(() => {
-    if (
-      isRegenerating &&
-      transformCode &&
-      transformCode !== prevTransformCodeRef.current
-    ) {
-      setIsRegenerating(false);
-      // Navigate to tests tab and run all tests
-      navigate(`/task/${task_id}/tests`);
-      fetch(`/api/tasks/${task_id}/run_tests`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      }).catch((error) => console.error("Failed to run tests:", error));
-    }
-  }, [transformCode, isRegenerating, task_id, navigate]);
-
-  // Navigate to preview tab when responseJson becomes available
-  useEffect(() => {
-    if (responseJson && !prevResponseJsonRef.current && tab === "endpoint") {
-      navigate(`/task/${task_id}/preview`);
-    }
-    prevResponseJsonRef.current = responseJson;
-  }, [responseJson, tab, task_id, navigate]);
 
   const tabs = [
     { id: "endpoint", label: "Endpoint Details", enabled: true },
@@ -298,9 +266,8 @@ export default function TaskRunner() {
       {tab === "preview" && (
         <UIPreviewTab
           responseJson={responseJson}
-          isGeneratingTransformCode={isGeneratingTransformCode}
+          isGeneratingPreview={isGeneratingPreview}
           onNextStep={() => navigate(`/task/${task_id}/transformer`)}
-          generatingTransformMessage={generatingTransformMessage}
           taskId={task_id}
         />
       )}
@@ -308,7 +275,6 @@ export default function TaskRunner() {
       {tab === "transformer" && (
         <CreateTransformerTab
           isGeneratingTransformCode={isGeneratingTransformCode}
-          generatingTransformMessage={generatingTransformMessage}
           onGenerateTransform={handleGenerateTransform}
           transformCode={transformCode}
           fromResponse={fromResponseData}

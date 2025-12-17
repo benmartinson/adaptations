@@ -157,15 +157,6 @@ export default function LinkRunner() {
 
   async function handleGenerateTransform(dataDescription) {
     setIsGeneratingTransformCode(true);
-    setGeneratingTransformMessage("Generating Transformation Code...");
-
-    const interval = setInterval(() => {
-      setGeneratingTransformMessage((prev) =>
-        prev === "Generating Transformation Code..."
-          ? "Background process, may take several seconds"
-          : "Generating Transformation Code..."
-      );
-    }, 3000);
 
     try {
       const taskResponse = await fetch(`/api/tasks/${task_id}/run_job`, {
@@ -192,12 +183,7 @@ export default function LinkRunner() {
     } catch (error) {
       console.error(error);
       setIsGeneratingTransformCode(false);
-      setGeneratingTransformMessage("");
-      clearInterval(interval);
     }
-
-    // Cleanup interval when component unmounts or when generation completes
-    return () => clearInterval(interval);
   }
 
   const tabs = [
@@ -284,7 +270,6 @@ export default function LinkRunner() {
       {tab === "transformer" && (
         <CreateTransformerTab
           isGeneratingTransformCode={isGeneratingTransformCode}
-          generatingTransformMessage={generatingTransformMessage}
           onGenerateTransform={handleGenerateTransform}
           transformCode={snapshot?.transform_code}
           fromResponse={localFromResponse}

@@ -49,13 +49,35 @@ function DynamicUIFile({ file, responseJson }) {
 
 export default function UIPreviewTab({
   responseJson,
-  isGeneratingTransformCode,
+  isGeneratingPreview,
   onNextStep,
-  generatingTransformMessage,
   taskId,
 }) {
   const [uiFiles, setUiFiles] = useState([]);
   const [uiFilesError, setUiFilesError] = useState(null);
+  const [cyclingMessage, setCyclingMessage] = useState(
+    "Generating UI Preview..."
+  );
+
+  // Handle cycling message during transform code generation
+  useEffect(() => {
+    let interval;
+    if (isGeneratingPreview) {
+      interval = setInterval(() => {
+        setCyclingMessage((prev) =>
+          prev === "Generating UI Preview..."
+            ? "Background process, may take several seconds"
+            : "Generating UI Preview..."
+        );
+      }, 3000);
+    }
+
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [isGeneratingPreview]);
 
   useEffect(() => {
     if (!taskId) return;
@@ -87,9 +109,9 @@ export default function UIPreviewTab({
         <>
           <div className="flex items-center justify-end">
             <div className="flex items-center gap-4">
-              {isGeneratingTransformCode && (
+              {isGeneratingPreview && (
                 <span className="text-black text-sm font-bold">
-                  {generatingTransformMessage}
+                  {cyclingMessage}
                 </span>
               )}
               <button

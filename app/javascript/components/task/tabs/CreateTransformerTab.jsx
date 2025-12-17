@@ -5,7 +5,6 @@ import { useNavigate } from "react-router-dom";
 
 export default function CreateTransformerTab({
   isGeneratingTransformCode,
-  generatingTransformMessage,
   onGenerateTransform,
   transformCode,
   fromResponse,
@@ -20,6 +19,29 @@ export default function CreateTransformerTab({
   const [activeSubTab, setActiveSubTab] = useState(
     transformCode ? "transform-code" : "data-selector"
   );
+  const [cyclingMessage, setCyclingMessage] = useState(
+    "Generating Transformation Code..."
+  );
+
+  // Handle cycling message during transform code generation
+  useEffect(() => {
+    let interval;
+    if (isGeneratingTransformCode) {
+      interval = setInterval(() => {
+        setCyclingMessage((prev) =>
+          prev === "Generating Transformation Code..."
+            ? "Background process, may take several seconds"
+            : "Generating Transformation Code..."
+        );
+      }, 3000);
+    }
+
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [isGeneratingTransformCode]);
 
   const subTabs = [
     { id: "data-selector", label: "Data Selector" },
@@ -32,7 +54,7 @@ export default function CreateTransformerTab({
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div className="text-center py-12">
           <div className="text-black text-lg font-bold mb-2">
-            {generatingTransformMessage || "Generating code..."}
+            {cyclingMessage}
           </div>
           <p className="text-gray-500 text-sm">
             Generating code to transform your data..

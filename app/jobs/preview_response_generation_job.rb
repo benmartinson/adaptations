@@ -35,41 +35,19 @@ class PreviewResponseGenerationJob < ApplicationJob
     component_code = generate_react_components(from_response, data_description)
     bundle_path = save_and_build_component_bundle(component_code)
     
-    # to_response_example = "[{
-    #   \"header\": \"Some string value selected from the api response that works as a header\",
-    #   \"subheader\": \"Some string value selected from the api response that works as a subheader\",
-    #   \"image_url\": \"Some url, something in the api response that leads to an image url (this is important)\",
-    #   \"attributes\": {
-    #     \"key\": \"value\",
-    #     \"key2\": \"value2\"
-    #     ...
-    #     (you can have as many keys as you want, try to use data from the api response that is relevant to the header and subheader, 
-    #     DO NOT use data that shouldn't be displayed in a typical UI, like internal ids, urls, create/update timestamps, etc. 
-    #     Also if the value is null, do not include the attribute)
-    #   },
-    #   \"list_items\": [
-    #     {
-    #       \"header\": \"Some string value selected from the api response that works as a header\",
-    #       \"subheader\": \"Some string value selected from the api response that works as a subheader\",
-    #       \"image_url\": \"Some url, something in the api response that leads to an image url (this is important)\",
-    #       \"attributes\": {
-    #         \"key\": \"value\"
-    #       }
-    #     }
-    #   ],
-    #   \"list_items_header\": \"Some string value selected from the api response that works as a header for the list items\"
-    # }]"
-    
     prompt = "You are a assistant that helps create a data visualization from an api response. 
     The user has selected an api endpoint and wants to create a data visualization from the response. The user has provided
     React components that will be used to visualize the data. There should be one default component that is exported, it takes a single 'data' prop (object).
-    You need to transform the data from the api response into the object that is expected by this component that accepts this 'data' prop."
+    You need to transform the data from the api response into the object that is expected by this component that accepts this 'data' prop. If there is data
+    in the api response that is not relevant to the data visualization, you should still include it in the object anyways, unless told otherwise by the user (in the data_description)."
  
     prompt += "\n\nHere are the results returned from the api endpoint: #{from_response} \n\n\
     You need to transform the data from the api response into the object that is expected by this component that accepts this 'data' prop. 
     The object will be represented as a JSON object and is what will be passed to the component as the 'data' prop.
     So you need to select the data from the api response that is used by the component 'data' prop, as you see it being used in the component.
     Only return the JSON response, no other text or comments."
+
+    prompt += "\n\nHere is the data_description provided by the user, it is important to follow these instructions (but ignore if not relevant): #{data_description}"
 
     prompt += "\n\nHere are the component(s) that will be used to visualize the data: #{component_code}"
     
@@ -124,16 +102,18 @@ class PreviewResponseGenerationJob < ApplicationJob
       - No imports besides React
       - Be functional JavaScript React components (no TypeScript syntax like interfaces, React.FC, etc.)
       - Use modern React patterns (hooks, JSX)
-      - Display the data in an attractive, responsive UI
+      - Display the data in a simple, clean, and responsive UI
+      - Don't use too many colors, use shades of gray and black for text and background
       - Use Tailwind CSS classes for styling
       - Include proper error handling and loading states
       - Use PropTypes for prop validation instead of TypeScript interfaces
       - Be suitable for displaying API response data
       - Keep it simple and clean, don't overcomplicate it, this is a first pass
 
-      Here is the initial API Response, that will be transformed into the 'data' prop that you need it to be: #{api_response}
+      Here is the initial API Response, that will be transformed into the 'data' prop that you need it to be. 
+      Try to use all the data from the api response (unless told otherwise below by the user in the data_description): #{api_response}
 
-      #{data_description.present? ? "Also the user has provided details about how the data should be visualized (ignore if not relevant): #{data_description}" : ""}
+      #{data_description.present? ? "Here is the data_description provided by the user, it is important to follow these instructions (but ignore if not relevant): #{data_description}" : ""}
 
       Return only the complete React component code in JavaScript, no explanations or markdown.
     PROMPT
