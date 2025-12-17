@@ -16,10 +16,11 @@ export default function TestCard({
   taskId,
   initialExpanded,
   focusNotes,
+  onRegenerateTransform,
 }) {
   const notesRef = useRef(null);
   const hasRun = !!test;
-  const isError = testResult?.status === "error" || test?.status === "error";
+  const isError = testResult?.status === "error" || test?.error_message;
   const [notes, setNotes] = useState(test?.notes || "");
   const [isSavingNotes, setIsSavingNotes] = useState(false);
   const [showSavedMessage, setShowSavedMessage] = useState(false);
@@ -428,6 +429,15 @@ export default function TestCard({
                   Error during execution
                 </p>
                 <p className="text-xs text-orange-600 mt-1">{errorMessage}</p>
+                <div className="flex justify-end mt-3">
+                  <button
+                    type="button"
+                    onClick={onRegenerateTransform}
+                    className="px-3 py-1 text-sm rounded-md font-medium cursor-pointer transition-colors bg-blue-600 text-white hover:bg-blue-700"
+                  >
+                    Fix Error
+                  </button>
+                </div>
               </div>
             </div>
           )}

@@ -343,6 +343,7 @@ export default function RunTestsTab({
               taskId={task?.id}
               initialExpanded={expandTestId === test.id}
               focusNotes={expandTestId === test.id && focusNotes}
+              onRegenerateTransform={onRegenerateTransform}
             />
           ))}
 
@@ -368,6 +369,7 @@ export default function RunTestsTab({
               taskId={task?.id}
               initialExpanded={expandTestId === primaryTest.id}
               focusNotes={expandTestId === primaryTest.id && focusNotes}
+              onRegenerateTransform={onRegenerateTransform}
             />
           )}
         </>

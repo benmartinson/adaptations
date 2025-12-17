@@ -56,8 +56,12 @@ class GenerateTransformCodeJob < ApplicationJob
         Where the 'data' param is fetched data from an api endpoint and the example given is this data format: #{from_response}
         And you need to write a transformation function that prepares this data to call the target API endpoint: #{to_response}
         The transformation should return data in the format expected by the target API endpoint.
+        \n\nRuby Code notes:
+        1. No constant variables should be used. Only local variables should be used.
+        2. You may use helper methods if needed.
+        3. Only functions should be used. No classes or modules should be used.
         \n\n Here are specific extra instructions given by the user: #{task.data_description}
-        This is important: only return the code, no other text or comments. You may use helper methods if needed."
+        This is important: only return the code, no other text or comments"
     else
       "Can you write a ruby data transformation: def transformation_procedure(data) ...something... end
         Where the 'data' param is fetched data from an api endpoint and the example given is this data format: #{from_response}
@@ -99,14 +103,10 @@ class GenerateTransformCodeJob < ApplicationJob
     end
 
     tests_needing_changes.each_with_index do |test, index|
+      has_error_message = test.error_message.present? && !test.error_message.start_with?("Docker") && !test.error_message.start_with?("Unknown sandbox error")
       prompt += <<~TEST_CASE
         --- Test Case #{index + 1} ---
-        Input data (from_response):
-        #{test.from_response.to_json}
-
-        Expected output:
-        #{test.expected_output.to_json}
-
+        #{has_error_message ? "Error message: #{test.error_message}" : "No error message provided"}
         User feedback on what needs to change:
         #{test.notes.presence || "No specific notes provided"}
 

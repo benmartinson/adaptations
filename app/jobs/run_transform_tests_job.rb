@@ -34,7 +34,7 @@ class RunTransformTestsJob < ApplicationJob
   def run_tests(code_body)
     # Mark all tests as pending and increment attempts
     tests.each do |test|
-      test.update!(status: "pending", attempts: test.attempts + 1)
+      test.update!(status: "pending", attempts: test.attempts + 1, error_message: nil)
     end
 
     broadcast_event(
@@ -53,7 +53,7 @@ class RunTransformTestsJob < ApplicationJob
         next nil
       end
 
-      { test_id: test.id, input: from_response }
+      { "test_id" => test.id, "input" => from_response }
     end.compact
 
     if test_inputs.empty?

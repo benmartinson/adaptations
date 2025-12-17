@@ -265,7 +265,6 @@ export default function TaskRunner() {
 
       {tab === "preview" && (
         <UIPreviewTab
-          responseJson={responseJson}
           isGeneratingPreview={isGeneratingPreview}
           onNextStep={() => navigate(`/task/${task_id}/transformer`)}
           taskId={task_id}

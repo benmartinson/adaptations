@@ -1,4 +1,5 @@
 require "json"
+require "fileutils"
 
 SANDBOX_PATH = "/workspace"
 
@@ -7,6 +8,7 @@ begin
   input_file  = File.join(SANDBOX_PATH, "input.json")
   out_file    = File.join(SANDBOX_PATH, "out", "output.json")
   error_file  = File.join(SANDBOX_PATH, "out", "error.txt")
+  FileUtils.mkdir_p(File.dirname(out_file))
 
   code  = File.read(code_file)
   input_data = JSON.parse(File.read(input_file))
@@ -39,7 +41,11 @@ begin
     result = sandbox.transformation_procedure(input_data)
     File.write(out_file, JSON.dump(result))
   end
-rescue => e
+rescue Exception => e
+  # NOTE: SyntaxError is a ScriptError (not a StandardError), so `rescue => e`
+  # does NOT catch it. We rescue Exception so we can always persist an error
+  # into the mounted /workspace/out/ directory for the host to read.
+  FileUtils.mkdir_p(File.dirname(error_file))
   File.write(error_file, "#{e.class}: #{e.message}\n#{e.backtrace.join("\n")}")
   exit 1
 end
