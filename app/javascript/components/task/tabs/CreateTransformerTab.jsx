@@ -12,6 +12,7 @@ export default function CreateTransformerTab({
   taskId,
   onResponseUpdate,
   isLinkTask = false,
+  hasTests = true,
 }) {
   const { snapshot } = useTaskProgress(taskId);
   const navigate = useNavigate();
@@ -127,7 +128,7 @@ export default function CreateTransformerTab({
               ? "Re-generate Code"
               : "Generate Code"}
           </button>
-          {transformCode && (
+          {transformCode && !hasTests && (
             <button
               type="button"
               onClick={() => navigate(`/task/${taskId}/tests`)}

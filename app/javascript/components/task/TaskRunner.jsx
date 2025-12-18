@@ -273,6 +273,7 @@ export default function TaskRunner() {
 
       {tab === "transformer" && (
         <CreateTransformerTab
+          hasTests={tests.length > 0}
           isGeneratingTransformCode={isGeneratingTransformCode}
           onGenerateTransform={handleGenerateTransform}
           transformCode={transformCode}

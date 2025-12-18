@@ -10,12 +10,14 @@ class GenerateTransformCodeJob < ApplicationJob
 
   def perform(task_id)
     @task = Task.find(task_id)
+    @active_ui_file = task.task_ui_files.find_by(is_active: true)
+    @source_code_reference = @active_ui_file&.source_code
     run_code_generation
   end
 
   private
 
-  attr_reader :task
+  attr_reader :task, :active_ui_file, :source_code_reference
 
   def run_code_generation
     task.update!(error_message: nil)
@@ -35,6 +37,12 @@ class GenerateTransformCodeJob < ApplicationJob
       message: "Code generated successfully",
       transform_code: code_body,
     )
+
+    # Automatically re-run all tests for this task
+    test_ids = task.tests.pluck(:id)
+    if test_ids.any?
+      RunTransformTestsJob.perform_later(test_ids)
+    end
   end
 
   def build_prompt
@@ -65,8 +73,8 @@ class GenerateTransformCodeJob < ApplicationJob
     else
       "Can you write a ruby data transformation: def transformation_procedure(data) ...something... end
         Where the 'data' param is fetched data from an api endpoint and the example given is this data format: #{from_response}
-        And you need to write a transformation function that transforms the data into a list of records in this format: #{to_response}
-        \n\n Here are specific extra instructions given by the user: #{task.data_description}
+        And you need to write a transformation function that transforms the data into the 'data' prop object format expected by these React component(s): #{source_code_reference}
+        \n\n Also, here are specific extra instructions given by the user (ignore if not relevant): #{task.data_description}
         This is important: only return the code, no other text or comments. You may use helper methods if needed."
     end
   end
@@ -76,12 +84,14 @@ class GenerateTransformCodeJob < ApplicationJob
       prompt = <<~PROMPT
       Previously, you recieved the instructions
       'Can you write a ruby data transformation: def transformation_procedure(data) ...something... end'
-      And were given data from a source API and a target API endpoint.
+      And were given data from a source API and a target data prop object expected by React components.
         We've already attempted to write this transformation, but it needs changes. Here is the current code:
 
         ```ruby
         #{task.transform_code}
         ```
+        Here are the React components that use the 'data' prop object. 
+        You need to transform the data into the format expected by these components: #{source_code_reference}
 
         The following test cases need to be fixed:
 

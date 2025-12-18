@@ -1,16 +1,19 @@
-import fs from 'fs';
-import path from 'path';
-import { JSDOM } from 'jsdom';
-import React from 'react';
-import { renderToString } from 'react-dom/server';
+import fs from "fs";
+import path from "path";
+import { JSDOM } from "jsdom";
+import React from "react";
+import { renderToString } from "react-dom/server";
 
-const WORKSPACE_PATH = '/workspace';
+const WORKSPACE_PATH = "/workspace";
 
 // Set up minimal DOM environment for components that might access window/document
-const dom = new JSDOM('<!DOCTYPE html><html><body><div id="root"></div></body></html>', {
-  url: 'http://localhost',
-  pretendToBeVisual: true,
-});
+const dom = new JSDOM(
+  '<!DOCTYPE html><html><body><div id="root"></div></body></html>',
+  {
+    url: "http://localhost",
+    pretendToBeVisual: true,
+  }
+);
 
 global.window = dom.window;
 global.document = dom.window.document;
@@ -21,54 +24,60 @@ global.window.React = React;
 
 // Helper to write output
 function writeResult(result) {
-  const outDir = path.join(WORKSPACE_PATH, 'out');
+  const outDir = path.join(WORKSPACE_PATH, "out");
   fs.mkdirSync(outDir, { recursive: true });
-  fs.writeFileSync(path.join(outDir, 'result.json'), JSON.stringify(result, null, 2));
+  fs.writeFileSync(
+    path.join(outDir, "result.json"),
+    JSON.stringify(result, null, 2)
+  );
 }
 
 // Helper to write error
 function writeError(error) {
-  const outDir = path.join(WORKSPACE_PATH, 'out');
+  const outDir = path.join(WORKSPACE_PATH, "out");
   fs.mkdirSync(outDir, { recursive: true });
-  fs.writeFileSync(path.join(outDir, 'error.txt'), error);
+  fs.writeFileSync(path.join(outDir, "error.txt"), error);
 }
 
 async function main() {
   try {
     // Read input files
-    const bundlePath = path.join(WORKSPACE_PATH, 'component.js');
-    const dataPath = path.join(WORKSPACE_PATH, 'data.json');
+    const bundlePath = path.join(WORKSPACE_PATH, "component.js");
+    const dataPath = path.join(WORKSPACE_PATH, "data.json");
 
     if (!fs.existsSync(bundlePath)) {
-      writeResult({ success: false, error: 'Component bundle not found' });
+      writeResult({ success: false, error: "Component bundle not found" });
       return;
     }
 
     if (!fs.existsSync(dataPath)) {
-      writeResult({ success: false, error: 'Data file not found' });
+      writeResult({ success: false, error: "Data file not found" });
       return;
     }
 
-    const data = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
+    const data = JSON.parse(fs.readFileSync(dataPath, "utf8"));
 
     // Dynamically import the bundled component
     // The bundle uses react_shim which expects window.React (set up above)
     const componentUrl = `file://${bundlePath}`;
-    
+
     let Component;
     try {
       const module = await import(componentUrl);
       Component = module.default;
-      
+
       if (!Component) {
-        writeResult({ success: false, error: 'Component bundle has no default export' });
+        writeResult({
+          success: false,
+          error: "Component bundle has no default export",
+        });
         return;
       }
     } catch (importError) {
-      writeResult({ 
-        success: false, 
+      writeResult({
+        success: false,
         error: `Failed to import component: ${importError.message}`,
-        errorType: 'import'
+        errorType: "import",
       });
       return;
     }
@@ -79,15 +88,15 @@ async function main() {
         super(props);
         this.state = { error: null };
       }
-      
+
       static getDerivedStateFromError(error) {
         return { error };
       }
-      
+
       componentDidCatch(error, errorInfo) {
         // Error is already captured in state
       }
-      
+
       render() {
         if (this.state.error) {
           // Signal error by throwing during render
@@ -104,46 +113,44 @@ async function main() {
         null,
         React.createElement(Component, { data })
       );
-      
+
       const html = renderToString(element);
-      
+
       // Check if render produced an error element
-      if (html.includes('class="error"') && html.includes('Component Error:')) {
+      if (html.includes('class="error"') && html.includes("Component Error:")) {
         writeResult({
           success: false,
-          error: 'Component rendered an error state',
-          errorType: 'render',
-          html: html.substring(0, 500) // Include first 500 chars for debugging
+          error: "Component rendered an error state",
+          errorType: "render",
+          html: html.substring(0, 500), // Include first 500 chars for debugging
         });
         return;
       }
-      
+
       writeResult({
         success: true,
         html: html.substring(0, 1000), // Include first 1000 chars of rendered HTML
-        htmlLength: html.length
+        htmlLength: html.length,
       });
-      
     } catch (renderError) {
       writeResult({
         success: false,
         error: `Render error: ${renderError.message}`,
-        errorType: 'render',
-        stack: renderError.stack?.split('\n').slice(0, 5).join('\n')
+        errorType: "render",
+        stack: renderError.stack?.split("\n").slice(0, 5).join("\n"),
       });
     }
-
   } catch (error) {
     writeResult({
       success: false,
       error: `Unexpected error: ${error.message}`,
-      errorType: 'unexpected',
-      stack: error.stack?.split('\n').slice(0, 5).join('\n')
+      errorType: "unexpected",
+      stack: error.stack?.split("\n").slice(0, 5).join("\n"),
     });
   }
 }
 
-main().catch(error => {
+main().catch((error) => {
   writeError(`Fatal error: ${error.message}\n${error.stack}`);
   process.exit(1);
 });

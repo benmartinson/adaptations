@@ -269,6 +269,7 @@ export default function LinkRunner() {
 
       {tab === "transformer" && (
         <CreateTransformerTab
+          hasTests={tests.length > 0}
           isGeneratingTransformCode={isGeneratingTransformCode}
           onGenerateTransform={handleGenerateTransform}
           transformCode={snapshot?.transform_code}

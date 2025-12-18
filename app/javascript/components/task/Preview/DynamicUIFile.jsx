@@ -284,7 +284,7 @@ export default function DynamicUIFile({ file, responseJson }) {
       srcDoc={iframeContent}
       style={{
         width: "100%",
-        height: `${iframeHeight}px`,
+        height: `100vh`,
         border: "1px solid #e5e7eb",
         borderRadius: "8px",
         background: "white",

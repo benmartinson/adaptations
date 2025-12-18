@@ -70,7 +70,8 @@ class PreviewResponseGenerationJob < ApplicationJob
     task.task_ui_files.update_all(is_active: false)
     task.task_ui_files.create!(
       file_name: bundle_path,
-      is_active: true
+      is_active: true,
+      source_code: component_code
     )
 
     broadcast_event(

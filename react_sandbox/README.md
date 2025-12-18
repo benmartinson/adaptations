@@ -38,7 +38,7 @@ docker build -t react-sandbox .
 if ReactSandbox.available?
   # Pass the file_name from TaskUiFile (e.g., "/ai_bundles/task-preview-XYZ.js")
   result = ReactSandbox.validate_render(ui_file.file_name, data_hash)
-  
+
   if result[:success]
     puts "Component renders successfully!"
   else
