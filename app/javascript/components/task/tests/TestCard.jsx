@@ -45,6 +45,7 @@ export default function TestCard({
 
   const canCollapse = !isPrimary && actualOutput;
   const [isExpanded, setIsExpanded] = useState(!canCollapse || initialExpanded);
+  const [isDataExpanded, setIsDataExpanded] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -283,7 +284,11 @@ export default function TestCard({
                   Input Data
                 </h4>
               </div>
-              <div className="p-3 max-h-36 overflow-auto">
+              <div
+                className={`p-3 ${
+                  isDataExpanded ? "max-h-[1000px]" : "max-h-36"
+                } overflow-auto`}
+              >
                 {isFetching && (
                   <p className="text-xs text-gray-500">Fetching data...</p>
                 )}
@@ -299,12 +304,25 @@ export default function TestCard({
             </div>
 
             <div className="border border-gray-200 rounded-md overflow-hidden">
-              <div className="bg-gray-50 px-3 py-1.5 border-b border-gray-200">
+              <div className="bg-gray-50 px-3 py-1.5 border-b border-gray-200 flex items-center justify-between">
                 <h4 className="text-xs font-medium text-gray-700">
                   Transformed Output
                 </h4>
+                {(inputData || actualOutput) && (
+                  <button
+                    type="button"
+                    onClick={() => setIsDataExpanded(!isDataExpanded)}
+                    className="text-xs underline text-gray-600 hover:text-gray-800"
+                  >
+                    {isDataExpanded ? "Collapse" : "Expand"}
+                  </button>
+                )}
               </div>
-              <div className="p-3 max-h-36 overflow-auto">
+              <div
+                className={`p-3 ${
+                  isDataExpanded ? "max-h-[1000px]" : "max-h-36"
+                } overflow-auto`}
+              >
                 {actualOutput ? (
                   <pre className="text-xs text-gray-600 whitespace-pre-wrap">
                     {JSON.stringify(actualOutput, null, 2)}

@@ -70,14 +70,33 @@ class RunTransformTestsJob < ApplicationJob
       # Run all tests in a single container
       results = execute_batch(code_body, test_inputs)
       
-      # Process results
+      # Process results and optionally validate UI rendering
+      ui_file = task.task_ui_files.find_by(is_active: true)
+      bundle_file_name = ui_file&.file_name
+      should_validate_ui = bundle_file_name.present? && ReactSandbox.available?
+      
       results.each do |result|
         test = tests.find { |t| t.id == result["test_id"] }
         next unless test
 
         if result["success"]
           output = result["output"]
-          if test.is_primary
+          
+          # Optionally validate UI rendering
+          ui_error = nil
+          if should_validate_ui
+            ui_validation = validate_ui_render(bundle_file_name, output)
+            ui_error = ui_validation[:error] unless ui_validation[:success]
+          end
+          
+          if ui_error
+            # Transform succeeded but UI rendering failed
+            test.update!(
+              status: "error",
+              actual_output: output,
+              error_message: "UI Render Error: #{ui_error}"
+            )
+          elsif test.is_primary
             # Primary test: passes if transform runs without error
             test.update!(status: "pass", actual_output: output)
           else
@@ -122,6 +141,13 @@ class RunTransformTestsJob < ApplicationJob
         { "test_id" => test_input[:test_id], "success" => false, "error" => e.message }
       end
     end
+  end
+
+  def validate_ui_render(bundle_file_name, data)
+    ReactSandbox.validate_render(bundle_file_name, data)
+  rescue StandardError => e
+    Rails.logger.warn("[RunTransformTestsJob] UI validation failed: #{e.message}")
+    { success: true } # Don't fail the test if UI validation itself errors
   end
 
 

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link, useLocation, useNavigate } from "react-router-dom";
 import PreviewList from "../Preview/PreviewList";
+import DynamicUIFile from "../Preview/DynamicUIFile";
 import StatusBadge from "./StatusBadge";
 
 // Reusable error state component
@@ -36,53 +37,6 @@ function PreviewErrorState({ icon, title, description, backToPath }) {
       </div>
     </div>
   );
-}
-
-// Dynamic UI File component for rendering test UI components
-function DynamicUIFile({ file, responseJson }) {
-  const [Component, setComponent] = useState(null);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadComponent() {
-      try {
-        setError(null);
-        const mod = await import(file.file_name);
-        if (!mod?.default)
-          throw new Error("Remote module had no default export");
-
-        if (!cancelled) setComponent(() => mod.default);
-      } catch (e) {
-        console.error(e);
-        if (!cancelled)
-          setError(e?.message || `Failed to load ${file.file_name}`);
-      }
-    }
-
-    loadComponent();
-    return () => {
-      cancelled = true;
-    };
-  }, [file.file_name]);
-
-  if (error) {
-    return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-        <p className="text-red-700">{error}</p>
-      </div>
-    );
-  }
-
-  if (!Component || !responseJson) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-gray-500">Loading UI component...</p>
-      </div>
-    );
-  }
-  return <Component data={responseJson} />;
 }
 
 export default function TestPreviewPage() {
