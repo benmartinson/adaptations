@@ -8,16 +8,16 @@ class PreviewResponseGenerationJob < ApplicationJob
     handle_failure(error)
   end
 
-  def perform(task_id)
+  def perform(task_id, notes = nil)
     @task = Task.find(task_id)
-    run_preview_response_generation
+    run_preview_response_generation(notes)
   end
 
   private
 
   attr_reader :task
 
-  def run_preview_response_generation
+  def run_preview_response_generation(notes = nil)
     broadcast_event(
       phase: "preview_generation",
       message: "Generating preview response",
@@ -32,7 +32,7 @@ class PreviewResponseGenerationJob < ApplicationJob
     data_description = task.input_payload.fetch("data_description", nil)
 
     # Generate React components for data visualization
-    component_code = generate_react_components(from_response, data_description)
+    component_code = generate_react_components(from_response, data_description, notes)
     bundle_path = save_and_build_component_bundle(component_code)
     
     prompt = "You are a assistant that helps create a data visualization from an api response. 
@@ -40,7 +40,7 @@ class PreviewResponseGenerationJob < ApplicationJob
     React components that will be used to visualize the data. There should be one default component that is exported, it takes a single 'data' prop (object).
     You need to transform the data from the api response into the object that is expected by this component that accepts this 'data' prop. If there is data
     in the api response that is not relevant to the data visualization, you should still include it in the object anyways, unless told otherwise by the user (in the data_description)."
- 
+
     prompt += "\n\nHere are the results returned from the api endpoint: #{from_response} \n\n\
     You need to transform the data from the api response into the object that is expected by this component that accepts this 'data' prop. 
     The object will be represented as a JSON object and is what will be passed to the component as the 'data' prop.
@@ -75,7 +75,7 @@ class PreviewResponseGenerationJob < ApplicationJob
     )
 
     broadcast_event(
-      phase: "completed",
+      phase: "completed-preview-generation",
       message: "Workflow completed successfully",
       output: response_json,
       response_json: response_json,
@@ -91,33 +91,56 @@ class PreviewResponseGenerationJob < ApplicationJob
     response
   end
 
-  def generate_react_components(api_response, data_description)
+  def generate_react_components(api_response, data_description, notes = nil)
     prompt = <<~PROMPT
-      You are a React component generator. Create React component(s) that visualizes API response data using JavaScript (not TypeScript).
-      There should be one parent component that is exported as the default export and takes a single 'data' prop (object).
-      The 'data' prop only contains data from the API response (shown below),
-      and will be transformed into the data that is relevant to the data visualization. The React components should not need much
-      or any logic to transform the data, it should be ready to use as is. The transformation code is written separately after we have the components.
+        You are a React component generator. Create React component(s) that visualizes API response data using JavaScript (not TypeScript).
+        There should be one parent component that is exported as the default export and takes a single 'data' prop (object).
+        The 'data' prop only contains data from the API response (shown below),
+        and will be transformed into the data that is relevant to the data visualization. The React components should not need much
+        or any logic to transform the data, it should be ready to use as is. The transformation code is written separately after we have the components.
+  
+        Other notes, The components should:
+        - No imports besides React
+        - Be functional JavaScript React components (no TypeScript syntax like interfaces, React.FC, etc.)
+        - Use modern React patterns (hooks, JSX)
+        - Display the data in a simple, clean, and responsive UI
+        - Don't use too many colors, use shades of gray and black for text and background
+        - Use Tailwind CSS classes for styling
+        - Include proper error handling and loading states
+        - Use PropTypes for prop validation instead of TypeScript interfaces
+        - Be suitable for displaying API response data
+        - Keep it simple and clean, don't overcomplicate it, this is a first pass
+  
+        Here is the initial API Response, that will be transformed into the 'data' prop that you need it to be. 
+        Try to use all the data from the api response (unless told otherwise below by the user in the data_description): #{api_response}
+  
+        #{data_description.present? ? "Here is the data_description provided by the user, it is important to follow these instructions (but ignore if not relevant): #{data_description}" : ""}
+  
+        Return only the complete React component code in JavaScript, no explanations or markdown.
+      PROMPT
 
-      Other notes, The components should:
-      - No imports besides React
-      - Be functional JavaScript React components (no TypeScript syntax like interfaces, React.FC, etc.)
-      - Use modern React patterns (hooks, JSX)
-      - Display the data in a simple, clean, and responsive UI
-      - Don't use too many colors, use shades of gray and black for text and background
-      - Use Tailwind CSS classes for styling
-      - Include proper error handling and loading states
-      - Use PropTypes for prop validation instead of TypeScript interfaces
-      - Be suitable for displaying API response data
-      - Keep it simple and clean, don't overcomplicate it, this is a first pass
+    if notes.present?
+      active_ui_file = task.task_ui_files.find_by(is_active: true)
+      previous_code = active_ui_file&.source_code
 
-      Here is the initial API Response, that will be transformed into the 'data' prop that you need it to be. 
-      Try to use all the data from the api response (unless told otherwise below by the user in the data_description): #{api_response}
+      prompt += <<~PROMPT
+        You are a React component generator. We are revising an existing component based on user feedback.
 
-      #{data_description.present? ? "Here is the data_description provided by the user, it is important to follow these instructions (but ignore if not relevant): #{data_description}" : ""}
+        Here is the previous attempt at the component code:
+        ```javascript
+        #{previous_code}
+        ```
+        Unless told otherwise below, use the same data as the previous attempt.
+        The user may request changes to the data, but you should stay true to the previous attempt unless told otherwise.
+        If some data was not included in the previous attempt, it's because the user didn't want it included.
+        The user has requested the following changes:
+        #{notes}
 
-      Return only the complete React component code in JavaScript, no explanations or markdown.
-    PROMPT
+         
+
+        Please revise the React component(s) to incorporate these changes.
+      PROMPT
+    end
 
     response = GeminiChat.new.generate_response(prompt)
     extract_code(response)
@@ -131,30 +154,31 @@ class PreviewResponseGenerationJob < ApplicationJob
       return code_match[1].strip if code_match
     end
 
-    # Try to extract code between function/class declarations
-    code_match = raw_response.match(/(?:export\s+)?(?:function|const|class)\s+\w+.*?(?=^\s*(?:export|function|const|class|$))/m)
+    # Try to find where the code starts (import, export, or declaration) and return everything from there
+    code_match = raw_response.match(/(?:import\s+|export\s+|(?:function|const|class)\s+\w+)[\s\S]*/m)
     return code_match[0].strip if code_match
 
     # Fallback: return the whole response cleaned up
     raw_response.strip
   end
 
-  def save_and_build_component_bundle(component_code)
-    AiBundleBuilder.build_component_bundle!(component_code)
-  end
-
+  
   # extract_json(component_code)
   def extract_json(raw_response)
     # Find the first occurrence of '[' or '{'
     start_index = raw_response.index(/[\[{]/)
     return raw_response.strip if start_index.nil?
-
+    
     # Find the last occurrence of ']' or '}'
     end_index = raw_response.rindex(/[\]}]/)
     return raw_response.strip if end_index.nil?
-
+    
     # Extract the substring between start and end (inclusive)
     raw_response[start_index..end_index].strip
+  end
+  
+  def save_and_build_component_bundle(component_code)
+    AiBundleBuilder.build_component_bundle!(component_code)
   end
 
   def broadcast_event(data)

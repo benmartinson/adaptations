@@ -1,24 +1,59 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import useTaskProgress from "../../../hooks/useTaskProgress";
 
-export default function DynamicUIFile({ file, responseJson }) {
+export default function DynamicUIFile({ taskId, responseJson }) {
+  const { snapshot } = useTaskProgress(taskId);
   const iframeRef = useRef(null);
-  const frameId = useMemo(
-    () => `${file?.id || "ui"}-${Math.random().toString(36).slice(2)}`,
-    [file?.id]
-  );
 
+  const [activeFile, setActiveFile] = useState(null);
   const [Component, setComponent] = useState(null);
   const [error, setError] = useState(null);
   const [iframeHeight, setIframeHeight] = useState(400);
   const [iframeError, setIframeError] = useState(null);
 
+  const frameId = useMemo(
+    () => `${activeFile?.id || "ui"}-${Math.random().toString(36).slice(2)}`,
+    [activeFile?.id]
+  );
+
+  // Fetch active UI file when taskId or snapshot.phase changes
   useEffect(() => {
+    if (!taskId) return;
+
+    let cancelled = false;
+
+    async function fetchActiveFile() {
+      try {
+        const res = await fetch(`/api/tasks/${taskId}/ui_files`);
+        if (!res.ok) throw new Error(`UI files endpoint failed: ${res.status}`);
+        const files = await res.json();
+
+        if (!cancelled && files.length > 0) {
+          setActiveFile(files[0]); // API returns active files in order, first one is most recent
+        }
+      } catch (e) {
+        console.error("Failed to fetch active UI file:", e);
+        if (!cancelled) {
+          setActiveFile(null);
+        }
+      }
+    }
+
+    fetchActiveFile();
+    return () => {
+      cancelled = true;
+    };
+  }, [taskId, snapshot?.metadata?.phase]);
+
+  useEffect(() => {
+    if (!activeFile) return;
+
     let cancelled = false;
 
     async function loadComponent() {
       try {
         setError(null);
-        const mod = await import(file.file_name);
+        const mod = await import(activeFile.file_name);
         if (!mod?.default) {
           throw new Error("Remote module had no default export");
         }
@@ -27,7 +62,7 @@ export default function DynamicUIFile({ file, responseJson }) {
       } catch (e) {
         console.error(e);
         if (!cancelled) {
-          setError(e?.message || `Failed to load ${file.file_name}`);
+          setError(e?.message || `Failed to load ${activeFile.file_name}`);
         }
       }
     }
@@ -36,7 +71,7 @@ export default function DynamicUIFile({ file, responseJson }) {
     return () => {
       cancelled = true;
     };
-  }, [file.file_name]);
+  }, [activeFile?.file_name]);
 
   // Listen for height updates and errors from *this* iframe only.
   useEffect(() => {
@@ -69,7 +104,7 @@ export default function DynamicUIFile({ file, responseJson }) {
     );
   }
 
-  if (!Component || !responseJson) {
+  if (!activeFile || !Component || !responseJson) {
     return (
       <div className="text-center py-8">
         <p className="text-gray-500">Loading UI component...</p>
@@ -129,7 +164,7 @@ export default function DynamicUIFile({ file, responseJson }) {
         </div>
         <script>
           const frameId = '${frameId}';
-          const componentUrl = '${file.file_name}';
+          const componentUrl = '${activeFile?.file_name || ""}';
           const componentData = ${JSON.stringify(responseJson)};
 
           function postToParent(payload) {

@@ -88,7 +88,7 @@ export default function TaskRunner() {
     }
   }, [responseJson, fromResponseData, apiEndpoint]);
 
-  async function handleFetchEndpoint(dataDescription) {
+  async function handleFetchEndpoint(dataDescription, notes = null) {
     setFormError(null);
     setFetchingEndpoint(true);
     try {
@@ -106,6 +106,7 @@ export default function TaskRunner() {
               task_type: "preview_response_generation",
               system_tag: systemTag,
               data_description: dataDescription,
+              notes: notes,
             },
           },
         }),
@@ -268,6 +269,9 @@ export default function TaskRunner() {
           isGeneratingPreview={isGeneratingPreview}
           onNextStep={() => navigate(`/task/${task_id}/transformer`)}
           taskId={task_id}
+          onRequestChanges={(notes) =>
+            handleFetchEndpoint(snapshot.data_description, notes)
+          }
         />
       )}
 

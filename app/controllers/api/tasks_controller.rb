@@ -170,19 +170,17 @@ module Api
 
     def enqueue_job(task)
       task_type = task.input_payload.fetch("task_type", nil)
-      
-      job_class = case task_type
-                  when "preview_response_generation"
-                    "PreviewResponseGenerationJob"
-                  when "generate_transform_code"
-                    "GenerateTransformCodeJob"
-                  else
-                    ""
-                  end
-      
-      job_class_constant = job_class.safe_constantize
-      job = job_class_constant.perform_later(task.id)
-      task.update!(job_id: job.job_id) if job.respond_to?(:job_id)
+
+      job = case task_type
+            when "preview_response_generation"
+              PreviewResponseGenerationJob.perform_later(task.id, task.input_payload.fetch("notes", nil))
+            when "generate_transform_code"
+              GenerateTransformCodeJob.perform_later(task.id)
+            else
+              nil
+            end
+
+      task.update!(job_id: job.job_id) if job&.respond_to?(:job_id)
     end
   end
 end

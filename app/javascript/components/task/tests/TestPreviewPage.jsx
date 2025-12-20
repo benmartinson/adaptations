@@ -50,8 +50,6 @@ export default function TestPreviewPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [updating, setUpdating] = useState(false);
-  const [uiFiles, setUiFiles] = useState([]);
-  const [uiFilesError, setUiFilesError] = useState(null);
 
   const currentIndex = tests.findIndex((t) => t.id === selectedTestId);
   const selectedTest = currentIndex >= 0 ? tests[currentIndex] : tests[0];
@@ -83,31 +81,6 @@ export default function TestPreviewPage() {
     }
 
     loadTests();
-  }, [task_id]);
-
-  useEffect(() => {
-    if (!task_id) return;
-
-    let cancelled = false;
-
-    async function loadUiFiles() {
-      try {
-        setUiFilesError(null);
-        const res = await fetch(`/api/tasks/${task_id}/ui_files`);
-        if (!res.ok) throw new Error(`UI files endpoint failed: ${res.status}`);
-        const data = await res.json();
-
-        if (!cancelled) setUiFiles(data);
-      } catch (e) {
-        if (!cancelled)
-          setUiFilesError(e?.message || "Failed to load UI files");
-      }
-    }
-
-    loadUiFiles();
-    return () => {
-      cancelled = true;
-    };
   }, [task_id]);
 
   function goToTest(test) {
@@ -349,25 +322,7 @@ export default function TestPreviewPage() {
             </p>
           </div>
           <div className="p-6">
-            {uiFiles.length > 0 ? (
-              uiFiles.map((uiFile) => (
-                <DynamicUIFile
-                  key={uiFile.id}
-                  file={uiFile}
-                  responseJson={actualOutput}
-                />
-              ))
-            ) : (
-              <PreviewList
-                toResponseText={JSON.stringify(actualOutput, null, 2)}
-              />
-            )}
-
-            {uiFilesError && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <p className="text-red-700">{uiFilesError}</p>
-              </div>
-            )}
+            <DynamicUIFile taskId={task_id} responseJson={actualOutput} />
           </div>
         </div>
       </div>

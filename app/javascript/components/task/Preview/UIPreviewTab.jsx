@@ -1,19 +1,21 @@
 import React, { useState, useEffect } from "react";
 import PreviewList from "./PreviewList";
 import DynamicUIFile from "./DynamicUIFile";
+import Modal from "../../common/Modal";
 import useTaskProgress from "../../../hooks/useTaskProgress";
 
 export default function UIPreviewTab({
   isGeneratingPreview,
   onNextStep,
   taskId,
+  onRequestChanges,
 }) {
   const { responseJson } = useTaskProgress(taskId);
-  const [uiFiles, setUiFiles] = useState([]);
-  const [uiFilesError, setUiFilesError] = useState(null);
   const [cyclingMessage, setCyclingMessage] = useState(
     "Generating UI Preview..."
   );
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [changeDescription, setChangeDescription] = useState("");
 
   // Handle cycling message during transform code generation
   useEffect(() => {
@@ -35,30 +37,10 @@ export default function UIPreviewTab({
     };
   }, [isGeneratingPreview]);
 
-  useEffect(() => {
-    if (!taskId) return;
-
-    let cancelled = false;
-
-    async function loadUiFiles() {
-      try {
-        setUiFilesError(null);
-        const res = await fetch(`/api/tasks/${taskId}/ui_files`);
-        if (!res.ok) throw new Error(`UI files endpoint failed: ${res.status}`);
-        const data = await res.json();
-
-        if (!cancelled) setUiFiles(data);
-      } catch (e) {
-        if (!cancelled)
-          setUiFilesError(e?.message || "Failed to load UI files");
-      }
-    }
-
-    loadUiFiles();
-    return () => {
-      cancelled = true;
-    };
-  }, [taskId, responseJson]);
+  const handleRequestChanges = () => {
+    setIsModalOpen(false);
+    onRequestChanges(changeDescription);
+  };
 
   return (
     <div className="space-y-4">
@@ -73,8 +55,15 @@ export default function UIPreviewTab({
               )}
               <button
                 type="button"
+                onClick={() => setIsModalOpen(true)}
+                className="px-4 py-2 rounded-lg bg-gray-200 text-black font-semibold hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              >
+                Request Changes
+              </button>
+              <button
+                type="button"
                 onClick={onNextStep}
-                className="px-4 py-2 rounded-lg bg-gray-900 text-white font-semibold hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                className="px-4 py-2 rounded-lg bg-gray-800 text-white font-semibold hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 Next Step
               </button>
@@ -82,26 +71,8 @@ export default function UIPreviewTab({
           </div>
 
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 w-full">
-            {uiFiles.length > 0 ? (
-              uiFiles.map((uiFile) => (
-                <DynamicUIFile
-                  key={uiFile.id}
-                  file={uiFile}
-                  responseJson={responseJson}
-                />
-              ))
-            ) : (
-              <PreviewList
-                toResponseText={JSON.stringify(responseJson, null, 2)}
-              />
-            )}
+            <DynamicUIFile taskId={taskId} responseJson={responseJson} />
           </div>
-
-          {uiFilesError && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <p className="text-red-700">{uiFilesError}</p>
-            </div>
-          )}
         </>
       )}
 
@@ -112,6 +83,46 @@ export default function UIPreviewTab({
           </div>
         </div>
       )}
+
+      {/* Request Changes Modal */}
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title="Request Changes"
+        size="lg"
+      >
+        <div className="space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              What specific changes do you wish to make? (The more detail, the
+              better)
+            </label>
+            <textarea
+              value={changeDescription}
+              onChange={(e) => setChangeDescription(e.target.value)}
+              rows={6}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Describe the specific changes you want to make..."
+            />
+          </div>
+
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={() => setIsModalOpen(false)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleRequestChanges}
+              disabled={!changeDescription.trim()}
+              className="px-4 py-2 text-sm font-medium text-white bg-gray-800 border border-transparent rounded-md hover:bg-gray-900 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Submit Request
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
