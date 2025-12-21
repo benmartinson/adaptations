@@ -90,9 +90,6 @@ class GenerateTransformCodeJob < ApplicationJob
         ```ruby
         #{task.transform_code}
         ```
-        Here are the React components that use the 'data' prop object. 
-        You need to transform the data into the format expected by these components: #{source_code_reference}
-
         The following test cases need to be fixed:
 
       PROMPT
@@ -106,6 +103,8 @@ class GenerateTransformCodeJob < ApplicationJob
         ```ruby
         #{task.transform_code}
         ```
+        Here are the React components that use the 'data' prop object. 
+        You need to transform the data into the format expected by these components: #{source_code_reference}
 
         The following test cases need to be fixed:
 

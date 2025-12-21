@@ -170,7 +170,7 @@ export default function LinkRunner() {
               from_response:
                 localFromResponse || snapshot?.input_payload?.from_response,
               to_response: localToResponse || snapshot?.response_json,
-              task_type: "generate_transform_code",
+              task_type: "transform_code_generation",
             },
             data_description: dataDescription,
           },

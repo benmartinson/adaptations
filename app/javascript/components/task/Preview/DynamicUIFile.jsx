@@ -167,6 +167,83 @@ export default function DynamicUIFile({ taskId, responseJson }) {
           const componentUrl = '${activeFile?.file_name || ""}';
           const componentData = ${JSON.stringify(responseJson)};
 
+          // SubTask component for nested task rendering
+          window.SubTask = class SubTask extends React.Component {
+            constructor(props) {
+              super(props);
+              this.state = { Component: null, loading: true, error: null };
+            }
+
+            componentDidMount() {
+              this.loadSubTask();
+            }
+
+            async loadSubTask() {
+              try {
+                // Validate systemTag prop
+                if (!this.props.systemTag || typeof this.props.systemTag !== 'string' || this.props.systemTag.trim() === '') {
+                  throw new Error('SubTask component requires a valid systemTag prop');
+                }
+
+                // Fetch task details by system tag
+                const taskResponse = await fetch(\`/api/tasks/by_system_tag/\${encodeURIComponent(this.props.systemTag)}\`);
+                if (!taskResponse.ok) {
+                  if (taskResponse.status === 404) {
+                    throw new Error(\`Task not found with system tag: \${this.props.systemTag}\`);
+                  }
+                  throw new Error(\`Failed to fetch task: \${taskResponse.status} \${taskResponse.statusText}\`);
+                }
+
+                const task = await taskResponse.json();
+
+                // Get the active UI file
+                const uiFilesResponse = await fetch(\`/api/tasks/\${task.id}/ui_files\`);
+                const uiFiles = await uiFilesResponse.json();
+
+                if (uiFiles.length === 0) {
+                  throw new Error(\`No UI file found for task: \${this.props.systemTag}\`);
+                }
+
+                const uiFile = uiFiles[0]; // First one is most recent active
+
+                // Dynamically import the component
+                const module = await import(uiFile.file_name);
+                if (!module.default) {
+                  throw new Error('SubTask module has no default export');
+                }
+
+                this.setState({ Component: module.default, loading: false });
+              } catch (error) {
+                console.error('SubTask loading error:', error);
+                this.setState({ error: error.message, loading: false });
+              }
+            }
+
+            render() {
+              const { Component, loading, error } = this.state;
+
+              if (loading) {
+                return React.createElement('div', {
+                  className: 'p-4 text-gray-500 text-center border rounded'
+                }, 'Loading ' + (this.props.systemTag || 'sub-task') + '...');
+              }
+
+              if (error) {
+                return React.createElement('div', {
+                  className: 'p-4 text-red-600 text-center border border-red-300 rounded bg-red-50'
+                }, 'Error loading ' + (this.props.systemTag || 'sub-task') + ': ' + error);
+              }
+
+              if (!Component) {
+                return React.createElement('div', {
+                  className: 'p-4 text-gray-500 text-center border rounded'
+                }, 'SubTask component not found');
+              }
+
+              return React.createElement(Component, { data: this.props.data });
+            }
+          };
+
           function postToParent(payload) {
             try {
               window.parent.postMessage({ frameId, ...payload }, window.location.origin);

@@ -6,6 +6,7 @@ import UIPreviewTab from "./Preview/UIPreviewTab";
 import CreateTransformerTab from "./tabs/CreateTransformerTab";
 import RunTestsTab from "./tests/RunTestsTab";
 import DeployTab from "./tabs/DeployTab";
+import SubTasksTab from "./tabs/SubTasksTab";
 import { fetchEndpointData } from "../../helpers";
 
 export default function TaskRunner() {
@@ -139,7 +140,7 @@ export default function TaskRunner() {
             input_payload: {
               from_response: fromResponseData,
               to_response: responseJson,
-              task_type: "generate_transform_code",
+              task_type: "transform_code_generation",
             },
           },
         }),
@@ -168,7 +169,7 @@ export default function TaskRunner() {
         body: JSON.stringify({
           task: {
             input_payload: {
-              task_type: "generate_transform_code",
+              task_type: "transform_code_generation",
             },
           },
         }),
@@ -184,14 +185,19 @@ export default function TaskRunner() {
   }
 
   const tabs = [
-    { id: "endpoint", label: "Endpoint Details", enabled: true },
-    { id: "preview", label: "UI Preview", enabled: !!responseJson },
+    { id: "endpoint", label: "Configure", enabled: true },
+    { id: "preview", label: "Interface", enabled: !!responseJson },
     {
       id: "transformer",
-      label: "Create Transformer",
+      label: "Transform",
       enabled: !!responseJson,
     },
-    { id: "tests", label: "Run Tests", enabled: !!transformCode },
+    {
+      id: "subtasks",
+      label: "Mix",
+      enabled: !!snapshot?.system_tag,
+    },
+    { id: "tests", label: "Test", enabled: !!transformCode },
     { id: "deploy", label: "Deploy", enabled: !!transformCode },
   ];
 
@@ -296,6 +302,10 @@ export default function TaskRunner() {
           onTestUpdate={updateTest}
           onRegenerateTransform={handleRegenerateTransform}
         />
+      )}
+
+      {tab === "subtasks" && (
+        <SubTasksTab taskId={task_id} parentSystemTag={snapshot?.system_tag} />
       )}
 
       {tab === "deploy" && <DeployTab task={snapshot} />}

@@ -1,0 +1,13 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  task: one
+  parent_task: one
+  system_tag: MyString
+  parent_system_tag: MyString
+
+two:
+  task: two
+  parent_task: two
+  system_tag: MyString
+  parent_system_tag: MyString

@@ -3,6 +3,8 @@ class Task < ApplicationRecord
 
   has_many :tests, dependent: :destroy
   has_many :task_ui_files, dependent: :destroy
+  has_many :sub_tasks, dependent: :destroy
+  has_many :parent_sub_tasks, class_name: "SubTask", foreign_key: :parent_task_id, dependent: :destroy
 
   enum :status, {
     pending: "pending",
@@ -39,6 +41,23 @@ class Task < ApplicationRecord
     update!(
       metadata: merged_metadata,
       last_progress_at: Time.current
+    )
+  end
+
+  # Sub-task convenience methods
+  def sub_tasks_for(system_tag)
+    sub_tasks.where(system_tag: system_tag)
+  end
+
+  def parent_sub_tasks_for(system_tag)
+    parent_sub_tasks.where(system_tag: system_tag)
+  end
+
+  def add_sub_task(child_task, system_tag:, parent_system_tag:)
+    sub_tasks.create!(
+      task: child_task,
+      system_tag: system_tag,
+      parent_system_tag: parent_system_tag
     )
   end
 end

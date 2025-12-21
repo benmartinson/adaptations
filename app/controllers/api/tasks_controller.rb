@@ -2,7 +2,8 @@ module Api
   class TasksController < ApplicationController
     skip_before_action :verify_authenticity_token
 
-    before_action :set_task, only: %i[show update destroy run_job run_tests ui_files]
+    before_action :set_task, only: %i[show update destroy run_job run_tests ui_files sub_tasks create_sub_task delete_sub_task]
+    before_action :set_sub_task, only: %i[delete_sub_task]
 
     def index
       tasks = Task.recent.limit(limit_param)
@@ -12,6 +13,17 @@ module Api
     def system_tags
       tags = Task.where.not(system_tag: [nil, ""]).distinct.pluck(:system_tag).sort
       render json: tags
+    end
+
+    def by_system_tag
+      system_tag = params[:system_tag]
+      task = Task.find_by(system_tag: system_tag)
+
+      if task
+        render json: serialize_task(task)
+      else
+        render json: { error: "Task not found with system_tag: #{system_tag}" }, status: :not_found
+      end
     end
 
     def show
@@ -65,10 +77,34 @@ module Api
       render json: ui_files.map { |file| serialize_ui_file(file) }
     end
 
+    def sub_tasks
+      render json: @task.sub_tasks.map { |sub_task| serialize_sub_task(sub_task) }
+    end
+
+    def create_sub_task
+      sub_task_params = params.require(:sub_task).permit(:task_id, :system_tag, :parent_system_tag, :notes, :endpoint_notes)
+      sub_task = @task.sub_tasks.create!(sub_task_params)
+
+      # Trigger UI generation for the parent task to include the new sub-task
+      job = SubtaskUiGenerationJob.perform_later(sub_task.id)
+      @task.update!(job_id: job.job_id) if job.respond_to?(:job_id)
+
+      render json: serialize_sub_task(sub_task), status: :created
+    end
+
+    def delete_sub_task
+      @sub_task.destroy!
+      head :no_content
+    end
+
     private
 
     def set_task
       @task = Task.find(params[:id])
+    end
+
+    def set_sub_task
+      @sub_task = @task.sub_tasks.find(params[:sub_task_id])
     end
 
     def limit_param
@@ -168,13 +204,27 @@ module Api
       }
     end
 
+    def serialize_sub_task(sub_task)
+      {
+        id: sub_task.id,
+        task_id: sub_task.task_id,
+        parent_task_id: sub_task.parent_task_id,
+        system_tag: sub_task.system_tag,
+        parent_system_tag: sub_task.parent_system_tag,
+        notes: sub_task.notes,
+        endpoint_notes: sub_task.endpoint_notes,
+        created_at: sub_task.created_at,
+        updated_at: sub_task.updated_at
+      }
+    end
+
     def enqueue_job(task)
       task_type = task.input_payload.fetch("task_type", nil)
 
       job = case task_type
             when "preview_response_generation"
               PreviewResponseGenerationJob.perform_later(task.id, task.input_payload.fetch("notes", nil))
-            when "generate_transform_code"
+            when "transform_code_generation"
               GenerateTransformCodeJob.perform_later(task.id)
             else
               nil
