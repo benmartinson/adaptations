@@ -194,7 +194,7 @@ export default function TaskRunner() {
     },
     {
       id: "subtasks",
-      label: "Mix",
+      label: "Connect",
       enabled: !!snapshot?.system_tag,
     },
     { id: "tests", label: "Test", enabled: !!transformCode },

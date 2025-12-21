@@ -225,7 +225,7 @@ module Api
             when "preview_response_generation"
               PreviewResponseGenerationJob.perform_later(task.id, task.input_payload.fetch("notes", nil))
             when "transform_code_generation"
-              GenerateTransformCodeJob.perform_later(task.id)
+              TransformCodeGenerationJob.perform_later(task.id)
             else
               nil
             end

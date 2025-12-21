@@ -1,5 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import {
+  useParams,
+  Link,
+  useNavigate,
+  useSearchParams,
+} from "react-router-dom";
 import useTaskProgress from "../../hooks/useTaskProgress";
 import LinkDetailsTab from "../task/tabs/LinkDetailsTab";
 import CreateTransformerTab from "../task/tabs/CreateTransformerTab";
@@ -9,6 +14,7 @@ import DeployTab from "../task/tabs/DeployTab";
 export default function LinkRunner() {
   const { task_id, tab } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [fromSystemTag, setFromSystemTag] = useState("");
   const [toSystemTag, setToSystemTag] = useState("");
   const [formError, setFormError] = useState(null);
@@ -78,6 +84,15 @@ export default function LinkRunner() {
     }
     loadTasks();
   }, []);
+
+  // Read URL parameters on initial load
+  useEffect(() => {
+    const fromParam = searchParams.get("from");
+    console.log({ searchParams, fromParam });
+    if (fromParam && !fromSystemTag) {
+      setFromSystemTag(fromParam);
+    }
+  }, [searchParams, fromSystemTag]);
 
   useEffect(() => {
     if (!snapshot) return;

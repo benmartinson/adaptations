@@ -1,8 +1,8 @@
-class GenerateTransformCodeJob < ApplicationJob
+class TransformCodeGenerationJob < ApplicationJob
   queue_as :default
 
   rescue_from(ActiveRecord::RecordNotFound) do |_error|
-    Rails.logger.warn("[GenerateTransformCodeJob] Task not found, skipping job")
+    Rails.logger.warn("[TransformCodeGenerationJob] Task not found, skipping job")
   end
   rescue_from(StandardError) do |error|
     handle_failure(error)

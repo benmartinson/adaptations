@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 export default function SubTasksTab({ taskId, parentSystemTag }) {
+  const navigate = useNavigate();
   const [subTasks, setSubTasks] = useState([]);
   const [availableTasks, setAvailableTasks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -33,12 +35,12 @@ export default function SubTasksTab({ taskId, parentSystemTag }) {
       const response = await fetch("/api/tasks");
       if (response.ok) {
         const tasks = await response.json();
-        // Filter out the current task and tasks that don't have system tags
+        // Only show link tasks where the system_tag matches our parent system tag
         const available = tasks.filter(
           (task) =>
-            task.id !== parseInt(taskId) &&
-            task.system_tag &&
-            task.system_tag.trim() !== ""
+            task.kind === "link" &&
+            task.system_tag === parentSystemTag &&
+            task.to_system_tag
         );
         setAvailableTasks(available);
       }
@@ -71,7 +73,7 @@ export default function SubTasksTab({ taskId, parentSystemTag }) {
         body: JSON.stringify({
           sub_task: {
             task_id: selectedTask.id,
-            system_tag: selectedTask.system_tag,
+            system_tag: selectedTask.to_system_tag,
             parent_system_tag: parentSystemTag || "",
             notes: notes.trim(),
             endpoint_notes: endpointNotes.trim(),
@@ -123,6 +125,36 @@ export default function SubTasksTab({ taskId, parentSystemTag }) {
     }
   };
 
+  const handleCreateConnection = async () => {
+    try {
+      const response = await fetch("/api/tasks", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          task: {
+            kind: "link",
+            metadata: { source: "web-ui", parent_system_tag: parentSystemTag },
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Unable to create connection");
+      }
+
+      const task = await response.json();
+      console.log({ parentSystemTag: encodeURIComponent(parentSystemTag) });
+      navigate(
+        `/link/${task.id}/details?from=${encodeURIComponent(parentSystemTag)}`
+      );
+    } catch (error) {
+      console.error("Failed to create connection:", error);
+      alert("Failed to create connection");
+    }
+  };
+
   if (loading) {
     return (
       <div className="text-center py-8">
@@ -135,11 +167,11 @@ export default function SubTasksTab({ taskId, parentSystemTag }) {
     <div className="space-y-6">
       <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 text-gray-700">
         <p className="text-sm leading-relaxed">
-          In this section you can add child processes, such as lists or
-          sub-detail that are related to your parent process, but which data
-          comes from a difference api request. For instance if your process is
-          an 'Author' detail page, you could add a 'AuthorBooks' child process
-          which will embed a list of books by the current author.
+          In this section you can embed child processes that are connected via
+          connector processes. Only processes that have established data
+          connections (through connector processes) to your current process will
+          appear here. Use this to create composite interfaces where related
+          data from different API endpoints is displayed together.
         </p>
       </div>
 
@@ -210,12 +242,21 @@ export default function SubTasksTab({ taskId, parentSystemTag }) {
                 </svg>
               </div>
               <p className="text-gray-600 font-medium">
-                No processes available to mix
+                No connector processes available
               </p>
               <p className="text-gray-500 text-sm mt-1">
-                Create additional processes first, then return here to mix them
-                together.
+                Create a connector process first to establish data connections,
+                then return here to embed connector processes into your
+                interface.
               </p>
+              <div className="mt-6">
+                <button
+                  onClick={handleCreateConnection}
+                  className="px-4 py-2 bg-gray-800 text-white rounded-md hover:bg-gray-900"
+                >
+                  Create Connection
+                </button>
+              </div>
             </div>
           ) : (
             <>
@@ -228,10 +269,12 @@ export default function SubTasksTab({ taskId, parentSystemTag }) {
                   onChange={(e) => setSelectedTaskId(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
-                  <option value="">Select a process to mix...</option>
+                  <option value="">
+                    Select a linked process to connect...
+                  </option>
                   {availableTasks.map((task) => (
                     <option key={task.id} value={task.id}>
-                      {task.system_tag}
+                      {task.to_system_tag}
                     </option>
                   ))}
                 </select>

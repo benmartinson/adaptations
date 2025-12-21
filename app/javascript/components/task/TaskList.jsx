@@ -169,9 +169,7 @@ export default function TaskList() {
                         task.kind
                       )}`}
                     >
-                      {task.kind === "link"
-                        ? "Link Transform"
-                        : "API Transform"}
+                      {task.kind === "link" ? "Connector" : "API Transform"}
                     </span>
                   </div>
 
@@ -264,10 +262,10 @@ export default function TaskList() {
             className="w-full p-4 text-left rounded-lg border border-gray-200 hover:border-gray-900 hover:bg-gray-50 transition-colors group"
           >
             <div className="font-semibold text-gray-900 group-hover:text-gray-900">
-              Link
+              Connector
             </div>
             <div className="text-sm text-gray-500 mt-1">
-              Link two processes together
+              Connect two processes together
             </div>
           </button>
         </div>
