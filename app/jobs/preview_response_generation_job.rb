@@ -98,14 +98,9 @@ class PreviewResponseGenerationJob < ApplicationJob
         The 'data' prop only contains data from the API response (shown below),
         and will be transformed into the data that is relevant to the data visualization. The React components should not need much
         or any logic to transform the data, it should be ready to use as is. The transformation code is written separately after we have the components.
-
-        IMPORTANT: You have access to a SubTask component that allows you to embed other tasks within this component.
-        Use it like this: <SubTask systemTag="SomeSystemTag" data={someData} />
-        This will automatically load and render the component from the task with the matching system tag, passing the data prop to it.
-        This is useful for composing complex UIs from multiple simpler tasks.
-
+  
         Other notes, The components should:
-        - No imports besides React (SubTask is available globally)
+        - No imports besides React
         - Be functional JavaScript React components (no TypeScript syntax like interfaces, React.FC, etc.)
         - Use modern React patterns (hooks, JSX)
         - Display the data in a simple, clean, and responsive UI
@@ -138,16 +133,10 @@ class PreviewResponseGenerationJob < ApplicationJob
         Unless told otherwise below, use the same data as the previous attempt.
         The user may request changes to the data, but you should stay true to the previous attempt unless told otherwise.
         If some data was not included in the previous attempt, it's because the user didn't want it included.
-
-        IMPORTANT: You have access to a SubTask component that allows you to embed other tasks within this component.
-        Use it like this: <SubTask systemTag="SomeSystemTag" data={someData} />
-        This will automatically load and render the component from the task with the matching system tag, passing the data prop to it.
-        This is useful for composing complex UIs from multiple simpler tasks.
-
         The user has requested the following changes:
         #{notes}
 
-
+         
 
         Please revise the React component(s) to incorporate these changes.
       PROMPT
