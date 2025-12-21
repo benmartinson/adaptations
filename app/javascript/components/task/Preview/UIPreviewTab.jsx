@@ -16,6 +16,7 @@ export default function UIPreviewTab({
   );
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [changeDescription, setChangeDescription] = useState("");
+  console.log("isGeneratingPreview", isGeneratingPreview);
 
   // Handle cycling message during transform code generation
   useEffect(() => {
@@ -44,7 +45,7 @@ export default function UIPreviewTab({
 
   return (
     <div className="space-y-4">
-      {responseJson && (
+      {responseJson && !isGeneratingPreview && (
         <>
           <div className="flex items-center justify-end">
             <div className="flex items-center gap-4">
@@ -76,12 +77,21 @@ export default function UIPreviewTab({
         </>
       )}
 
-      {!responseJson && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="text-center py-12 text-gray-500">
-            <p className="text-lg">No preview available yet.</p>
+      {(!responseJson || isGeneratingPreview) && (
+        <>
+          <div className="flex items-center justify-end">
+            {isGeneratingPreview && (
+              <span className="text-black text-sm font-bold">
+                {cyclingMessage}
+              </span>
+            )}
           </div>
-        </div>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="text-center py-12 text-gray-500">
+              <p className="text-lg">No preview available yet.</p>
+            </div>
+          </div>
+        </>
       )}
 
       {/* Request Changes Modal */}

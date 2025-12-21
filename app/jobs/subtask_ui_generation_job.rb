@@ -1,3 +1,5 @@
+require 'fileutils'
+
 class SubtaskUiGenerationJob < ApplicationJob
   queue_as :default
 
@@ -34,18 +36,16 @@ class SubtaskUiGenerationJob < ApplicationJob
     end
 
     prompt = <<~PROMPT
-      You are a React component generator. You are helping to mix a child process (SubTask) into an existing React component.
+      You are a React component generator. You are helping to mix a child component into an existing React component.
 
       Here is the existing React component code:
       ```javascript
       #{existing_code}
       ```
 
-      We want to add a new child process using the `<SubTask />` component.
-      
-      Details for the child process:
-      - System Tag: #{subtask.system_tag}
-      - Placement Notes: #{subtask.notes}
+      We want to add a new child component using the `<SubTask />` component.
+      The user has provided details about where in the interface should the child component be placed: 
+      #{subtask.notes}
       - API Construction Notes: #{subtask.endpoint_notes}
 
       IMPORTANT: 
@@ -60,8 +60,31 @@ class SubtaskUiGenerationJob < ApplicationJob
     updated_code = generate_code_response(prompt)
     bundle_path = save_and_build_component_bundle(updated_code)
 
-    # Deactivate existing UI files and create a new one
-    parent_task.task_ui_files.update_all(is_active: false)
+    # Delete old task_ui_files and their associated files, then create a new one
+    parent_task.task_ui_files.each do |ui_file|
+      begin
+        if ui_file.file_name.present?
+          # Delete the final bundle file in public/ai_bundles
+          # Strip leading slash since file_name is like "/ai_bundles/task-preview-XXX.js"
+          full_bundle_path = Rails.root.join("public", ui_file.file_name.sub(/^\//, ""))
+          FileUtils.rm_f(full_bundle_path)
+
+          # Clean up source files in app/javascript/ai_bundles
+          # The source files use a hash of the source_code, so we can compute it
+          if ui_file.source_code.present?
+            source_hash = Digest::MD5.hexdigest(ui_file.source_code)[0..7]
+            # Delete matching source files (task_preview_*_{hash}.jsx and task-preview_entry_*_{hash}.jsx)
+            Dir.glob(Rails.root.join("app", "javascript", "ai_bundles", "*_#{source_hash}.jsx")).each do |temp_file|
+              FileUtils.rm_f(temp_file)
+            end
+          end
+        end
+      rescue => e
+        Rails.logger.warn("[SubtaskUiGenerationJob] Failed to delete file #{ui_file.file_name}: #{e.message}")
+      end
+      ui_file.destroy!
+    end
+
     parent_task.task_ui_files.create!(
       file_name: bundle_path,
       is_active: true,

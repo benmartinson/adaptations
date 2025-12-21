@@ -192,56 +192,85 @@ export default function SubTasksTab({ taskId, parentSystemTag }) {
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div className="space-y-6">
-          <div className="w-1/4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Sub-Process
-            </label>
-            <select
-              value={selectedTaskId}
-              onChange={(e) => setSelectedTaskId(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="">Select a process to mix...</option>
-              {availableTasks.map((task) => (
-                <option key={task.id} value={task.id}>
-                  {task.system_tag}
-                </option>
-              ))}
-            </select>
-          </div>
+          {availableTasks.length === 0 ? (
+            <div className="text-center py-8">
+              <div className="text-gray-500 mb-2">
+                <svg
+                  className="mx-auto h-12 w-12 text-gray-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                  />
+                </svg>
+              </div>
+              <p className="text-gray-600 font-medium">
+                No processes available to mix
+              </p>
+              <p className="text-gray-500 text-sm mt-1">
+                Create additional processes first, then return here to mix them
+                together.
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="w-1/4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Sub-Process
+                </label>
+                <select
+                  value={selectedTaskId}
+                  onChange={(e) => setSelectedTaskId(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">Select a process to mix...</option>
+                  {availableTasks.map((task) => (
+                    <option key={task.id} value={task.id}>
+                      {task.system_tag}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-          <div className="w-full">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Where in the interface should this be placed?
-            </label>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
+              <div className="w-full">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Where in the interface should this be placed?
+                </label>
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
 
-          <div className="w-full">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              How do we construct the api endpoint for this child process, using
-              the data we recieve from the parent process?
-            </label>
-            <textarea
-              value={endpointNotes}
-              onChange={(e) => setEndpointNotes(e.target.value)}
-              rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
+              <div className="w-full">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  How do we construct the api endpoint for this child process,
+                  using the data we recieve from the parent process?
+                </label>
+                <textarea
+                  value={endpointNotes}
+                  onChange={(e) => setEndpointNotes(e.target.value)}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
 
-          <button
-            onClick={handleCreateSubTask}
-            disabled={creating || !selectedTaskId}
-            className="px-4 py-2 bg-gray-800 text-white rounded-md hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {creating ? "Generating..." : "Generate UI Change"}
-          </button>
+              <button
+                onClick={handleCreateSubTask}
+                disabled={creating || !selectedTaskId}
+                className="px-4 py-2 bg-gray-800 text-white rounded-md hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {creating ? "Generating..." : "Generate UI Change"}
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>

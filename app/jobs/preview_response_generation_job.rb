@@ -1,3 +1,5 @@
+require 'fileutils'
+
 class PreviewResponseGenerationJob < ApplicationJob
   queue_as :default
 
@@ -67,7 +69,31 @@ class PreviewResponseGenerationJob < ApplicationJob
     )
 
     # Create TaskUIFile record for the generated bundle
-    task.task_ui_files.update_all(is_active: false)
+    # Delete old task_ui_files and their associated files
+    task.task_ui_files.each do |ui_file|
+      begin
+        if ui_file.file_name.present?
+          # Delete the final bundle file in public/ai_bundles
+          # Strip leading slash since file_name is like "/ai_bundles/task-preview-XXX.js"
+          full_bundle_path = Rails.root.join("public", ui_file.file_name.sub(/^\//, ""))
+          FileUtils.rm_f(full_bundle_path)
+
+          # Clean up source files in app/javascript/ai_bundles
+          # The source files use a hash of the source_code, so we can compute it
+          if ui_file.source_code.present?
+            source_hash = Digest::MD5.hexdigest(ui_file.source_code)[0..7]
+            # Delete matching source files (task_preview_*_{hash}.jsx and task-preview_entry_*_{hash}.jsx)
+            Dir.glob(Rails.root.join("app", "javascript", "ai_bundles", "*_#{source_hash}.jsx")).each do |temp_file|
+              FileUtils.rm_f(temp_file)
+            end
+          end
+        end
+      rescue => e
+        Rails.logger.warn("[PreviewResponseGenerationJob] Failed to delete file #{ui_file.file_name}: #{e.message}")
+      end
+      ui_file.destroy!
+    end
+
     task.task_ui_files.create!(
       file_name: bundle_path,
       is_active: true,
@@ -99,7 +125,7 @@ class PreviewResponseGenerationJob < ApplicationJob
         and will be transformed into the data that is relevant to the data visualization. The React components should not need much
         or any logic to transform the data, it should be ready to use as is. The transformation code is written separately after we have the components.
   
-        Other notes, The components should:
+        Important notes, The components should:
         - No imports besides React
         - Be functional JavaScript React components (no TypeScript syntax like interfaces, React.FC, etc.)
         - Use modern React patterns (hooks, JSX)
@@ -110,6 +136,8 @@ class PreviewResponseGenerationJob < ApplicationJob
         - Use PropTypes for prop validation instead of TypeScript interfaces
         - Be suitable for displaying API response data
         - Keep it simple and clean, don't overcomplicate it, this is a first pass
+        - Do not check for error states, no loading states, no error messages, no nothing. Just display the data. You will always be given the data to display.
+        - No linking to other pages, no routing, no navigation, no nothing. Just display the data. Unless told otherwise by the user in the data_description.
   
         Here is the initial API Response, that will be transformed into the 'data' prop that you need it to be. 
         Try to use all the data from the api response (unless told otherwise below by the user in the data_description): #{api_response}

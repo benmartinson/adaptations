@@ -267,7 +267,7 @@ export default function TaskList() {
               Link
             </div>
             <div className="text-sm text-gray-500 mt-1">
-              Create a link-based process
+              Link two processes together
             </div>
           </button>
         </div>
