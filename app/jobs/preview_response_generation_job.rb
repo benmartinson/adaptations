@@ -138,6 +138,19 @@ class PreviewResponseGenerationJob < ApplicationJob
         - Keep it simple and clean, don't overcomplicate it, this is a first pass
         - Do not check for error states, no loading states, no error messages, no nothing. Just display the data. You will always be given the data to display.
         - No linking to other pages, no routing, no navigation, no nothing. Just display the data. Unless told otherwise by the user in the data_description.
+
+        Available global components you can use (no import needed, just use directly):
+        - HorizontalCardList: A horizontal scrolling card list component for displaying items with images.
+          Props:
+            - title (string, optional): Header text displayed above the list
+            - items (array): Array of objects with these properties:
+              - id (required): Unique identifier for the item
+              - imageUrl (optional): URL for the item's image
+              - firstLineText (optional): Primary text line (e.g., title)
+              - secondLineText (optional): Secondary text line (e.g., author)
+              - thirdLineText (optional): Tertiary text line (e.g., year)
+            - onItemClick (function, optional): Callback when an item is clicked, receives the item as argument
+          Example: <HorizontalCardList title="Books" items={data.books.map(b => ({ id: b.id, imageUrl: b.cover, firstLineText: b.title, secondLineText: b.author }))} />
   
         Here is the initial API Response, that will be transformed into the 'data' prop that you need it to be. 
         Try to use all the data from the api response (unless told otherwise below by the user in the data_description): #{api_response}
