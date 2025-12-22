@@ -12,7 +12,7 @@ class SubtaskUiGenerationJob < ApplicationJob
 
   def perform(subtask_id)
     @subtask = SubTask.find(subtask_id)
-    @parent_task = subtask.parent_task
+    @parent_task = subtask.task  # task is the parent task
     @task = @parent_task # For broadcast_event compatibility
     run_subtask_ui_generation
   end
@@ -36,7 +36,7 @@ class SubtaskUiGenerationJob < ApplicationJob
     end
 
     prompt = <<~PROMPT
-      You are a React component generator. You are helping to mix a child component into an existing React component.
+      You are helping to mix a child component into an existing React component.
 
       Here is the existing React component code:
       ```javascript
@@ -46,11 +46,10 @@ class SubtaskUiGenerationJob < ApplicationJob
       We want to add a new child component using the `<SubTask />` component.
       The user has provided details about where in the interface should the child component be placed: 
       #{subtask.notes}
-      - API Construction Notes: #{subtask.endpoint_notes}
 
       IMPORTANT: 
-      - Use the `<SubTask systemTag="#{subtask.system_tag}" data={someData} />` component.
-      - The `data` prop should be constructed based on the "API Construction Notes" provided above.
+      - Use the `<SubTask systemTag="#{subtask.system_tag}" data={data.#{subtask.system_tag}} />` component.
+      - The `data` prop will include this attribute: #{subtask.system_tag} which is the data needed by the SubTask component.
       - You should only add the necessary lines of code to integrate this `<SubTask />` component.
       - Keep all existing functionality, styles, and logic exactly the same.
       - Return the complete updated React component code.

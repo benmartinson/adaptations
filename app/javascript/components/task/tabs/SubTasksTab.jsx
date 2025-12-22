@@ -1,20 +1,21 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import SubTaskCard from "./SubTaskCard";
 
 export default function SubTasksTab({ taskId, parentSystemTag }) {
   const navigate = useNavigate();
   const [subTasks, setSubTasks] = useState([]);
   const [availableTasks, setAvailableTasks] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [creating, setCreating] = useState(false);
+  const [showAddSubTask, setShowAddSubTask] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState("");
-  const [notes, setNotes] = useState("");
-  const [endpointNotes, setEndpointNotes] = useState("");
+  const [isAdding, setIsAdding] = useState(false);
+  const [newlyCreatedId, setNewlyCreatedId] = useState(null);
 
   useEffect(() => {
     loadSubTasks();
     loadAvailableTasks();
-  }, [taskId]);
+  }, [taskId, parentSystemTag]);
 
   const loadSubTasks = async () => {
     try {
@@ -49,9 +50,8 @@ export default function SubTasksTab({ taskId, parentSystemTag }) {
     }
   };
 
-  const handleCreateSubTask = async () => {
+  const handleAddSubTask = async () => {
     if (!selectedTaskId) {
-      alert("Please select a sub-process");
       return;
     }
 
@@ -63,7 +63,7 @@ export default function SubTasksTab({ taskId, parentSystemTag }) {
       return;
     }
 
-    setCreating(true);
+    setIsAdding(true);
     try {
       const response = await fetch(`/api/tasks/${taskId}/create_sub_task`, {
         method: "POST",
@@ -72,21 +72,20 @@ export default function SubTasksTab({ taskId, parentSystemTag }) {
         },
         body: JSON.stringify({
           sub_task: {
-            task_id: selectedTask.id,
             system_tag: selectedTask.to_system_tag,
             parent_system_tag: parentSystemTag || "",
-            notes: notes.trim(),
-            endpoint_notes: endpointNotes.trim(),
+            notes: "",
+            endpoint_notes: "",
           },
         }),
       });
 
       if (response.ok) {
         const newSubTask = await response.json();
-        setSubTasks([...subTasks, newSubTask]);
+        setSubTasks([newSubTask, ...subTasks]);
+        setNewlyCreatedId(newSubTask.id);
         setSelectedTaskId("");
-        setNotes("");
-        setEndpointNotes("");
+        setShowAddSubTask(false);
       } else {
         const error = await response.json();
         alert(`Failed to create sub-task: ${error.error || "Unknown error"}`);
@@ -95,7 +94,7 @@ export default function SubTasksTab({ taskId, parentSystemTag }) {
       console.error("Failed to create sub-task:", error);
       alert("Failed to create sub-task");
     } finally {
-      setCreating(false);
+      setIsAdding(false);
     }
   };
 
@@ -125,6 +124,12 @@ export default function SubTasksTab({ taskId, parentSystemTag }) {
     }
   };
 
+  const handleUpdateSubTask = (updatedSubTask) => {
+    setSubTasks(
+      subTasks.map((st) => (st.id === updatedSubTask.id ? updatedSubTask : st))
+    );
+  };
+
   const handleCreateConnection = async () => {
     try {
       const response = await fetch("/api/tasks", {
@@ -145,7 +150,6 @@ export default function SubTasksTab({ taskId, parentSystemTag }) {
       }
 
       const task = await response.json();
-      console.log({ parentSystemTag: encodeURIComponent(parentSystemTag) });
       navigate(
         `/link/${task.id}/details?from=${encodeURIComponent(parentSystemTag)}`
       );
@@ -164,158 +168,136 @@ export default function SubTasksTab({ taskId, parentSystemTag }) {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 text-gray-700">
-        <p className="text-sm leading-relaxed">
-          In this section you can embed child processes that are connected via
-          connector processes. Only processes that have established data
-          connections (through connector processes) to your current process will
-          appear here. Use this to create composite interfaces where related
-          data from different API endpoints is displayed together.
-        </p>
+    <div className="space-y-3">
+      {/* Header with Add Sub-Task button */}
+      <div className="flex items-center justify-between">
+        <div className="text-sm text-gray-600">
+          Embed child processes connected via connector processes.
+        </div>
+        <div className="flex items-center gap-2">
+          {availableTasks.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowAddSubTask(!showAddSubTask)}
+              className="px-3 py-1.5 text-sm font-medium rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200 cursor-pointer flex items-center gap-1.5 transition-colors"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 4v16m8-8H4"
+                />
+              </svg>
+              Add Sub-Task
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={handleCreateConnection}
+            className="px-3 py-1.5 text-sm font-medium rounded-md bg-gray-800 text-white hover:bg-gray-900 cursor-pointer transition-colors"
+          >
+            Create Connection
+          </button>
+        </div>
       </div>
 
-      {subTasks.length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="space-y-3">
-            {subTasks.map((subTask) => (
-              <div
-                key={subTask.id}
-                className="flex items-center justify-between p-4 border border-gray-200 rounded-lg"
-              >
-                <div className="space-y-1">
-                  <p className="font-medium">
-                    System Tag:{" "}
-                    <code className="bg-gray-100 px-2 py-1 rounded text-sm">
-                      {subTask.system_tag}
-                    </code>
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    Parent System Tag:{" "}
-                    <code className="bg-gray-100 px-2 py-1 rounded text-sm">
-                      {subTask.parent_system_tag}
-                    </code>
-                  </p>
-                  {subTask.notes && (
-                    <p className="text-sm text-gray-500 italic">
-                      Placement: {subTask.notes}
-                    </p>
-                  )}
-                  {subTask.endpoint_notes && (
-                    <p className="text-sm text-gray-500 italic">
-                      API Construction: {subTask.endpoint_notes}
-                    </p>
-                  )}
-                  <p className="text-sm text-gray-400">
-                    Task ID: {subTask.task_id}
-                  </p>
-                </div>
-                <button
-                  onClick={() => handleDeleteSubTask(subTask.id)}
-                  className="px-3 py-1 text-sm text-red-600 hover:text-red-800 hover:bg-red-50 rounded"
-                >
-                  Remove
-                </button>
-              </div>
-            ))}
+      {/* Add Sub-Task inline form */}
+      {showAddSubTask && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+          <div className="flex gap-3">
+            <select
+              value={selectedTaskId}
+              onChange={(e) => setSelectedTaskId(e.target.value)}
+              className="flex-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:ring-0 focus:outline-none"
+            >
+              <option value="">Select a linked process to connect...</option>
+              {availableTasks.map((task) => (
+                <option key={task.id} value={task.id}>
+                  {task.to_system_tag}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={handleAddSubTask}
+              disabled={isAdding || !selectedTaskId}
+              className="px-3 py-1.5 text-sm rounded-md bg-gray-900 text-white font-medium hover:bg-gray-700 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isAdding ? "Adding..." : "Add"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setShowAddSubTask(false);
+                setSelectedTaskId("");
+              }}
+              className="px-3 py-1.5 text-sm rounded-md bg-gray-100 text-gray-700 font-medium hover:bg-gray-200"
+            >
+              Cancel
+            </button>
           </div>
         </div>
       )}
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <div className="space-y-6">
-          {availableTasks.length === 0 ? (
-            <div className="text-center py-8">
-              <div className="text-gray-500 mb-2">
-                <svg
-                  className="mx-auto h-12 w-12 text-gray-400"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-                  />
-                </svg>
-              </div>
-              <p className="text-gray-600 font-medium">
-                No connector processes available
-              </p>
-              <p className="text-gray-500 text-sm mt-1">
-                Create a connector process first to establish data connections,
-                then return here to embed connector processes into your
-                interface.
-              </p>
-              <div className="mt-6">
-                <button
-                  onClick={handleCreateConnection}
-                  className="px-4 py-2 bg-gray-800 text-white rounded-md hover:bg-gray-900"
-                >
-                  Create Connection
-                </button>
-              </div>
-            </div>
-          ) : (
-            <>
-              <div className="w-1/4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Sub-Process
-                </label>
-                <select
-                  value={selectedTaskId}
-                  onChange={(e) => setSelectedTaskId(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">
-                    Select a linked process to connect...
-                  </option>
-                  {availableTasks.map((task) => (
-                    <option key={task.id} value={task.id}>
-                      {task.to_system_tag}
-                    </option>
-                  ))}
-                </select>
-              </div>
+      {/* Sub-Task cards */}
+      {subTasks.map((subTask) => (
+        <SubTaskCard
+          key={subTask.id}
+          subTask={subTask}
+          taskId={taskId}
+          onUpdate={handleUpdateSubTask}
+          onDelete={handleDeleteSubTask}
+          initialExpanded={subTask.id === newlyCreatedId}
+        />
+      ))}
 
-              <div className="w-full">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Where in the interface should this be placed?
-                </label>
-                <textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-
-              <div className="w-full">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  How do we construct the api endpoint for this child process,
-                  using the data we recieve from the parent process?
-                </label>
-                <textarea
-                  value={endpointNotes}
-                  onChange={(e) => setEndpointNotes(e.target.value)}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-
-              <button
-                onClick={handleCreateSubTask}
-                disabled={creating || !selectedTaskId}
-                className="px-4 py-2 bg-gray-800 text-white rounded-md hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
+      {/* Empty state */}
+      {subTasks.length === 0 && availableTasks.length === 0 && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="text-center py-8">
+            <div className="text-gray-500 mb-2">
+              <svg
+                className="mx-auto h-12 w-12 text-gray-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
               >
-                {creating ? "Generating..." : "Generate UI Change"}
-              </button>
-            </>
-          )}
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                />
+              </svg>
+            </div>
+            <p className="text-gray-600 font-medium">
+              No connector processes available
+            </p>
+            <p className="text-gray-500 text-sm mt-1">
+              Create a connector process first to establish data connections,
+              then return here to embed sub-processes.
+            </p>
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Empty state when there are available tasks but no sub-tasks yet */}
+      {subTasks.length === 0 &&
+        availableTasks.length > 0 &&
+        !showAddSubTask && (
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">
+            <p className="text-gray-500 text-sm">
+              No sub-tasks configured yet. Click "Add Sub-Task" to embed a
+              connected process.
+            </p>
+          </div>
+        )}
     </div>
   );
 }

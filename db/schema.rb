@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_21_192254) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_22_212320) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -151,11 +151,9 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_21_192254) do
     t.text "endpoint_notes"
     t.text "notes"
     t.string "parent_system_tag"
-    t.integer "parent_task_id", null: false
     t.string "system_tag"
     t.integer "task_id", null: false
     t.datetime "updated_at", null: false
-    t.index ["parent_task_id"], name: "index_sub_tasks_on_parent_task_id"
     t.index ["task_id"], name: "index_sub_tasks_on_task_id"
   end
 
@@ -228,7 +226,6 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_21_192254) do
   add_foreign_key "editions", "books"
   add_foreign_key "movie_books", "books"
   add_foreign_key "movie_books", "movies"
-  add_foreign_key "sub_tasks", "parent_tasks"
   add_foreign_key "sub_tasks", "tasks"
   add_foreign_key "task_ui_files", "tasks"
   add_foreign_key "tests", "tasks"

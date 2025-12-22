@@ -86,7 +86,7 @@ class RunTransformTestsJob < ApplicationJob
           ui_error = nil
           if should_validate_ui
             ui_validation = validate_ui_render(bundle_file_name, output)
-            ui_error = ui_validation[:error] unless ui_validation[:success]
+          ui_error = ui_validation[:error] unless ui_validation[:success]
           end
           
           if ui_error
@@ -130,18 +130,70 @@ class RunTransformTestsJob < ApplicationJob
   end
 
   def execute_batch(code_body, test_inputs)
+    # Check if this task has sub_tasks that need to be merged
+    sub_tasks = task.sub_tasks
+    
+    if sub_tasks.any?
+      execute_batch_with_subtasks(code_body, test_inputs, sub_tasks)
+    else
+      execute_simple_batch(code_body, test_inputs)
+    end
+  end
+
+  def execute_simple_batch(code_body, test_inputs)
     RubySandbox.run_batch(code_body, test_inputs)
   rescue StandardError
     # Fallback to inline evaluation for each test
     test_inputs.map do |test_input|
       begin
-        output = evaluate_inline(code_body, test_input[:input])
-        { "test_id" => test_input[:test_id], "success" => true, "output" => output }
+        output = execute_transform(code_body, test_input["input"])
+        { "test_id" => test_input["test_id"], "success" => true, "output" => output }
       rescue StandardError => e
-        { "test_id" => test_input[:test_id], "success" => false, "error" => e.message }
+        { "test_id" => test_input["test_id"], "success" => false, "error" => e.message }
       end
     end
   end
+
+  def execute_batch_with_subtasks(code_body, test_inputs, sub_tasks)
+    test_inputs.map do |test_input|
+      begin
+        # Step 1: Run parent task's transform
+        first_output = execute_transform(code_body, test_input["input"])
+        
+        # Step 2: For each sub_task, fetch data and run its transform
+        merged_output = first_output.is_a?(Hash) ? first_output.dup : { "data" => first_output }
+        
+        sub_tasks.each do |sub_task|
+          child_task = Task.find_by(system_tag: sub_task.system_tag)
+          next unless child_task&.transform_code.present? && child_task&.api_endpoint.present?
+
+          # Fetch data from child task's endpoint
+          child_data = fetch_endpoint_data(child_task.api_endpoint)
+
+          # Run child task's transform
+          sub_output = execute_transform(child_task.transform_code, child_data)
+
+          # Merge using sub_task's system_tag as the key
+          merged_output[sub_task.system_tag] = sub_output
+        end
+        
+        { "test_id" => test_input["test_id"], "success" => true, "output" => merged_output }
+      rescue StandardError => e
+        { "test_id" => test_input["test_id"], "success" => false, "error" => e.message }
+      end
+    end
+  end
+
+  def execute_transform(code_body, input)
+    return input if code_body.blank?
+
+    begin
+      RubySandbox.run(code_body, input)
+    rescue StandardError
+      evaluate_inline(code_body, input)
+    end
+  end
+
 
   def validate_ui_render(bundle_file_name, data)
     ReactSandbox.validate_render(bundle_file_name, data)
@@ -202,3 +254,4 @@ class RunTransformTestsJob < ApplicationJob
     )
   end
 end
+

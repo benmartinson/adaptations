@@ -18,6 +18,8 @@ Rails.application.routes.draw do
         get :ui_files
         get :sub_tasks
         post :create_sub_task
+        patch "sub_tasks/:sub_task_id", to: "tasks#update_sub_task"
+        post "sub_tasks/:sub_task_id/generate_ui", to: "tasks#generate_subtask_ui"
         delete "sub_tasks/:sub_task_id", to: "tasks#delete_sub_task"
       end
       resources :tests, only: %i[index create show update destroy] do

@@ -1,4 +1,3 @@
 class SubTask < ApplicationRecord
-  belongs_to :task
-  belongs_to :parent_task, class_name: "Task"
+  belongs_to :task  # This is the parent task
 end

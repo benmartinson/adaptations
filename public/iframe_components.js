@@ -5,7 +5,7 @@
  * These components are designed to work in sandboxed iframes that load React via CDN.
  * All components are attached to window.* and use the global React instance.
  * 
- * Generated: 2025-12-22T20:12:44.244Z
+ * Generated: 2025-12-22T21:26:16.910Z
  */
 
 (function() {

@@ -2,8 +2,8 @@ module Api
   class TasksController < ApplicationController
     skip_before_action :verify_authenticity_token
 
-    before_action :set_task, only: %i[show update destroy run_job run_tests ui_files sub_tasks create_sub_task delete_sub_task]
-    before_action :set_sub_task, only: %i[delete_sub_task]
+    before_action :set_task, only: %i[show update destroy run_job run_tests ui_files sub_tasks create_sub_task update_sub_task generate_subtask_ui delete_sub_task]
+    before_action :set_sub_task, only: %i[update_sub_task generate_subtask_ui delete_sub_task]
 
     def index
       tasks = Task.recent.limit(limit_param)
@@ -82,14 +82,35 @@ module Api
     end
 
     def create_sub_task
-      sub_task_params = params.require(:sub_task).permit(:task_id, :system_tag, :parent_system_tag, :notes, :endpoint_notes)
-      sub_task = @task.sub_tasks.create!(sub_task_params)
+      sub_task_params = params.require(:sub_task).permit(:system_tag, :parent_system_tag, :notes, :endpoint_notes)
 
-      # Trigger UI generation for the parent task to include the new sub-task
-      job = SubtaskUiGenerationJob.perform_later(sub_task.id)
-      @task.update!(job_id: job.job_id) if job.respond_to?(:job_id)
+      # Create SubTask - task_id is the parent task (@task)
+      sub_task = @task.sub_tasks.create!(
+        system_tag: sub_task_params[:system_tag],
+        parent_system_tag: sub_task_params[:parent_system_tag],
+        notes: sub_task_params[:notes],
+        endpoint_notes: sub_task_params[:endpoint_notes]
+      )
 
       render json: serialize_sub_task(sub_task), status: :created
+    end
+
+    def update_sub_task
+      sub_task_params = params.require(:sub_task).permit(:notes, :endpoint_notes)
+      @sub_task.update!(sub_task_params)
+
+      render json: serialize_sub_task(@sub_task)
+    end
+
+    def generate_subtask_ui
+      sub_task_params = params.require(:sub_task).permit(:notes, :endpoint_notes)
+      @sub_task.update!(sub_task_params)
+
+      # Trigger UI generation for the parent task to include the updated sub-task
+      job = SubtaskUiGenerationJob.perform_later(@sub_task.id)
+      @task.update!(job_id: job.job_id) if job.respond_to?(:job_id)
+
+      render json: serialize_sub_task(@sub_task), status: :accepted
     end
 
     def delete_sub_task
@@ -207,8 +228,7 @@ module Api
     def serialize_sub_task(sub_task)
       {
         id: sub_task.id,
-        task_id: sub_task.task_id,
-        parent_task_id: sub_task.parent_task_id,
+        task_id: sub_task.task_id,  # Parent task ID
         system_tag: sub_task.system_tag,
         parent_system_tag: sub_task.parent_system_tag,
         notes: sub_task.notes,

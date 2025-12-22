@@ -3,8 +3,7 @@ class Task < ApplicationRecord
 
   has_many :tests, dependent: :destroy
   has_many :task_ui_files, dependent: :destroy
-  has_many :sub_tasks, dependent: :destroy
-  has_many :parent_sub_tasks, class_name: "SubTask", foreign_key: :parent_task_id, dependent: :destroy
+  has_many :sub_tasks, dependent: :destroy  # SubTasks where this task is the parent
 
   enum :status, {
     pending: "pending",

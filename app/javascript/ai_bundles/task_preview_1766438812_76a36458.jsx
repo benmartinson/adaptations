@@ -1,5 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import SubTask from './SubTask';
 
 const SectionTitle = ({ children }) => (
   <h2 className="text-sm font-bold uppercase tracking-widest text-gray-500 mb-4 border-b border-gray-200 pb-1">
@@ -71,6 +72,8 @@ const AuthorDashboard = ({ data }) => {
               {bioText || "No biography available."}
             </div>
           </section>
+
+          <SubTask systemTag="AuthorBooks" data={data.AuthorBooks} />
 
           {/* Alternate Names */}
           {alternate_names && alternate_names.length > 0 && (
@@ -172,6 +175,7 @@ AuthorDashboard.propTypes = {
         value: PropTypes.string,
       }),
     ]),
+    AuthorBooks: PropTypes.any,
   }).isRequired,
 };
 
