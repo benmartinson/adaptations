@@ -89,7 +89,11 @@ export default function TaskRunner() {
     }
   }, [responseJson, fromResponseData, apiEndpoint]);
 
-  async function handleFetchEndpoint(dataDescription, notes = null) {
+  async function handleFetchEndpoint(
+    dataDescription,
+    notes = null,
+    elementType = "generated"
+  ) {
     setFormError(null);
     setFetchingEndpoint(true);
     try {
@@ -108,6 +112,7 @@ export default function TaskRunner() {
               system_tag: systemTag,
               data_description: dataDescription,
               notes: notes,
+              element_type: elementType,
             },
           },
         }),

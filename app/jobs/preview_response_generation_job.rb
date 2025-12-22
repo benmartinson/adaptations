@@ -32,26 +32,22 @@ class PreviewResponseGenerationJob < ApplicationJob
     from_response = fetch_endpoint_data(api_endpoint)
     system_tag = task.input_payload.fetch("system_tag", nil)
     data_description = task.input_payload.fetch("data_description", nil)
+    element_type = task.input_payload.fetch("element_type", "generated")
 
-    # Generate React components for data visualization
-    component_code = generate_react_components(from_response, data_description, notes)
-    bundle_path = save_and_build_component_bundle(component_code)
+    # Generate React components for data visualization based on element type
+    if element_type == "list" && !notes.present?
+      component_code = horizontal_card_list_component
+      bundle_path = save_and_build_component_bundle(component_code)
+    else
+      component_code = generate_react_components(from_response, data_description, notes)
+      bundle_path = save_and_build_component_bundle(component_code)
+    end
     
-    prompt = "You are a assistant that helps create a data visualization from an api response. 
-    The user has selected an api endpoint and wants to create a data visualization from the response. The user has provided
-    React components that will be used to visualize the data. There should be one default component that is exported, it takes a single 'data' prop (object).
-    You need to transform the data from the api response into the object that is expected by this component that accepts this 'data' prop. If there is data
-    in the api response that is not relevant to the data visualization, you should still include it in the object anyways, unless told otherwise by the user (in the data_description)."
-
-    prompt += "\n\nHere are the results returned from the api endpoint: #{from_response} \n\n\
-    You need to transform the data from the api response into the object that is expected by this component that accepts this 'data' prop. 
-    The object will be represented as a JSON object and is what will be passed to the component as the 'data' prop.
-    So you need to select the data from the api response that is used by the component 'data' prop, as you see it being used in the component.
-    Only return the JSON response, no other text or comments."
-
-    prompt += "\n\nHere is the data_description provided by the user, it is important to follow these instructions (but ignore if not relevant): #{data_description}"
-
-    prompt += "\n\nHere are the component(s) that will be used to visualize the data: #{component_code}"
+    if element_type == "list"
+      prompt = build_list_transform_prompt(from_response, data_description, component_code)
+    else
+      prompt = build_default_transform_prompt(from_response, data_description, component_code)
+    end
     
     raw_response = generate_code_response(prompt)
     cleaned_response = extract_json(raw_response)
@@ -118,10 +114,11 @@ class PreviewResponseGenerationJob < ApplicationJob
   end
 
   def generate_react_components(api_response, data_description, notes = nil)
+    if !notes.present?
     prompt = <<~PROMPT
         Take a look at this api response data: #{api_response}
 
-        Create one parentReact component that accepts a single 'data' prop (object) and visualizes the data.
+        Create one parent React component that accepts a single 'data' prop (object) and visualizes the data.
         The component should be exported as the default export and takes a single 'data' prop (object).
         The 'data' prop contains the transformed API response data ready to use in the component.
         But you should keep it simple and assume the data prop is similar to the api response data.
@@ -150,25 +147,28 @@ class PreviewResponseGenerationJob < ApplicationJob
   
         Return only the complete React component code in JavaScript, no explanations or markdown.
       PROMPT
-      
-    if notes.present?
+
+    else
       active_ui_file = task.task_ui_files.find_by(is_active: true)
       previous_code = active_ui_file&.source_code
 
-      prompt += <<~PROMPT
+      prompt = <<~PROMPT
         We are revising an existing component based on user feedback.
 
+        Previously, you created a parent React component that accepts a single 'data' prop (object) and visualizes the data.
         Here is the previous attempt at the component code:
         ```javascript
         #{previous_code}
         ```
-        Unless told otherwise below, use the same data as the previous attempt.
+        Unless told otherwise below, use the same data prop object structure as the previous attempt.
         The user may request changes to the data, but you should stay true to the previous attempt unless told otherwise.
-        If some data was not included in the previous attempt, it's because the user didn't want it included.
+        You can add some logic to the component to transform the data if requested, like sorting, filtering, etc.
+        But don't add too much logic, keep it simple and clean. Don't change the data values itself.
         The user has requested the following changes:
         #{notes}
 
         Please revise the React component(s) to incorporate these changes.
+        Return only the complete React component code in JavaScript, no explanations or markdown. 
       PROMPT
     end
 
@@ -216,6 +216,63 @@ class PreviewResponseGenerationJob < ApplicationJob
     return "" unless File.exist?(doc_path)
     
     File.read(doc_path)
+  end
+
+  def horizontal_card_list_component
+    component_path = Rails.root.join("app", "javascript", "iframe_components", "HorizontalCardList.jsx")
+    return "" unless File.exist?(component_path)
+    
+    File.read(component_path)
+  end
+
+  def build_list_transform_prompt(from_response, data_description, component_code)
+    <<~PROMPT
+      You are an assistant that helps transform API response data for a HorizontalCardList component.
+      
+      The HorizontalCardList component expects a 'data' prop with the following structure:
+      {
+        "title": "Optional title string",
+        "items": [
+          {
+            "id": "unique identifier",
+            "imageUrl": "URL to an image (optional)",
+            "firstLineText": "Primary text to display",
+            "secondLineText": "Secondary text (optional)",
+            "thirdLineText": "Tertiary text (optional)"
+          }
+        ]
+      }
+
+      Here is the API response data that needs to be transformed:
+      #{from_response}
+
+      Transform this API response into the format expected by the HorizontalCardList component.
+      Map relevant fields from the API response to the item properties (id, imageUrl, firstLineText, secondLineText, thirdLineText).
+      
+      #{data_description.present? ? "User instructions for the data transformation: #{data_description}" : ""}
+
+      Return only the JSON object, no other text or comments.
+    PROMPT
+  end
+
+  def build_default_transform_prompt(from_response, data_description, component_code)
+    prompt = "You are a assistant that helps create a data visualization from an api response. 
+    The user has selected an api endpoint and wants to create a data visualization from the response. The user has provided
+    React components that will be used to visualize the data. There should be one default component that is exported, it takes a single 'data' prop (object).
+    You need to transform the data from the api response into the object that is expected by this component that accepts this 'data' prop. If there is data
+    in the api response that is not relevant to the data visualization, you should still include it in the object anyways, unless told otherwise by the user (in the data_description)."
+
+    prompt += "\n\nHere are the results returned from the api endpoint: #{from_response} \n\n\
+    You need to transform the data from the api response into the object that is expected by this component that accepts this 'data' prop. 
+    The object will be represented as a JSON object and is what will be passed to the component as the 'data' prop.
+    So you need to select the data from the api response that is used by the component 'data' prop, as you see it being used in the component.
+    Only return the JSON response, no other text or comments."
+
+    prompt += "\n\nHere is the data_description provided by the user, it is important to follow these instructions (but ignore if not relevant): #{data_description}"
+
+    prompt += "\n\nHere are the component(s) that will be used to visualize the data: #{component_code}"
+    
+    prompt
   end
 
   def broadcast_event(data)

@@ -107,6 +107,10 @@ export default function useTaskProgress(taskId) {
     return snapshot?.data_description;
   }, [snapshot]);
 
+  const elementType = useMemo(() => {
+    return snapshot?.input_payload?.element_type;
+  }, [snapshot]);
+
   const addTest = (newTest) => {
     setSnapshot((prev) => ({
       ...prev,
@@ -135,6 +139,7 @@ export default function useTaskProgress(taskId) {
     updateResponseJson,
     addTest,
     dataDescription,
+    elementType,
     updateTest,
   };
 }

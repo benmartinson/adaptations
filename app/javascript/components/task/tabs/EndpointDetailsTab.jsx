@@ -13,8 +13,12 @@ export default function EndpointDetailsTab({
   generatingMessage,
   transformCode,
 }) {
-  const { dataDescription: snapshotDataDescription } = useTaskProgress(taskId);
+  const {
+    dataDescription: snapshotDataDescription,
+    elementType: snapshotElementType,
+  } = useTaskProgress(taskId);
   const [dataDescription, setDataDescription] = useState("");
+  const [elementType, setElementType] = useState("generated");
 
   useEffect(() => {
     if (snapshotDataDescription && !dataDescription) {
@@ -22,8 +26,14 @@ export default function EndpointDetailsTab({
     }
   }, [snapshotDataDescription]);
 
+  useEffect(() => {
+    if (snapshotElementType && elementType === "generated") {
+      setElementType(snapshotElementType);
+    }
+  }, [snapshotElementType]);
+
   function handleFetchEndpoint() {
-    onFetchEndpoint(dataDescription);
+    onFetchEndpoint(dataDescription, null, elementType);
   }
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-4">
@@ -84,6 +94,50 @@ export default function EndpointDetailsTab({
             onChange={(event) => setDataDescription(event.target.value)}
             rows={3}
           />
+        </div>
+
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-gray-700">
+            Type of Element
+          </label>
+          <div className="flex gap-6">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="elementType"
+                value="list"
+                checked={elementType === "list"}
+                onChange={(e) => setElementType(e.target.value)}
+                disabled={isGeneratingPreview}
+                className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+              />
+              <span className="text-sm text-gray-700">List</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="elementType"
+                value="detail"
+                checked={elementType === "detail"}
+                onChange={(e) => setElementType(e.target.value)}
+                disabled={isGeneratingPreview}
+                className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+              />
+              <span className="text-sm text-gray-700">Detail</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="elementType"
+                value="generated"
+                checked={elementType === "generated"}
+                onChange={(e) => setElementType(e.target.value)}
+                disabled={isGeneratingPreview}
+                className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+              />
+              <span className="text-sm text-gray-700">Generated Page</span>
+            </label>
+          </div>
         </div>
 
         {isGeneratingPreview && (

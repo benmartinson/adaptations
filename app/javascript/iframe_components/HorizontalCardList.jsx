@@ -1,7 +1,10 @@
 // Iframe-compatible component - uses global React from window
 // This component displays items in a horizontal scrolling list with images
 
-export default function HorizontalCardList({ title, items, onItemClick }) {
+export default function HorizontalCardList({ data }) {
+  // Destructure the data prop
+  const { title, items, onItemClick } = data || {};
+
   // Use React from window (loaded via CDN in iframe)
   const { useState } = React;
   const [imageErrors, setImageErrors] = useState({});
@@ -84,4 +87,3 @@ export default function HorizontalCardList({ title, items, onItemClick }) {
     </div>
   );
 }
-

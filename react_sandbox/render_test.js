@@ -19,7 +19,11 @@ global.window = dom.window;
 global.document = dom.window.document;
 global.navigator = dom.window.navigator;
 
-// IMPORTANT: Set up window.React for the react_shim used in bundled components
+// IMPORTANT: Set up React globally for components that access React directly
+// (like iframe_components that use `const { useState } = React`)
+global.React = React;
+
+// Also set up window.React for the react_shim used in bundled components
 global.window.React = React;
 
 // Helper to write output

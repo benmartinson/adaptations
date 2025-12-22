@@ -5,7 +5,7 @@
  * These components are designed to work in sandboxed iframes that load React via CDN.
  * All components are attached to window.* and use the global React instance.
  * 
- * Generated: 2025-12-22T19:20:54.273Z
+ * Generated: 2025-12-22T20:12:44.244Z
  */
 
 (function() {
@@ -22,10 +22,15 @@
 // This component displays items in a horizontal scrolling list with images
 
 function HorizontalCardList({
-  title,
-  items,
-  onItemClick
+  data
 }) {
+  // Destructure the data prop
+  const {
+    title,
+    items,
+    onItemClick
+  } = data || {};
+
   // Use React from window (loaded via CDN in iframe)
   const {
     useState
