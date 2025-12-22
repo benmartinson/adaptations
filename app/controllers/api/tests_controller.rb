@@ -17,10 +17,16 @@ module Api
     def create
       test_data = params.require(:test).permit(:api_endpoint, :is_primary, :description, :from_response, :expected_output)
 
+      expected_output = if @task.kind == "link" && test_data[:is_primary]
+        @task.response_json
+      else
+        test_data[:expected_output]
+      end
+
       test = @task.tests.create!(
         api_endpoint: test_data[:api_endpoint] || @task.api_endpoint,
-        from_response: JSON.parse(test_data[:from_response]),
-        expected_output: test_data[:expected_output],
+        from_response: @task.kind == "api_transform" ? JSON.parse(test_data[:from_response]) : test_data[:from_response],
+        expected_output: expected_output,
         is_primary: test_data[:is_primary] || false,
         description: test_data[:description],
         status: "created",

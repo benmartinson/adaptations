@@ -46,7 +46,7 @@ class TransformCodeGenerationJob < ApplicationJob
   end
 
   def build_prompt
-    tests_needing_changes = task.tests.where(status: "changes_needed")
+    tests_needing_changes = task.kind == "link" ? task.tests.where(status: "fail") : task.tests.where(status: "changes_needed")
 
     if tests_needing_changes.exists?
       build_revision_prompt(tests_needing_changes)
@@ -58,12 +58,12 @@ class TransformCodeGenerationJob < ApplicationJob
   def build_initial_prompt
     from_response = task.input_payload.fetch("from_response", [])
     to_response = task.response_json
-
     if task.kind == "link"
       "Can you write a ruby data transformation: def transformation_procedure(data) ...something... end
         Where the 'data' param is fetched data from an api endpoint and the example given is this data format: #{from_response}
         And you need to write a transformation function that prepares this data to call the target API endpoint: #{to_response}
-        The transformation should return data in the format expected by the target API endpoint.
+        The transformation should return target API endpoint as a string. The function extracts the path paramter values somehow from the from_response data,
+        and the code will work generically for any from_response data in the same format.
         \n\nRuby Code notes:
         1. No constant variables should be used. Only local variables should be used.
         2. You may use helper methods if needed.
@@ -80,13 +80,13 @@ class TransformCodeGenerationJob < ApplicationJob
   end
 
   def build_revision_prompt(tests_needing_changes)
+    initial_prompt = build_initial_prompt
     if task.kind == "link"
       prompt = <<~PROMPT
-      Previously, you recieved the instructions
-      'Can you write a ruby data transformation: def transformation_procedure(data) ...something... end'
-      And were given data from a source API and a target data prop object expected by React components.
-        We've already attempted to write this transformation, but it needs changes. Here is the current code:
+      Previously, you recieved the instructions:
+        #{initial_prompt}
 
+        Here is the transformation code you wrote previously:
         ```ruby
         #{task.transform_code}
         ```
@@ -95,10 +95,14 @@ class TransformCodeGenerationJob < ApplicationJob
       PROMPT
     else
       prompt = <<~PROMPT
-      Previously, you recieved the instructions
-      'Can you write a ruby data transformation: def transformation_procedure(data) ...something... end'
-      And were given an intial (from_response) and expected (expected_output) data format.
-        We've already attempted to write this transformation, but it needs changes. Here is the current code:
+        Previously, you recieved the instructions:
+        #{initial_prompt}
+
+        Here is the transformation code you wrote previously:
+        ```ruby
+        #{task.transform_code}
+        ```
+        The following test cases need to be fixed:
 
         ```ruby
         #{task.transform_code}

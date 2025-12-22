@@ -47,6 +47,7 @@ class RunLinkTransformTestsJob < ApplicationJob
         {
           test_id: test.id,
           from_api_endpoint: test.from_response,
+          to_api_endpoint: test.expected_output,
           from_transform: from_task.transform_code,
           to_transform: to_task.transform_code,
           link_transform: task.transform_code,
@@ -60,7 +61,11 @@ class RunLinkTransformTestsJob < ApplicationJob
         next unless test
         if result["success"]
           test.update!(status: "pass", actual_output: result["output"], error_message: nil)
+        elsif result["output"].present?
+          # Test ran but output didn't match expected - mark as fail
+          test.update!(status: "fail", error_message: result["error"], actual_output: result["output"])
         else
+          # Actual error during execution
           test.update!(status: "error", error_message: result["error"], actual_output: result["output"])
         end
       end
@@ -92,16 +97,17 @@ class RunLinkTransformTestsJob < ApplicationJob
         from_data = fetch_endpoint_data(test_input[:from_api_endpoint])
         first_output = execute_transform(test_input[:from_transform], from_data)
         second_output = execute_transform(test_input[:link_transform], first_output)
-
         to_endpoint = second_output.to_s.strip
         if to_endpoint.blank?
           raise StandardError, "Link transformation did not produce a valid endpoint"
         end
 
-        to_data = fetch_endpoint_data(to_endpoint)
-        final_output = execute_transform(test_input[:to_transform], to_data)
-        # final_output = execute_transform(test_input[:to_transform], [to_data])
-        { "test_id" => test_input[:test_id], "success" => true, "output" => final_output }
+        expected_output = test_input[:to_api_endpoint].to_s.strip
+        if to_endpoint == expected_output
+          { "test_id" => test_input[:test_id], "success" => true, "output" => to_endpoint }
+        else
+          { "test_id" => test_input[:test_id], "success" => false, "output" => to_endpoint, "error" => "Expected: #{expected_output}, Got: #{to_endpoint}" }
+        end
       rescue StandardError => e
         { "test_id" => test_input[:test_id], "success" => false, "error" => e.message }
       end

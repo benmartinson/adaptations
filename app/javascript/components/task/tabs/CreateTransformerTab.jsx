@@ -16,6 +16,7 @@ export default function CreateTransformerTab({
 }) {
   const { snapshot } = useTaskProgress(taskId);
   const navigate = useNavigate();
+  const taskType = isLinkTask ? "link" : "task";
 
   const [activeSubTab, setActiveSubTab] = useState(
     transformCode ? "transform-code" : "data-selector"
@@ -131,7 +132,7 @@ export default function CreateTransformerTab({
           {transformCode && !hasTests && (
             <button
               type="button"
-              onClick={() => navigate(`/task/${taskId}/tests`)}
+              onClick={() => navigate(`/${taskType}/${taskId}/tests`)}
               className="px-4 py-2 rounded-lg bg-gray-900 text-white font-semibold hover:bg-gray-700 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={isGeneratingTransformCode}
             >

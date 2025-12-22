@@ -173,7 +173,9 @@ export default function RunTestsTab({
   const otherTests = allTests
     .filter((t) => !t.is_primary && t.test_type !== "automated")
     .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-  const hasChangesNeeded = allTests.some((t) => t.status === "changes_needed");
+  const hasChangesNeeded = isLinkTask
+    ? allTests.some((t) => t.status === "fail")
+    : allTests.some((t) => t.status === "changes_needed");
 
   return (
     <div className="space-y-3">
@@ -259,7 +261,7 @@ export default function RunTestsTab({
               onClick={onRegenerateTransform}
               className="px-3 py-1.5 rounded-md bg-gray-900 text-white text-sm font-medium hover:bg-gray-700 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-400"
             >
-              Re-Generate Transformation
+              {isLinkTask ? "Fix Tests" : "Re-Generate Transformation"}
             </button>
             {!hasChangesNeeded && (
               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">

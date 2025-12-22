@@ -110,12 +110,21 @@ export default function TransformationConfigurator({
       {showInstructions && (
         <>
           {isLinkTask ? (
-            <p className="text-sm text-gray-600">
-              Explain how to get from the 'From Response' to the 'To Response'
-              below. Edit the 'To Response' to represent what the resulting API
-              endpoint should be if we started with the fetched data shown as
-              the 'From Response'.
-            </p>
+            <>
+              <p className="text-sm text-gray-600">
+                Explain how to get from the 'From Response' to the 'To Response'
+                below. Edit the 'To Response' to represent what the resulting
+                API endpoint should be if we started with the fetched data shown
+                as the 'From Response'.
+              </p>
+              <p className="text-sm text-gray-600">
+                <b>
+                  An update to the The path parameter values in the api endpoint
+                  shown in the 'To Response' is most likely needed. The values
+                  should originate from the 'From Response' data.
+                </b>
+              </p>
+            </>
           ) : (
             <>
               <p className="text-sm text-gray-600">
@@ -191,7 +200,8 @@ export default function TransformationConfigurator({
         <div>
           <div className="flex items-center justify-between mb-1">
             <label className="block text-sm font-medium text-gray-700">
-              To response (JSON)
+              To response (JSON).{" "}
+              {isLinkTask && "Must be a valid API endpoint."}
             </label>
             {saveStatus && (
               <span

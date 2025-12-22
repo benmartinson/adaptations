@@ -158,19 +158,6 @@ export default function LinkTestCard({
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {actualOutput && (
-            <button
-              type="button"
-              onClick={() =>
-                navigate(`/link/${taskId}/tests/preview`, {
-                  state: { testId: test.id },
-                })
-              }
-              className="px-3 py-1 text-sm rounded-md font-medium cursor-pointer transition-colors bg-indigo-100 text-indigo-700 hover:bg-indigo-200"
-            >
-              Review
-            </button>
-          )}
           <button
             type="button"
             onClick={handleRun}
@@ -273,39 +260,88 @@ export default function LinkTestCard({
       {/* Collapsible content - always shown for primary tests, toggle for non-primary */}
       {(isExpanded || !canCollapse) && (
         <>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-            <div className="border border-gray-200 rounded-md overflow-hidden h-18">
-              <div className="bg-gray-50 px-3 py-1.5 border-b border-gray-200">
-                <h4 className="text-xs font-medium text-gray-700">
-                  From API Endpoint
-                </h4>
+          {/* From API Endpoint - full width */}
+          <div className="border border-gray-200 rounded-md overflow-hidden h-18 mb-3">
+            <div className="bg-gray-50 px-3 py-1.5 border-b border-gray-200">
+              <h4 className="text-xs font-medium text-gray-700">
+                From API Endpoint
+              </h4>
+            </div>
+            <div className="p-3">
+              <div className="flex items-center gap-2">
+                <svg
+                  className="w-4 h-4 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9"
+                  />
+                </svg>
+                <code className="text-xs text-gray-600 break-all">
+                  {fromEndpoint || "No endpoint configured"}
+                </code>
               </div>
-              <div className="p-3">
-                <div className="flex items-center gap-2">
-                  <svg
-                    className="w-4 h-4 text-gray-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+            </div>
+          </div>
+
+          {/* Expected and Actual Output - side by side */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            <div className="border border-gray-200 rounded-md overflow-hidden">
+              <div className="bg-gray-50 px-3 py-1.5 border-b border-gray-200 flex items-center justify-between">
+                <h4 className="text-xs font-medium text-gray-700">
+                  Expected Output
+                </h4>
+                {test?.expected_output && (
+                  <button
+                    type="button"
+                    onClick={() => setIsDataExpanded(!isDataExpanded)}
+                    className="text-xs underline text-gray-600 hover:text-gray-800"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9"
-                    />
-                  </svg>
-                  <code className="text-xs text-gray-600 break-all">
-                    {fromEndpoint || "No endpoint configured"}
-                  </code>
-                </div>
+                    {isDataExpanded ? "Collapse" : "Expand"}
+                  </button>
+                )}
+              </div>
+              <div
+                className={`p-3 ${
+                  isDataExpanded ? "max-h-[1000px]" : "max-h-36"
+                } overflow-auto`}
+              >
+                {test?.expected_output ? (
+                  <pre className="text-xs text-gray-600 whitespace-pre-wrap">
+                    {typeof test.expected_output === "string"
+                      ? test.expected_output
+                      : JSON.stringify(test.expected_output, null, 2)}
+                  </pre>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-16 text-gray-400">
+                    <svg
+                      className="w-6 h-6 mb-1"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.5}
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      />
+                    </svg>
+                    <p className="text-xs">No expected output set</p>
+                  </div>
+                )}
               </div>
             </div>
 
             <div className="border border-gray-200 rounded-md overflow-hidden">
               <div className="bg-gray-50 px-3 py-1.5 border-b border-gray-200 flex items-center justify-between">
                 <h4 className="text-xs font-medium text-gray-700">
-                  Transformed Output
+                  Actual Output
                 </h4>
                 {actualOutput && (
                   <button
@@ -317,7 +353,11 @@ export default function LinkTestCard({
                   </button>
                 )}
               </div>
-              <div className={`p-3 ${isDataExpanded ? 'max-h-[1000px]' : 'max-h-36'} overflow-auto`}>
+              <div
+                className={`p-3 ${
+                  isDataExpanded ? "max-h-[1000px]" : "max-h-36"
+                } overflow-auto`}
+              >
                 {actualOutput ? (
                   <pre className="text-xs text-gray-600 whitespace-pre-wrap">
                     {JSON.stringify(actualOutput, null, 2)}

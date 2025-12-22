@@ -131,7 +131,7 @@ export default function LinkRunner() {
     }
   }
 
-  async function handleContinue() {
+  async function handleCreateTask() {
     setIsProcessing(true);
     setFormError(null);
 
@@ -158,8 +158,7 @@ export default function LinkRunner() {
       setLocalFromResponse(fromTask.response_json);
       setLocalToResponse(toTask.api_endpoint);
 
-      // Navigate to the transformer tab
-      navigate(`/link/${task_id}/tests`);
+      navigate(`/link/${task_id}/transformer`);
     } catch (error) {
       console.error("Continue error:", error);
       setFormError(error.message);
@@ -168,10 +167,13 @@ export default function LinkRunner() {
     }
   }
 
-  const hasLinkData = snapshot?.input_payload && snapshot?.response_json;
+  const hasLinkData = Boolean(
+    snapshot?.input_payload && snapshot?.response_json
+  );
 
-  async function handleGenerateTransform(dataDescription) {
+  async function handleGenerateTransform() {
     setIsGeneratingTransformCode(true);
+    navigate(`/link/${task_id}/transformer`);
 
     try {
       const taskResponse = await fetch(`/api/tasks/${task_id}/run_job`, {
@@ -187,7 +189,6 @@ export default function LinkRunner() {
               to_response: localToResponse || snapshot?.response_json,
               task_type: "transform_code_generation",
             },
-            data_description: dataDescription,
           },
         }),
       });
@@ -277,7 +278,7 @@ export default function LinkRunner() {
           setToSystemTag={setToSystemTag}
           formError={formError}
           availableSystemTags={availableSystemTags}
-          onContinue={handleContinue}
+          onContinue={handleCreateTask}
           isProcessing={isProcessing}
         />
       )}
@@ -303,7 +304,7 @@ export default function LinkRunner() {
           tests={tests}
           onTestCreated={addTest}
           onTestUpdate={updateTest}
-          onRegenerateTransform={() => {}}
+          onRegenerateTransform={handleGenerateTransform}
           isLinkTask
           allTasks={allTasks}
           fromSystemTag={fromSystemTag}
