@@ -1,0 +1,14 @@
+Available global components you can use (no import needed, just use directly):
+
+- HorizontalCardList: A horizontal scrolling card list component for displaying items with images.
+  Props:
+    - title (string, optional): Header text displayed above the list
+    - items (array, required): Array of item objects
+      - id: required - Unique identifier for the item
+      - imageUrl: optional - URL for the item's image
+      - firstLineText: optional - Primary text line (e.g., title)
+      - secondLineText: optional - Secondary text line (e.g., author)
+      - thirdLineText: optional - Tertiary text line (e.g., year)
+    - onItemClick (function, optional): Callback when an item is clicked, receives the item as argument
+  Example: <HorizontalCardList title="Books" items={data.books.map(b => ({ id: b.id, imageUrl: b.cover, firstLineText: b.title, secondLineText: b.author }))} />
+

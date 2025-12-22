@@ -157,6 +157,8 @@ export default function DynamicUIFile({ taskId, responseJson }) {
         </style>
         <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
         <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+        <!-- Load reusable iframe components (HorizontalCardList, etc.) -->
+        <script src="/iframe_components.js"></script>
       </head>
       <body>
         <div id="root">
@@ -166,82 +168,6 @@ export default function DynamicUIFile({ taskId, responseJson }) {
           const frameId = '${frameId}';
           const componentUrl = '${activeFile?.file_name || ""}';
           const componentData = ${JSON.stringify(responseJson)};
-
-          // HorizontalCardList component for displaying items in a horizontal scrolling list
-          window.HorizontalCardList = function HorizontalCardList({ title, items, onItemClick }) {
-            const [imageErrors, setImageErrors] = React.useState({});
-            
-            const markImageError = (id) => {
-              setImageErrors(prev => ({ ...prev, [id]: true }));
-            };
-            
-            const hasImageError = (id) => imageErrors[id] === true;
-            
-            // ImageNotFound component inline
-            const ImageNotFound = ({ size = 'small' }) => {
-              const sizeClasses = {
-                tiny: 'w-[80px] h-[120px]',
-                small: 'w-[150px] h-[230px]',
-                large: 'w-[210px] h-[320px]',
-              };
-              const sizeClass = sizeClasses[size] || sizeClasses.small;
-              const iconClass = size === 'tiny' ? 'w-8 h-8' : 'w-16 h-16 mb-2';
-              
-              return React.createElement('div', {
-                className: sizeClass + ' m-auto [border-radius:0_6%_6%_0_/4%] drop-shadow-md bg-gray-200 flex items-center justify-center border-2 border-dashed border-gray-400'
-              },
-                React.createElement('div', { className: 'text-center text-gray-500' },
-                  React.createElement('svg', {
-                    className: iconClass + ' mx-auto',
-                    fill: 'none',
-                    stroke: 'currentColor',
-                    viewBox: '0 0 24 24',
-                    xmlns: 'http://www.w3.org/2000/svg'
-                  },
-                    React.createElement('path', {
-                      strokeLinecap: 'round',
-                      strokeLinejoin: 'round',
-                      strokeWidth: 2,
-                      d: 'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z'
-                    })
-                  ),
-                  size !== 'tiny' && React.createElement('p', { className: 'text-sm' }, 'Image not available')
-                )
-              );
-            };
-            
-            return React.createElement('div', null,
-              title && React.createElement('h4', {
-                className: 'font-fancy text-[14px] leading-[20px] font-[600] font-bold mt-6'
-              }, title),
-              React.createElement('div', {
-                className: 'flex flex-start gap-8 mt-3 overflow-x-auto pb-2'
-              },
-                items && items.map((item) =>
-                  React.createElement('div', {
-                    key: item.id,
-                    className: 'group flex-shrink-0 cursor-pointer',
-                    onClick: () => onItemClick && onItemClick(item)
-                  },
-                    item.imageUrl && !hasImageError(item.id) && React.createElement('img', {
-                      src: item.imageUrl,
-                      alt: item.firstLineText || '',
-                      className: 'w-[150px] h-[230px] m-auto [border-radius:0_6%_6%_0_/4%] drop-shadow-md group-hover:scale-105 transition-all duration-300 object-cover',
-                      onError: () => markImageError(item.id)
-                    }),
-                    hasImageError(item.id) && React.createElement(ImageNotFound, { size: 'small' }),
-                    React.createElement('div', {
-                      className: 'text-[#707070] text-[14px] leading-[18px] font-body mt-2 w-[150px] max-w-[150px]'
-                    },
-                      item.firstLineText && React.createElement('div', null, item.firstLineText),
-                      item.secondLineText && React.createElement('div', { className: 'line-break' }, item.secondLineText),
-                      item.thirdLineText && React.createElement('div', null, item.thirdLineText)
-                    )
-                  )
-                )
-              )
-            );
-          };
 
           // SubTask component for nested task rendering
           window.SubTask = class SubTask extends React.Component {

@@ -834,67 +834,70 @@ var {
   useTransition
 } = React;
 
-// app/javascript/ai_bundles/task_preview_1766428133_033a93e8.jsx
+// app/javascript/ai_bundles/task_preview_1766431355_7ece5408.jsx
 var import_prop_types = __toESM(require_prop_types());
 var AuthorWorksDashboard = ({ data }) => {
-  const { authorName, totalWorks, works } = data;
-  if (!works || works.length === 0) {
-    return /* @__PURE__ */ react_shim_default.createElement("div", { className: "p-8 text-center text-gray-500 bg-gray-50 rounded-xl border border-dashed border-gray-300" }, "No works found for this author.");
-  }
-  const horizontalItems = works.map((work) => ({
-    id: work.id,
-    imageUrl: work.coverUrl,
+  const { entries = [], size = 0, links = {} } = data;
+  const getCoverUrl = (coverId) => {
+    if (!coverId || coverId === -1) return "https://via.placeholder.com/180x270?text=No+Cover";
+    return `https://covers.openlibrary.org/b/id/${coverId}-M.jpg`;
+  };
+  const getYear = (dateObj) => {
+    if (!dateObj || !dateObj.value) return "";
+    return new Date(dateObj.value).getFullYear();
+  };
+  const getDescription = (desc) => {
+    if (!desc) return "";
+    if (typeof desc === "string") return desc;
+    return desc.value || "";
+  };
+  const allSubjects = [...new Set(entries.flatMap((e) => e.subjects || []))].slice(0, 15);
+  const allPlaces = [...new Set(entries.flatMap((e) => e.subject_places || []))].slice(0, 10);
+  const cardItems = entries.map((work) => ({
+    id: work.key,
+    imageUrl: getCoverUrl(work.covers ? work.covers[0] : null),
     firstLineText: work.title,
-    secondLineText: work.year || "N/A",
-    thirdLineText: work.subjects?.[0] || ""
+    secondLineText: work.authors?.length > 1 ? "Multiple Authors" : "Andy Weir",
+    thirdLineText: getYear(work.created)
   }));
-  return /* @__PURE__ */ react_shim_default.createElement("div", { className: "max-w-7xl mx-auto p-4 md:p-8 bg-white text-gray-900 space-y-12" }, /* @__PURE__ */ react_shim_default.createElement("header", { className: "border-b border-gray-200 pb-8" }, /* @__PURE__ */ react_shim_default.createElement("h1", { className: "text-4xl font-black tracking-tight text-black mb-2" }, authorName || "Author Portfolio"), /* @__PURE__ */ react_shim_default.createElement("div", { className: "flex items-center gap-4 text-sm text-gray-500 uppercase tracking-widest font-semibold" }, /* @__PURE__ */ react_shim_default.createElement("span", null, totalWorks, " Published Works"), /* @__PURE__ */ react_shim_default.createElement("span", { className: "w-1 h-1 bg-gray-300 rounded-full" }), /* @__PURE__ */ react_shim_default.createElement("span", null, "Open Library Collection"))), /* @__PURE__ */ react_shim_default.createElement("section", null, /* @__PURE__ */ react_shim_default.createElement(
+  return /* @__PURE__ */ react_shim_default.createElement("div", { className: "min-h-screen bg-gray-50 text-gray-900 p-4 md:p-8 font-sans" }, /* @__PURE__ */ react_shim_default.createElement("header", { className: "max-w-7xl mx-auto mb-10" }, /* @__PURE__ */ react_shim_default.createElement("div", { className: "flex flex-col md:flex-row md:items-end justify-between border-b border-gray-200 pb-6" }, /* @__PURE__ */ react_shim_default.createElement("div", null, /* @__PURE__ */ react_shim_default.createElement("h1", { className: "text-4xl font-bold tracking-tight text-black" }, "Author Works"), /* @__PURE__ */ react_shim_default.createElement("p", { className: "text-gray-500 mt-2 text-lg" }, "Catalog for ", /* @__PURE__ */ react_shim_default.createElement("span", { className: "font-mono text-sm bg-gray-200 px-2 py-1 rounded" }, links.author || "Unknown Author"))), /* @__PURE__ */ react_shim_default.createElement("div", { className: "mt-4 md:mt-0 text-right" }, /* @__PURE__ */ react_shim_default.createElement("span", { className: "text-5xl font-light text-gray-300" }, size), /* @__PURE__ */ react_shim_default.createElement("span", { className: "ml-2 text-sm uppercase tracking-widest text-gray-500 font-semibold" }, "Total Works")))), /* @__PURE__ */ react_shim_default.createElement("section", { className: "max-w-7xl mx-auto mb-12" }, /* @__PURE__ */ react_shim_default.createElement(
     HorizontalCardList,
     {
-      title: "Bibliography Overview",
-      items: horizontalItems
+      title: "Library Entries",
+      items: cardItems
     }
-  )), /* @__PURE__ */ react_shim_default.createElement("section", { className: "space-y-8" }, /* @__PURE__ */ react_shim_default.createElement("div", { className: "flex items-center justify-between" }, /* @__PURE__ */ react_shim_default.createElement("h2", { className: "text-2xl font-bold text-black" }, "Detailed Catalog"), /* @__PURE__ */ react_shim_default.createElement("span", { className: "text-xs text-gray-400 font-mono" }, "SORTED BY RELEVANCE")), /* @__PURE__ */ react_shim_default.createElement("div", { className: "grid grid-cols-1 gap-12" }, works.map((work) => /* @__PURE__ */ react_shim_default.createElement(WorkDetailItem, { key: work.id, work })))), /* @__PURE__ */ react_shim_default.createElement("footer", { className: "pt-12 border-t border-gray-100 text-center text-gray-400 text-xs" }, /* @__PURE__ */ react_shim_default.createElement("p", null, "\xA9 Data provided by Open Library API. All rights reserved by the respective authors.")));
-};
-var WorkDetailItem = ({ work }) => {
-  const { title, description, subjects, places, people, coverUrl, year } = work;
-  return /* @__PURE__ */ react_shim_default.createElement("div", { className: "flex flex-col md:flex-row gap-8 group" }, /* @__PURE__ */ react_shim_default.createElement("div", { className: "w-full md:w-48 flex-shrink-0" }, /* @__PURE__ */ react_shim_default.createElement("div", { className: "aspect-[2/3] bg-gray-100 rounded-sm overflow-hidden border border-gray-200 shadow-sm transition-transform duration-300 group-hover:scale-[1.02]" }, coverUrl ? /* @__PURE__ */ react_shim_default.createElement(
-    "img",
+  )), /* @__PURE__ */ react_shim_default.createElement("div", { className: "max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8" }, /* @__PURE__ */ react_shim_default.createElement("div", { className: "lg:col-span-2 space-y-6" }, /* @__PURE__ */ react_shim_default.createElement("h2", { className: "text-xl font-bold border-l-4 border-black pl-3 mb-6" }, "Work Highlights"), entries.filter((e) => e.description).map((work) => /* @__PURE__ */ react_shim_default.createElement("div", { key: work.key, className: "bg-white p-6 rounded-lg shadow-sm border border-gray-100" }, /* @__PURE__ */ react_shim_default.createElement("div", { className: "flex justify-between items-start mb-4" }, /* @__PURE__ */ react_shim_default.createElement("h3", { className: "text-xl font-bold text-black" }, work.title), /* @__PURE__ */ react_shim_default.createElement("span", { className: "text-xs font-mono text-gray-400" }, getYear(work.created))), /* @__PURE__ */ react_shim_default.createElement("p", { className: "text-gray-600 leading-relaxed mb-4 text-sm italic" }, getDescription(work.description).substring(0, 300), "..."), work.subjects && /* @__PURE__ */ react_shim_default.createElement("div", { className: "flex flex-wrap gap-2" }, work.subjects.slice(0, 5).map((s, idx) => /* @__PURE__ */ react_shim_default.createElement("span", { key: idx, className: "text-[10px] bg-gray-100 text-gray-600 px-2 py-1 rounded uppercase tracking-wider" }, s)))))), /* @__PURE__ */ react_shim_default.createElement("div", { className: "space-y-8" }, /* @__PURE__ */ react_shim_default.createElement("div", { className: "bg-black text-white p-6 rounded-lg" }, /* @__PURE__ */ react_shim_default.createElement("h2", { className: "text-sm font-bold uppercase tracking-widest mb-4 opacity-70" }, "Top Subjects"), /* @__PURE__ */ react_shim_default.createElement("div", { className: "flex flex-wrap gap-2" }, allSubjects.map((subject, idx) => /* @__PURE__ */ react_shim_default.createElement("span", { key: idx, className: "text-xs bg-gray-800 hover:bg-gray-700 px-2 py-1 rounded transition-colors cursor-default" }, subject)))), /* @__PURE__ */ react_shim_default.createElement("div", { className: "bg-white p-6 rounded-lg border border-gray-200" }, /* @__PURE__ */ react_shim_default.createElement("h2", { className: "text-sm font-bold uppercase tracking-widest mb-4 text-gray-400" }, "Subject Places"), /* @__PURE__ */ react_shim_default.createElement("ul", { className: "space-y-2" }, allPlaces.map((place, idx) => /* @__PURE__ */ react_shim_default.createElement("li", { key: idx, className: "text-sm flex items-center text-gray-700" }, /* @__PURE__ */ react_shim_default.createElement("span", { className: "w-1.5 h-1.5 bg-black rounded-full mr-2" }), place)))), /* @__PURE__ */ react_shim_default.createElement("div", { className: "bg-gray-100 p-6 rounded-lg" }, /* @__PURE__ */ react_shim_default.createElement("h2", { className: "text-sm font-bold uppercase tracking-widest mb-4 text-gray-500" }, "Resources"), /* @__PURE__ */ react_shim_default.createElement("div", { className: "space-y-3" }, entries.flatMap((e) => e.links || []).slice(0, 4).map((link, idx) => /* @__PURE__ */ react_shim_default.createElement("div", { key: idx, className: "group" }, /* @__PURE__ */ react_shim_default.createElement("p", { className: "text-xs font-bold text-gray-400 uppercase truncate" }, link.title || "Link"), /* @__PURE__ */ react_shim_default.createElement(
+    "a",
     {
-      src: coverUrl,
-      alt: title,
-      className: "w-full h-full object-cover"
-    }
-  ) : /* @__PURE__ */ react_shim_default.createElement("div", { className: "w-full h-full flex items-center justify-center text-gray-300" }, /* @__PURE__ */ react_shim_default.createElement("svg", { className: "w-12 h-12", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24" }, /* @__PURE__ */ react_shim_default.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: "1", d: "M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" }))))), /* @__PURE__ */ react_shim_default.createElement("div", { className: "flex-grow space-y-4" }, /* @__PURE__ */ react_shim_default.createElement("div", null, /* @__PURE__ */ react_shim_default.createElement("h3", { className: "text-2xl font-bold text-black group-hover:text-gray-700 transition-colors" }, title), year && /* @__PURE__ */ react_shim_default.createElement("p", { className: "text-gray-400 font-medium" }, year)), description && /* @__PURE__ */ react_shim_default.createElement("p", { className: "text-gray-600 leading-relaxed max-w-3xl line-clamp-4 hover:line-clamp-none transition-all cursor-default" }, description), /* @__PURE__ */ react_shim_default.createElement("div", { className: "flex flex-wrap gap-y-4 pt-2" }, subjects && subjects.length > 0 && /* @__PURE__ */ react_shim_default.createElement("div", { className: "w-full" }, /* @__PURE__ */ react_shim_default.createElement("h4", { className: "text-xs font-bold text-gray-400 uppercase tracking-tighter mb-2" }, "Key Subjects"), /* @__PURE__ */ react_shim_default.createElement("div", { className: "flex flex-wrap gap-2" }, subjects.slice(0, 6).map((tag, idx) => /* @__PURE__ */ react_shim_default.createElement(Tag, { key: idx, text: tag })))), /* @__PURE__ */ react_shim_default.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-8 w-full pt-2" }, places && places.length > 0 && /* @__PURE__ */ react_shim_default.createElement("div", null, /* @__PURE__ */ react_shim_default.createElement("h4", { className: "text-xs font-bold text-gray-400 uppercase tracking-tighter mb-1" }, "Settings"), /* @__PURE__ */ react_shim_default.createElement("p", { className: "text-sm text-gray-700" }, places.slice(0, 3).join(" \u2022 "))), people && people.length > 0 && /* @__PURE__ */ react_shim_default.createElement("div", null, /* @__PURE__ */ react_shim_default.createElement("h4", { className: "text-xs font-bold text-gray-400 uppercase tracking-tighter mb-1" }, "Key Characters"), /* @__PURE__ */ react_shim_default.createElement("p", { className: "text-sm text-gray-700" }, people.slice(0, 3).join(" \u2022 ")))))));
+      href: link.url,
+      target: "_blank",
+      rel: "noopener noreferrer",
+      className: "text-sm text-blue-600 hover:text-blue-800 break-all underline decoration-gray-300 underline-offset-4"
+    },
+    link.url
+  ))))))), /* @__PURE__ */ react_shim_default.createElement("footer", { className: "max-w-7xl mx-auto mt-16 pt-8 border-t border-gray-200 text-center" }, /* @__PURE__ */ react_shim_default.createElement("div", { className: "flex justify-center gap-8 text-xs font-medium text-gray-400 uppercase tracking-widest" }, /* @__PURE__ */ react_shim_default.createElement("div", null, "Latest Revision: ", entries[0]?.latest_revision || "N/A"), /* @__PURE__ */ react_shim_default.createElement("div", null, "\u2022"), /* @__PURE__ */ react_shim_default.createElement("div", null, "Last Modified: ", new Date(entries[0]?.last_modified?.value).toLocaleDateString() || "N/A"))));
 };
-var Tag = ({ text }) => /* @__PURE__ */ react_shim_default.createElement("span", { className: "px-2 py-1 bg-gray-100 text-gray-600 text-[10px] font-bold uppercase tracking-wider rounded border border-gray-200" }, text);
 AuthorWorksDashboard.propTypes = {
   data: import_prop_types.default.shape({
-    authorName: import_prop_types.default.string,
-    totalWorks: import_prop_types.default.number,
-    works: import_prop_types.default.arrayOf(
+    links: import_prop_types.default.object,
+    size: import_prop_types.default.number,
+    entries: import_prop_types.default.arrayOf(
       import_prop_types.default.shape({
-        id: import_prop_types.default.string.isRequired,
-        title: import_prop_types.default.string.isRequired,
-        description: import_prop_types.default.string,
-        coverUrl: import_prop_types.default.string,
-        year: import_prop_types.default.string,
-        subjects: import_prop_types.default.arrayOf(import_prop_types.default.string),
-        places: import_prop_types.default.arrayOf(import_prop_types.default.string),
-        people: import_prop_types.default.arrayOf(import_prop_types.default.string)
+        title: import_prop_types.default.string,
+        key: import_prop_types.default.string,
+        description: import_prop_types.default.oneOfType([import_prop_types.default.string, import_prop_types.default.object]),
+        subjects: import_prop_types.default.array,
+        subject_places: import_prop_types.default.array,
+        covers: import_prop_types.default.array,
+        created: import_prop_types.default.object,
+        last_modified: import_prop_types.default.object
       })
     )
   }).isRequired
 };
-WorkDetailItem.propTypes = {
-  work: import_prop_types.default.object.isRequired
-};
-Tag.propTypes = {
-  text: import_prop_types.default.string.isRequired
-};
-var task_preview_1766428133_033a93e8_default = AuthorWorksDashboard;
+var task_preview_1766431355_7ece5408_default = AuthorWorksDashboard;
 export {
-  task_preview_1766428133_033a93e8_default as default
+  task_preview_1766431355_7ece5408_default as default
 };
 /*! Bundled license information:
 

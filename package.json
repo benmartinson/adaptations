@@ -20,6 +20,8 @@
     "build:watch": "esbuild app/javascript/*.* --bundle --outdir=app/assets/builds --loader:.js=jsx --watch",
     "build:css": "postcss ./app/javascript/stylesheets/application.css -o ./app/assets/builds/application.css --minify",
     "build:css:watch": "postcss ./app/javascript/stylesheets/application.css -o ./app/assets/builds/application.css --watch",
+    "build:iframe": "node scripts/build_iframe_components.js",
+    "build:iframe:watch": "node scripts/build_iframe_components.js --watch",
     "test:js": "jest",
     "test:js:watch": "jest --watch"
   },

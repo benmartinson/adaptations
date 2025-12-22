@@ -1,0 +1,37 @@
+{
+  "components": [
+    {
+      "name": "HorizontalCardList",
+      "description": "A horizontal scrolling card list component for displaying items with images.",
+      "props": [
+        {
+          "name": "title",
+          "type": "string",
+          "required": false,
+          "description": "Header text displayed above the list"
+        },
+        {
+          "name": "items",
+          "type": "array",
+          "required": true,
+          "description": "Array of item objects",
+          "itemShape": {
+            "id": "required - Unique identifier for the item",
+            "imageUrl": "optional - URL for the item's image",
+            "firstLineText": "optional - Primary text line (e.g., title)",
+            "secondLineText": "optional - Secondary text line (e.g., author)",
+            "thirdLineText": "optional - Tertiary text line (e.g., year)"
+          }
+        },
+        {
+          "name": "onItemClick",
+          "type": "function",
+          "required": false,
+          "description": "Callback when an item is clicked, receives the item as argument"
+        }
+      ],
+      "example": "<HorizontalCardList title=\"Books\" items={data.books.map(b => ({ id: b.id, imageUrl: b.cover, firstLineText: b.title, secondLineText: b.author }))} />"
+    }
+  ]
+}
+

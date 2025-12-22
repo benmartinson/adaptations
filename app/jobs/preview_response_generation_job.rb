@@ -119,53 +119,44 @@ class PreviewResponseGenerationJob < ApplicationJob
 
   def generate_react_components(api_response, data_description, notes = nil)
     prompt = <<~PROMPT
-        You are a React component generator. Create React component(s) that visualizes API response data using JavaScript (not TypeScript).
-        There should be one parent component that is exported as the default export and takes a single 'data' prop (object).
-        The 'data' prop only contains data from the API response (shown below),
-        and will be transformed into the data that is relevant to the data visualization. The React components should not need much
-        or any logic to transform the data, it should be ready to use as is. The transformation code is written separately after we have the components.
-  
-        Important notes, The components should:
-        - No imports besides React
+        Take a look at this api response data: #{api_response}
+
+        Create one parentReact component that accepts a single 'data' prop (object) and visualizes the data.
+        The component should be exported as the default export and takes a single 'data' prop (object).
+        The 'data' prop contains the transformed API response data ready to use in the component.
+        But you should keep it simple and assume the data prop is similar to the api response data.
+
+        Available global components:
+        #{iframe_components_documentation}
+
+        - Important notes:
         - Be functional JavaScript React components (no TypeScript syntax like interfaces, React.FC, etc.)
         - Use modern React patterns (hooks, JSX)
         - Display the data in a simple, clean, and responsive UI
         - Don't use too many colors, use shades of gray and black for text and background
         - Use Tailwind CSS classes for styling
-        - Include proper error handling and loading states
         - Use PropTypes for prop validation instead of TypeScript interfaces
         - Be suitable for displaying API response data
         - Keep it simple and clean, don't overcomplicate it, this is a first pass
         - Do not check for error states, no loading states, no error messages, no nothing. Just display the data. You will always be given the data to display.
         - No linking to other pages, no routing, no navigation, no nothing. Just display the data. Unless told otherwise by the user in the data_description.
+        - Don't duplicate lists or data that is already displayed.
+        - Try to use the global components to display the data, but you can create a custom component if needed.
 
-        Available global components you can use (no import needed, just use directly):
-        - HorizontalCardList: A horizontal scrolling card list component for displaying items with images.
-          Props:
-            - title (string, optional): Header text displayed above the list
-            - items (array): Array of objects with these properties:
-              - id (required): Unique identifier for the item
-              - imageUrl (optional): URL for the item's image
-              - firstLineText (optional): Primary text line (e.g., title)
-              - secondLineText (optional): Secondary text line (e.g., author)
-              - thirdLineText (optional): Tertiary text line (e.g., year)
-            - onItemClick (function, optional): Callback when an item is clicked, receives the item as argument
-          Example: <HorizontalCardList title="Books" items={data.books.map(b => ({ id: b.id, imageUrl: b.cover, firstLineText: b.title, secondLineText: b.author }))} />
+        Return only the complete React component code in JavaScript, no explanations or markdown.
   
-        Here is the initial API Response, that will be transformed into the 'data' prop that you need it to be. 
-        Try to use all the data from the api response (unless told otherwise below by the user in the data_description): #{api_response}
-  
+        Try to use all the data from the api response (unless told otherwise below by the user in the data_description):
         #{data_description.present? ? "Here is the data_description provided by the user, it is important to follow these instructions (but ignore if not relevant): #{data_description}" : ""}
   
         Return only the complete React component code in JavaScript, no explanations or markdown.
       PROMPT
-
+      
     if notes.present?
       active_ui_file = task.task_ui_files.find_by(is_active: true)
       previous_code = active_ui_file&.source_code
 
       prompt += <<~PROMPT
-        You are a React component generator. We are revising an existing component based on user feedback.
+        We are revising an existing component based on user feedback.
 
         Here is the previous attempt at the component code:
         ```javascript
@@ -176,8 +167,6 @@ class PreviewResponseGenerationJob < ApplicationJob
         If some data was not included in the previous attempt, it's because the user didn't want it included.
         The user has requested the following changes:
         #{notes}
-
-         
 
         Please revise the React component(s) to incorporate these changes.
       PROMPT
@@ -220,6 +209,13 @@ class PreviewResponseGenerationJob < ApplicationJob
   
   def save_and_build_component_bundle(component_code)
     AiBundleBuilder.build_component_bundle!(component_code)
+  end
+
+  def iframe_components_documentation
+    doc_path = Rails.root.join("app", "javascript", "iframe_components", "prompt_documentation.txt")
+    return "" unless File.exist?(doc_path)
+    
+    File.read(doc_path)
   end
 
   def broadcast_event(data)
