@@ -65,30 +65,11 @@ export default function SubTaskCard({
 
   const needsConfiguration = !subTask.notes && !subTask.endpoint_notes;
 
-  // Check if this subtask is currently generating UI
-  // Show generating status if there's a subtask_ui_generation event after the most recent completion
   const subtaskEvents = events
     .filter((event) => event.subtask_id === subTask.id)
     .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)); // Most recent first
 
   const isGeneratingUI = (() => {
-    // if (subtaskEvents.length === 0) return false;
-
-    // const mostRecentEvent = subtaskEvents[0];
-
-    // // If the most recent event is a generation event, we're generating
-    // if (mostRecentEvent.phase === "subtask_ui_generation") {
-    //   return true;
-    // }
-
-    // // If the most recent event is a completion, we're not generating
-    // if (
-    //   mostRecentEvent.phase === "completed-subtask-ui-generation" ||
-    //   mostRecentEvent.final
-    // ) {
-    //   return false;
-    // }
-
     const lastCompletionIndex = subtaskEvents.findIndex(
       (event) => event.phase === "completed-subtask-ui-generation"
     );

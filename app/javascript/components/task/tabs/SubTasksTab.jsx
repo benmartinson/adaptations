@@ -106,6 +106,23 @@ export default function SubTasksTab({ taskId, parentSystemTag }) {
     }
 
     try {
+      // First trigger UI cleanup while the subtask still exists
+      try {
+        await fetch(`/api/tasks/${taskId}/sub_tasks/${subTaskId}/generate_ui`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            is_delete: true,
+          }),
+        });
+      } catch (error) {
+        console.error("Failed to trigger UI cleanup:", error);
+        // Continue with deletion even if cleanup fails
+      }
+
+      // Then delete the subtask
       const response = await fetch(
         `/api/tasks/${taskId}/sub_tasks/${subTaskId}`,
         {

@@ -103,11 +103,15 @@ module Api
     end
 
     def generate_subtask_ui
-      sub_task_params = params.require(:sub_task).permit(:notes, :endpoint_notes)
-      @sub_task.update!(sub_task_params)
+      is_delete = params[:is_delete] == true || params[:is_delete] == "true"
 
-      # Trigger UI generation for the parent task to include the updated sub-task
-      job = SubtaskUiGenerationJob.perform_later(@sub_task.id)
+      unless is_delete
+        sub_task_params = params.require(:sub_task).permit(:notes, :endpoint_notes)
+        @sub_task.update!(sub_task_params)
+      end
+
+      # Trigger UI generation for the parent task to include/update/remove the sub-task
+      job = SubtaskUiGenerationJob.perform_later(@sub_task.id, is_delete: is_delete)
       @task.update!(job_id: job.job_id) if job.respond_to?(:job_id)
 
       render json: serialize_sub_task(@sub_task), status: :accepted
