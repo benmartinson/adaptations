@@ -23,7 +23,8 @@ class SubtaskUiGenerationJob < ApplicationJob
 
   def run_subtask_ui_generation
     broadcast_event(
-      phase: "preview_generation",
+      phase: "subtask_ui_generation",
+      subtask_id: subtask.id,
       message: "Adding sub-process to UI...",
       progress: 0.1
     )
@@ -48,7 +49,10 @@ class SubtaskUiGenerationJob < ApplicationJob
       #{subtask.notes}
 
       IMPORTANT: 
-      - Use the `<SubTask systemTag="#{subtask.system_tag}" data={data.#{subtask.system_tag}} />` component.
+      - Use the `<SubTask systemTag="#{subtask.system_tag}" data={data.#{subtask.system_tag}} id={#{subtask.id}} />` component.
+      - The `id` prop is the id of the subtask. The current id is #{subtask.id}. 
+        If there is already a subtask with the same id, you should remove the existing subtask and add the new one.
+        Leave the existing subtasks with different ids in the code. There could be multiple subtasks with the same system_tag but different ids.
       - The `data` prop will include this attribute: #{subtask.system_tag} which is the data needed by the SubTask component.
       - You should only add the necessary lines of code to integrate this `<SubTask />` component.
       - Keep all existing functionality, styles, and logic exactly the same.
@@ -60,29 +64,7 @@ class SubtaskUiGenerationJob < ApplicationJob
     bundle_path = save_and_build_component_bundle(updated_code)
 
     # Delete old task_ui_files and their associated files, then create a new one
-    parent_task.task_ui_files.each do |ui_file|
-      begin
-        if ui_file.file_name.present?
-          # Delete the final bundle file in public/ai_bundles
-          # Strip leading slash since file_name is like "/ai_bundles/task-preview-XXX.js"
-          full_bundle_path = Rails.root.join("public", ui_file.file_name.sub(/^\//, ""))
-          FileUtils.rm_f(full_bundle_path)
-
-          # Clean up source files in app/javascript/ai_bundles
-          # The source files use a hash of the source_code, so we can compute it
-          if ui_file.source_code.present?
-            source_hash = Digest::MD5.hexdigest(ui_file.source_code)[0..7]
-            # Delete matching source files (task_preview_*_{hash}.jsx and task-preview_entry_*_{hash}.jsx)
-            Dir.glob(Rails.root.join("app", "javascript", "ai_bundles", "*_#{source_hash}.jsx")).each do |temp_file|
-              FileUtils.rm_f(temp_file)
-            end
-          end
-        end
-      rescue => e
-        Rails.logger.warn("[SubtaskUiGenerationJob] Failed to delete file #{ui_file.file_name}: #{e.message}")
-      end
-      ui_file.destroy!
-    end
+    cleanup_task_ui_files(parent_task)
 
     parent_task.task_ui_files.create!(
       file_name: bundle_path,
@@ -91,8 +73,9 @@ class SubtaskUiGenerationJob < ApplicationJob
     )
 
     broadcast_event(
-      phase: "completed-preview-generation",
+      phase: "completed-subtask-ui-generation",
       message: "Sub-process added successfully",
+      subtask_id: subtask.id,
       response_json: parent_task.response_json,
       system_tag: parent_task.system_tag,
       final: true
@@ -104,32 +87,11 @@ class SubtaskUiGenerationJob < ApplicationJob
     extract_code(response)
   end
 
-  def extract_code(raw_response)
-    if raw_response.include?("```")
-      code_match = raw_response.match(/```(?:jsx?|javascript)?\n?(.*?)\n?```/m)
-      return code_match[1].strip if code_match
-    end
-
-    code_match = raw_response.match(/(?:import\s+|export\s+|(?:function|const|class)\s+\w+)[\s\S]*/m)
-    return code_match[0].strip if code_match
-
-    raw_response.strip
-  end
 
   def save_and_build_component_bundle(component_code)
     AiBundleBuilder.build_component_bundle!(component_code)
   end
 
-  def broadcast_event(data)
-    channel_class = "TaskChannel".safe_constantize
-    payload = {
-      task_id: task.id,
-      status: task.status,
-      timestamp: Time.current.iso8601
-    }.merge(data)
-
-    channel_class&.broadcast_to(task, payload)
-  end
 
   def handle_failure(error)
     return unless task

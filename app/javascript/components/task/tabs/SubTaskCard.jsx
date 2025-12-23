@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import useTaskProgress from "../../../hooks/useTaskProgress";
 
 export default function SubTaskCard({
   subTask,
@@ -13,6 +14,8 @@ export default function SubTaskCard({
     subTask.endpoint_notes || ""
   );
   const [isSaving, setIsSaving] = useState(false);
+  const { events } = useTaskProgress(taskId);
+  console.log({ events });
 
   // Sync local state when subTask prop changes
   useEffect(() => {
@@ -62,6 +65,45 @@ export default function SubTaskCard({
 
   const needsConfiguration = !subTask.notes && !subTask.endpoint_notes;
 
+  // Check if this subtask is currently generating UI
+  // Show generating status if there's a subtask_ui_generation event after the most recent completion
+  const subtaskEvents = events
+    .filter((event) => event.subtask_id === subTask.id)
+    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)); // Most recent first
+
+  const isGeneratingUI = (() => {
+    // if (subtaskEvents.length === 0) return false;
+
+    // const mostRecentEvent = subtaskEvents[0];
+
+    // // If the most recent event is a generation event, we're generating
+    // if (mostRecentEvent.phase === "subtask_ui_generation") {
+    //   return true;
+    // }
+
+    // // If the most recent event is a completion, we're not generating
+    // if (
+    //   mostRecentEvent.phase === "completed-subtask-ui-generation" ||
+    //   mostRecentEvent.final
+    // ) {
+    //   return false;
+    // }
+
+    const lastCompletionIndex = subtaskEvents.findIndex(
+      (event) => event.phase === "completed-subtask-ui-generation"
+    );
+
+    if (lastCompletionIndex === -1) {
+      return subtaskEvents.some(
+        (event) => event.phase === "subtask_ui_generation"
+      );
+    }
+
+    return subtaskEvents
+      .slice(0, lastCompletionIndex)
+      .some((event) => event.phase === "subtask_ui_generation");
+  })();
+
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
       {/* Header with system tags and action buttons */}
@@ -70,7 +112,12 @@ export default function SubTaskCard({
           <code className="bg-gray-100 px-2 py-1 rounded text-sm font-medium">
             {subTask.system_tag}
           </code>
-          {needsConfiguration && !isEditing && (
+          {isGeneratingUI && (
+            <span className="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
+              Generating UI Change...
+            </span>
+          )}
+          {needsConfiguration && !isEditing && !isGeneratingUI && (
             <span className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded">
               Needs configuration
             </span>

@@ -834,7 +834,7 @@ var {
   useTransition
 } = React;
 
-// app/javascript/ai_bundles/task_preview_1766442622_624e61c6.jsx
+// app/javascript/ai_bundles/task_preview_1766450393_d732e489.jsx
 var import_prop_types = __toESM(require_prop_types());
 
 // app/javascript/ai_bundles/SubTask.jsx
@@ -843,7 +843,7 @@ var SubTask = typeof window !== "undefined" && window.SubTask ? window.SubTask :
 };
 var SubTask_default = SubTask;
 
-// app/javascript/ai_bundles/task_preview_1766442622_624e61c6.jsx
+// app/javascript/ai_bundles/task_preview_1766450393_d732e489.jsx
 var SectionTitle = ({ children }) => /* @__PURE__ */ react_shim_default.createElement("h2", { className: "text-sm font-bold uppercase tracking-widest text-gray-500 mb-4 border-b border-gray-200 pb-1" }, children);
 SectionTitle.propTypes = {
   children: import_prop_types.default.node.isRequired
@@ -866,14 +866,14 @@ var AuthorDashboard = ({ data }) => {
     AuthorBooks
   } = data;
   const bioText = typeof bio === "object" ? bio.value : bio;
-  return /* @__PURE__ */ react_shim_default.createElement("div", { className: "max-w-5xl mx-auto p-6 bg-white text-gray-900 font-sans" }, /* @__PURE__ */ react_shim_default.createElement("header", { className: "mb-12" }, /* @__PURE__ */ react_shim_default.createElement("div", { className: "flex flex-col md:flex-row md:items-end md:justify-between gap-4" }, /* @__PURE__ */ react_shim_default.createElement("div", null, /* @__PURE__ */ react_shim_default.createElement("h1", { className: "text-5xl font-black tracking-tight text-black mb-2" }, name), birth_date && /* @__PURE__ */ react_shim_default.createElement("p", { className: "text-gray-500 text-lg" }, "Born: ", /* @__PURE__ */ react_shim_default.createElement("span", { className: "text-gray-800" }, birth_date))), photos && photos.length > 0 && /* @__PURE__ */ react_shim_default.createElement("div", { className: "text-xs text-gray-400 font-mono" }, "REF_ID: ", photos[0]))), /* @__PURE__ */ react_shim_default.createElement("div", { className: "grid grid-cols-1 lg:grid-cols-3 gap-12" }, /* @__PURE__ */ react_shim_default.createElement("div", { className: "lg:col-span-2 space-y-10" }, /* @__PURE__ */ react_shim_default.createElement("section", null, /* @__PURE__ */ react_shim_default.createElement(SectionTitle, null, "Biography"), /* @__PURE__ */ react_shim_default.createElement("div", { className: "prose prose-sm max-w-none text-gray-700 leading-relaxed whitespace-pre-wrap" }, bioText || "No biography available.")), alternate_names && alternate_names.length > 0 && /* @__PURE__ */ react_shim_default.createElement("section", null, /* @__PURE__ */ react_shim_default.createElement(SectionTitle, null, "Also Known As"), /* @__PURE__ */ react_shim_default.createElement("div", { className: "flex flex-wrap gap-2" }, alternate_names.map((altName, index) => /* @__PURE__ */ react_shim_default.createElement(
+  return /* @__PURE__ */ react_shim_default.createElement("div", { className: "max-w-5xl mx-auto p-6 bg-white text-gray-900 font-sans" }, /* @__PURE__ */ react_shim_default.createElement("header", { className: "mb-12" }, /* @__PURE__ */ react_shim_default.createElement("div", { className: "flex flex-col md:flex-row md:items-end md:justify-between gap-4" }, /* @__PURE__ */ react_shim_default.createElement("div", null, /* @__PURE__ */ react_shim_default.createElement("h1", { className: "text-5xl font-black tracking-tight text-black mb-2" }, name), birth_date && /* @__PURE__ */ react_shim_default.createElement("p", { className: "text-gray-500 text-lg" }, "Born: ", /* @__PURE__ */ react_shim_default.createElement("span", { className: "text-gray-800" }, birth_date))), photos && photos.length > 0 && /* @__PURE__ */ react_shim_default.createElement("div", { className: "text-xs text-gray-400 font-mono" }, "REF_ID: ", photos[0]))), /* @__PURE__ */ react_shim_default.createElement("div", { className: "grid grid-cols-1 lg:grid-cols-3 gap-12" }, /* @__PURE__ */ react_shim_default.createElement("div", { className: "lg:col-span-2 space-y-10" }, /* @__PURE__ */ react_shim_default.createElement("section", null, /* @__PURE__ */ react_shim_default.createElement(SectionTitle, null, "Biography"), /* @__PURE__ */ react_shim_default.createElement("div", { className: "prose prose-sm max-w-none text-gray-700 leading-relaxed whitespace-pre-wrap" }, bioText || "No biography available.")), data.AuthorBooks && /* @__PURE__ */ react_shim_default.createElement("section", null, /* @__PURE__ */ react_shim_default.createElement(SubTask_default, { systemTag: "AuthorBooks", data: data.AuthorBooks, id: 1 })), alternate_names && alternate_names.length > 0 && /* @__PURE__ */ react_shim_default.createElement("section", null, /* @__PURE__ */ react_shim_default.createElement(SectionTitle, null, "Also Known As"), /* @__PURE__ */ react_shim_default.createElement("div", { className: "flex flex-wrap gap-2" }, alternate_names.map((altName, index) => /* @__PURE__ */ react_shim_default.createElement(
     "span",
     {
       key: index,
       className: "px-3 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full"
     },
     altName
-  )))), data.AuthorBooks && /* @__PURE__ */ react_shim_default.createElement("section", null, /* @__PURE__ */ react_shim_default.createElement(SubTask_default, { systemTag: "AuthorBooks", data: data.AuthorBooks }))), /* @__PURE__ */ react_shim_default.createElement("div", { className: "space-y-10" }, links && links.length > 0 && /* @__PURE__ */ react_shim_default.createElement("section", null, /* @__PURE__ */ react_shim_default.createElement(SectionTitle, null, "External Links"), /* @__PURE__ */ react_shim_default.createElement("ul", { className: "space-y-3" }, links.map((link, index) => /* @__PURE__ */ react_shim_default.createElement("li", { key: index }, /* @__PURE__ */ react_shim_default.createElement(
+  )))), data.AuthorBooks && /* @__PURE__ */ react_shim_default.createElement("section", null, /* @__PURE__ */ react_shim_default.createElement(SubTask_default, { systemTag: "AuthorBooks", data: data.AuthorBooks, id: 2 })), data.AuthorBooks && /* @__PURE__ */ react_shim_default.createElement("section", null, /* @__PURE__ */ react_shim_default.createElement(SubTask_default, { systemTag: "AuthorBooks", data: data.AuthorBooks }))), /* @__PURE__ */ react_shim_default.createElement("div", { className: "space-y-10" }, links && links.length > 0 && /* @__PURE__ */ react_shim_default.createElement("section", null, /* @__PURE__ */ react_shim_default.createElement(SectionTitle, null, "External Links"), /* @__PURE__ */ react_shim_default.createElement("ul", { className: "space-y-3" }, links.map((link, index) => /* @__PURE__ */ react_shim_default.createElement("li", { key: index }, /* @__PURE__ */ react_shim_default.createElement(
     "a",
     {
       href: link.url,
@@ -920,9 +920,9 @@ AuthorDashboard.propTypes = {
     AuthorBooks: import_prop_types.default.any
   }).isRequired
 };
-var task_preview_1766442622_624e61c6_default = AuthorDashboard;
+var task_preview_1766450393_d732e489_default = AuthorDashboard;
 export {
-  task_preview_1766442622_624e61c6_default as default
+  task_preview_1766450393_d732e489_default as default
 };
 /*! Bundled license information:
 

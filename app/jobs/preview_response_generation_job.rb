@@ -66,29 +66,7 @@ class PreviewResponseGenerationJob < ApplicationJob
 
     # Create TaskUIFile record for the generated bundle
     # Delete old task_ui_files and their associated files
-    task.task_ui_files.each do |ui_file|
-      begin
-        if ui_file.file_name.present?
-          # Delete the final bundle file in public/ai_bundles
-          # Strip leading slash since file_name is like "/ai_bundles/task-preview-XXX.js"
-          full_bundle_path = Rails.root.join("public", ui_file.file_name.sub(/^\//, ""))
-          FileUtils.rm_f(full_bundle_path)
-
-          # Clean up source files in app/javascript/ai_bundles
-          # The source files use a hash of the source_code, so we can compute it
-          if ui_file.source_code.present?
-            source_hash = Digest::MD5.hexdigest(ui_file.source_code)[0..7]
-            # Delete matching source files (task_preview_*_{hash}.jsx and task-preview_entry_*_{hash}.jsx)
-            Dir.glob(Rails.root.join("app", "javascript", "ai_bundles", "*_#{source_hash}.jsx")).each do |temp_file|
-              FileUtils.rm_f(temp_file)
-            end
-          end
-        end
-      rescue => e
-        Rails.logger.warn("[PreviewResponseGenerationJob] Failed to delete file #{ui_file.file_name}: #{e.message}")
-      end
-      ui_file.destroy!
-    end
+    cleanup_task_ui_files(task)
 
     task.task_ui_files.create!(
       file_name: bundle_path,
@@ -176,21 +154,6 @@ class PreviewResponseGenerationJob < ApplicationJob
     extract_code(response)
   end
 
-  def extract_code(raw_response)
-    # Extract code from markdown or plain text
-    if raw_response.include?("```")
-      # Extract from markdown code block
-      code_match = raw_response.match(/```(?:jsx?|javascript)?\n?(.*?)\n?```/m)
-      return code_match[1].strip if code_match
-    end
-
-    # Try to find where the code starts (import, export, or declaration) and return everything from there
-    code_match = raw_response.match(/(?:import\s+|export\s+|(?:function|const|class)\s+\w+)[\s\S]*/m)
-    return code_match[0].strip if code_match
-
-    # Fallback: return the whole response cleaned up
-    raw_response.strip
-  end
 
   
   # extract_json(component_code)
@@ -275,21 +238,6 @@ class PreviewResponseGenerationJob < ApplicationJob
     prompt
   end
 
-  def broadcast_event(data)
-    channel_class = "TaskChannel".safe_constantize
-    payload = {
-      task_id: task.id,
-      status: task.status,
-      tokens: {
-        prompt: task.tokens_prompt,
-        completion: task.tokens_completion,
-        total: task.tokens_total
-      },
-      timestamp: Time.current.iso8601
-    }.merge(data)
-
-    channel_class&.broadcast_to(task, payload)
-  end
 
   def handle_failure(error)
     return unless task
