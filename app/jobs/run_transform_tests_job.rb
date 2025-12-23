@@ -157,24 +157,34 @@ class RunTransformTestsJob < ApplicationJob
   def execute_batch_with_subtasks(code_body, test_inputs, sub_tasks)
     test_inputs.map do |test_input|
       begin
-        # Step 1: Run parent task's transform
         first_output = execute_transform(code_body, test_input["input"])
         
-        # Step 2: For each sub_task, fetch data and run its transform
         merged_output = first_output.is_a?(Hash) ? first_output.dup : { "data" => first_output }
         
         sub_tasks.each do |sub_task|
-          child_task = Task.find_by(system_tag: sub_task.system_tag)
-          next unless child_task&.transform_code.present? && child_task&.api_endpoint.present?
+          begin
+            child_task = Task.find_by(kind: "api_transform", system_tag: sub_task.system_tag)
+            next unless child_task&.transform_code.present?
 
-          # Fetch data from child task's endpoint
-          child_data = fetch_endpoint_data(child_task.api_endpoint)
+            link_task = Task.find_by(kind: "link", system_tag: sub_task.parent_system_tag)
+            next unless link_task&.transform_code.present?
 
-          # Run child task's transform
-          sub_output = execute_transform(child_task.transform_code, child_data)
+            sub_task_api_endpoint = execute_transform(link_task.transform_code, first_output)
+            if sub_task_api_endpoint.blank?
+              raise StandardError, "Link transformation did not produce a valid endpoint"
+            end
 
-          # Merge using sub_task's system_tag as the key
-          merged_output[sub_task.system_tag] = sub_output
+            sub_task_data = fetch_endpoint_data(sub_task_api_endpoint)
+            if sub_task_data.blank?
+              raise StandardError, "Failed to fetch data from #{sub_task_api_endpoint}"
+            end
+            sub_output = execute_transform(child_task.transform_code, sub_task_data)
+            next unless sub_output.present?
+            merged_output[sub_task.system_tag] = sub_output
+          rescue StandardError => e
+            merged_output[sub_task.system_tag] = nil
+            Rails.logger.warn("[RunTransformTestsJob] Error executing subtask #{sub_task.system_tag}: #{e.message}")
+          end
         end
         
         { "test_id" => test_input["test_id"], "success" => true, "output" => merged_output }
