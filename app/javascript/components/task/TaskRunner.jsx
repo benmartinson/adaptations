@@ -199,7 +199,7 @@ export default function TaskRunner() {
     },
     {
       id: "subtasks",
-      label: "Connect",
+      label: "Embed",
       enabled: !!snapshot?.system_tag,
     },
     { id: "tests", label: "Test", enabled: !!transformCode },

@@ -35,6 +35,7 @@ const AuthorDashboard = ({ data }) => {
     photos,
     last_modified,
     AuthorBooks,
+    AuthorBooksVertical,
   } = data;
 
   // Extract bio text from the object structure
@@ -94,6 +95,12 @@ const AuthorDashboard = ({ data }) => {
                   </span>
                 ))}
               </div>
+            </section>
+          )}
+
+          {data.AuthorBooksVertical && (
+            <section>
+              <SubTask systemTag="AuthorBooksVertical" data={data.AuthorBooksVertical} id={3} />
             </section>
           )}
         </div>
@@ -181,6 +188,7 @@ AuthorDashboard.propTypes = {
       }),
     ]),
     AuthorBooks: PropTypes.any,
+    AuthorBooksVertical: PropTypes.any,
   }).isRequired,
 };
 

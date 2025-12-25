@@ -189,7 +189,8 @@ export default function SubTasksTab({ taskId, parentSystemTag }) {
       {/* Header with Add Sub-Task button */}
       <div className="flex items-center justify-between">
         <div className="text-sm text-gray-600">
-          Embed child processes connected via connector processes.
+          Embed a child element within the interface. Must be connected, click
+          "Create Connection" to create a new connection.
         </div>
         <div className="flex items-center gap-2">
           {availableTasks.length > 0 && (
@@ -233,7 +234,7 @@ export default function SubTasksTab({ taskId, parentSystemTag }) {
               onChange={(e) => setSelectedTaskId(e.target.value)}
               className="flex-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:ring-0 focus:outline-none"
             >
-              <option value="">Select a linked process to connect...</option>
+              <option value="">Select a process to embed...</option>
               {availableTasks.map((task) => (
                 <option key={task.id} value={task.id}>
                   {task.to_system_tag}

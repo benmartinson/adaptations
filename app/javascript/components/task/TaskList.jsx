@@ -23,7 +23,39 @@ export default function TaskList() {
         throw new Error("Unable to load tasks");
       }
       const data = await response.json();
-      setTasks(data);
+
+      // Group Link tasks under their corresponding API Transform tasks
+      const groupedTasks = [];
+      const apiTransformTasks = data.filter(
+        (task) => task.kind === "api_transform"
+      );
+      const linkTasks = data.filter((task) => task.kind === "link");
+
+      apiTransformTasks.forEach((apiTask) => {
+        const connections = linkTasks.filter(
+          (linkTask) => linkTask.system_tag === apiTask.system_tag
+        );
+
+        groupedTasks.push({
+          ...apiTask,
+          connections: connections,
+        });
+      });
+
+      // Add any Link tasks that don't belong to any API Transform task
+      linkTasks.forEach((linkTask) => {
+        const hasParent = apiTransformTasks.some(
+          (apiTask) => apiTask.system_tag === linkTask.system_tag
+        );
+        if (!hasParent) {
+          groupedTasks.push({
+            ...linkTask,
+            connections: [],
+          });
+        }
+      });
+
+      setTasks(groupedTasks);
     } catch (error) {
       console.error(error);
       setError(error.message);
@@ -207,6 +239,28 @@ export default function TaskList() {
                       </div>
                     )}
                   </div>
+
+                  {/* Connections section for API Transform tasks */}
+                  {task.kind === "api_transform" &&
+                    task.connections &&
+                    task.connections.length > 0 && (
+                      <div className="mt-4 pt-4 border-t border-gray-100">
+                        <label className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2 block">
+                          Connections
+                        </label>
+                        <div className="space-y-1">
+                          {task.connections.map((connection) => (
+                            <Link
+                              key={connection.id}
+                              to={`/link/${connection.id}`}
+                              className="block text-sm text-gray-700 font-mono bg-gray-50 px-2 py-1 rounded hover:bg-gray-100 transition-colors cursor-pointer"
+                            >
+                              → {connection.to_system_tag}
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -255,17 +309,6 @@ export default function TaskList() {
             </div>
             <div className="text-sm text-gray-500 mt-1">
               Transform data from an external API endpoint
-            </div>
-          </button>
-          <button
-            onClick={() => handleCreateTask("link")}
-            className="w-full p-4 text-left rounded-lg border border-gray-200 hover:border-gray-900 hover:bg-gray-50 transition-colors group"
-          >
-            <div className="font-semibold text-gray-900 group-hover:text-gray-900">
-              Connector
-            </div>
-            <div className="text-sm text-gray-500 mt-1">
-              Connect two processes together
             </div>
           </button>
         </div>
