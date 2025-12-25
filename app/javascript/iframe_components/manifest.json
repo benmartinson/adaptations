@@ -31,7 +31,39 @@
         }
       ],
       "example": "<HorizontalCardList title=\"Books\" items={data.books.map(b => ({ id: b.id, imageUrl: b.cover, firstLineText: b.title, secondLineText: b.author }))} />"
+    },
+    {
+      "name": "VerticalCardList",
+      "description": "A vertical card list component for displaying items with images in a column layout.",
+      "props": [
+        {
+          "name": "title",
+          "type": "string",
+          "required": false,
+          "description": "Header text displayed above the list"
+        },
+        {
+          "name": "items",
+          "type": "array",
+          "required": true,
+          "description": "Array of item objects",
+          "itemShape": {
+            "id": "required - Unique identifier for the item",
+            "imageUrl": "optional - URL for the item's image",
+            "firstLineText": "optional - Primary text line (e.g., title)",
+            "secondLineText": "optional - Secondary text line (e.g., author)",
+            "thirdLineText": "optional - Tertiary text line (e.g., description)",
+            "fourthLineText": "optional - Additional text line"
+          }
+        },
+        {
+          "name": "onItemClick",
+          "type": "function",
+          "required": false,
+          "description": "Callback when an item is clicked, receives the item as argument"
+        }
+      ],
+      "example": "<VerticalCardList title=\"Books\" items={data.books.map(b => ({ id: b.id, imageUrl: b.cover, firstLineText: b.title, secondLineText: b.author, thirdLineText: b.year }))} />"
     }
   ]
 }
-

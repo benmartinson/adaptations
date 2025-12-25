@@ -28,6 +28,7 @@ export default function TestCard({
   const [hasRequestedChanges, setHasRequestedChanges] = useState(
     test?.status === "changes_needed"
   );
+  console.log("test status = ", test.status);
 
   useEffect(() => {
     setHasRequestedChanges(test?.status === "changes_needed");

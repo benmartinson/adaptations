@@ -3,6 +3,14 @@ require 'fileutils'
 class PreviewResponseGenerationJob < ApplicationJob
   queue_as :default
 
+  ELEMENT_NAME_TO_COMPONENT_NAME = {
+    'horizontal' => 'HorizontalCardList',
+    'vertical' => 'VerticalCardList',
+    'list' => 'HorizontalCardList',  # Backward compatibility
+    'detail' => 'DetailPage',
+    'generated' => 'GeneratedPage'
+  }.freeze
+
   rescue_from(ActiveRecord::RecordNotFound) do |_error|
     Rails.logger.warn("[PreviewResponseGenerationJob] Task not found, skipping job")
   end
@@ -34,17 +42,20 @@ class PreviewResponseGenerationJob < ApplicationJob
     data_description = task.input_payload.fetch("data_description", nil)
     element_type = task.input_payload.fetch("element_type", "generated")
 
+    # Get the component name for this element type
+    component_name = ELEMENT_NAME_TO_COMPONENT_NAME[element_type] || 'GeneratedPage'
+
     # Generate React components for data visualization based on element type
-    if element_type == "list" && !notes.present?
-      component_code = horizontal_card_list_component
+    if element_type != "generated" && !notes.present?
+      component_code = get_component(component_name)
       bundle_path = save_and_build_component_bundle(component_code)
     else
       component_code = generate_react_components(from_response, data_description, notes)
       bundle_path = save_and_build_component_bundle(component_code)
     end
-    
-    if element_type == "list"
-      prompt = build_list_transform_prompt(from_response, data_description, component_code)
+
+    if ['horizontal', 'vertical', 'list'].include?(element_type)
+      prompt = build_card_list_transform_prompt(from_response, data_description, component_code, component_name)
     else
       prompt = build_default_transform_prompt(from_response, data_description, component_code)
     end
@@ -181,37 +192,40 @@ class PreviewResponseGenerationJob < ApplicationJob
     File.read(doc_path)
   end
 
-  def horizontal_card_list_component
-    component_path = Rails.root.join("app", "javascript", "iframe_components", "HorizontalCardList.jsx")
+  def component_documentation(component_name)
+    doc_path = Rails.root.join("app", "javascript", "iframe_components", "prompt_documentation.txt")
+    return "" unless File.exist?(doc_path)
+
+    doc_content = File.read(doc_path)
+    # Find the component section by looking for "- ComponentName:" pattern
+    component_pattern = /^- #{Regexp.escape(component_name)}: (.+?)(?=\n\n|^- |\z)/m
+    match = doc_content.match(component_pattern)
+    return "" unless match
+
+    "- #{component_name}: #{match[1]}"
+  end
+
+  def get_component(component_name)
+    component_path = Rails.root.join("app", "javascript", "iframe_components", "#{component_name}.jsx")
     return "" unless File.exist?(component_path)
-    
+
     File.read(component_path)
   end
 
-  def build_list_transform_prompt(from_response, data_description, component_code)
+  def build_card_list_transform_prompt(from_response, data_description, component_code, component_name)
+    component_docs = component_documentation(component_name)
+
     <<~PROMPT
-      You are an assistant that helps transform API response data for a HorizontalCardList component.
-      
-      The HorizontalCardList component expects a 'data' prop with the following structure:
-      {
-        "title": "Optional title string",
-        "items": [
-          {
-            "id": "unique identifier",
-            "imageUrl": "URL to an image (optional)",
-            "firstLineText": "Primary text to display",
-            "secondLineText": "Secondary text (optional)",
-            "thirdLineText": "Tertiary text (optional)"
-          }
-        ]
-      }
+      You are an assistant that helps transform API response data for a #{component_name} component.
+
+      #{component_docs}
 
       Here is the API response data that needs to be transformed:
       #{from_response}
 
-      Transform this API response into the format expected by the HorizontalCardList component.
-      Map relevant fields from the API response to the item properties (id, imageUrl, firstLineText, secondLineText, thirdLineText).
-      
+      Transform this API response into the format expected by the #{component_name} component.
+      Map relevant fields from the API response to the item properties as described in the component documentation.
+
       #{data_description.present? ? "User instructions for the data transformation: #{data_description}" : ""}
 
       Return only the JSON object, no other text or comments.

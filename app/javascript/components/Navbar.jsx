@@ -1,11 +1,12 @@
 import React from "react";
 import { Link } from "react-router-dom";
 
-const links = [
-  { to: "/books", label: "Books" },
-  { to: "/author/patrick-rothfuss", label: "Authors" },
-  { to: "/tasks", label: "Tasks" },
-];
+// const links = [
+//   { to: "/books", label: "Books" },
+//   { to: "/author/patrick-rothfuss", label: "Authors" },
+//   { to: "/tasks", label: "Tasks" },
+// ];
+const links = [];
 
 export default function Navbar() {
   return (
@@ -15,7 +16,7 @@ export default function Navbar() {
           API Visualizer
         </Link>
         <div className="flex items-center gap-4 text-sm font-medium text-gray-600">
-          {links.map((link) => (
+          {(links || []).map((link) => (
             <Link
               key={link.to}
               to={link.to}

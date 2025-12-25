@@ -100,44 +100,17 @@ export default function EndpointDetailsTab({
           <label className="block text-sm font-medium text-gray-700">
             Type of Element
           </label>
-          <div className="flex gap-6">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                name="elementType"
-                value="list"
-                checked={elementType === "list"}
-                onChange={(e) => setElementType(e.target.value)}
-                disabled={isGeneratingPreview}
-                className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-              />
-              <span className="text-sm text-gray-700">List</span>
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                name="elementType"
-                value="detail"
-                checked={elementType === "detail"}
-                onChange={(e) => setElementType(e.target.value)}
-                disabled={isGeneratingPreview}
-                className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-              />
-              <span className="text-sm text-gray-700">Detail</span>
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                name="elementType"
-                value="generated"
-                checked={elementType === "generated"}
-                onChange={(e) => setElementType(e.target.value)}
-                disabled={isGeneratingPreview}
-                className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-              />
-              <span className="text-sm text-gray-700">Generated Page</span>
-            </label>
-          </div>
+          <select
+            className="w-full rounded-lg border border-gray-300 p-3 focus:ring-2 focus:ring-blue-500"
+            value={elementType}
+            onChange={(e) => setElementType(e.target.value)}
+            disabled={isGeneratingPreview}
+          >
+            <option value="horizontal">Horizontal Cards</option>
+            <option value="vertical">Vertical Cards</option>
+            <option value="detail">Detail Page</option>
+            <option value="generated">Generated Page</option>
+          </select>
         </div>
 
         {isGeneratingPreview && (
