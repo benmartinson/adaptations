@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import moment from "moment";
 import Modal from "../common/Modal";
+import { ELEMENT_TYPES } from "../../helpers";
 
 export default function TaskList() {
   const [tasks, setTasks] = useState([]);
@@ -201,7 +202,7 @@ export default function TaskList() {
                         task.kind
                       )}`}
                     >
-                      {task.kind === "link" ? "Connector" : "API Transform"}
+                      {ELEMENT_TYPES[task.element_type] || task.element_type}
                     </span>
                   </div>
 

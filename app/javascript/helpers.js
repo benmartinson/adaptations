@@ -22,6 +22,13 @@ export function limitArraySizes(obj, maxArraySize = 10) {
   return result;
 }
 
+export const ELEMENT_TYPES = {
+  horizontal_cards: "Horizontal Cards",
+  vertical_cards: "Vertical Cards",
+  detail_page: "Detail Page",
+  generated_page: "Generated Page",
+};
+
 export async function fetchEndpointData(apiEndpoint, maxArraySize = 10) {
   const response = await fetch(apiEndpoint);
   if (!response.ok) {

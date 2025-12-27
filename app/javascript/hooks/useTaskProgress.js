@@ -108,7 +108,7 @@ export default function useTaskProgress(taskId) {
   }, [snapshot]);
 
   const elementType = useMemo(() => {
-    return snapshot?.input_payload?.element_type;
+    return snapshot?.element_type;
   }, [snapshot]);
 
   const addTest = (newTest) => {
@@ -176,6 +176,7 @@ export function mergeSnapshot(previous, incoming) {
     response_json: incoming.response_json || previous.response_json,
     data_description: incoming.data_description || previous.data_description,
     transform_code: incoming.transform_code || previous.transform_code,
+    element_type: incoming.element_type || previous.element_type,
   };
 }
 

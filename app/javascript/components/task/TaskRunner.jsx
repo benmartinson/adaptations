@@ -14,6 +14,8 @@ export default function TaskRunner() {
   const navigate = useNavigate();
   const [apiEndpoint, setApiEndpoint] = useState("");
   const [systemTag, setSystemTag] = useState("");
+  const [dataDescription, setDataDescription] = useState("");
+  const [elementType, setElementType] = useState("generated");
   const [fetchingEndpoint, setFetchingEndpoint] = useState(false);
   const [formError, setFormError] = useState(null);
   const [generatingMessage, setGeneratingMessage] = useState("");
@@ -55,12 +57,18 @@ export default function TaskRunner() {
 
   useEffect(() => {
     if (!snapshot) return;
-
+    console.log("snapshot", snapshot);
     if (snapshot.api_endpoint && !apiEndpoint) {
       setApiEndpoint(snapshot.api_endpoint);
     }
     if (snapshot.system_tag && !systemTag) {
       setSystemTag(snapshot.system_tag);
+    }
+    if (snapshot.data_description && !dataDescription) {
+      setDataDescription(snapshot.data_description);
+    }
+    if (snapshot.element_type) {
+      setElementType(snapshot.element_type);
     }
   }, [snapshot]);
 
@@ -107,6 +115,7 @@ export default function TaskRunner() {
             api_endpoint: apiEndpoint,
             system_tag: systemTag,
             data_description: dataDescription,
+            element_type: elementType,
             input_payload: {
               task_type: "preview_response_generation",
               system_tag: systemTag,
@@ -266,6 +275,10 @@ export default function TaskRunner() {
           setApiEndpoint={setApiEndpoint}
           systemTag={systemTag}
           setSystemTag={setSystemTag}
+          dataDescription={dataDescription}
+          setDataDescription={setDataDescription}
+          elementType={elementType}
+          setElementType={setElementType}
           fetchingEndpoint={isGeneratingPreview}
           formError={formError}
           onFetchEndpoint={handleFetchEndpoint}

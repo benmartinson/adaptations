@@ -17,6 +17,10 @@ class TaskChannel < ApplicationCable::Channel
     {
       task_id: task.id,
       status: task.status,
+      api_endpoint: task.api_endpoint,
+      system_tag: task.system_tag,
+      data_description: task.data_description,
+      element_type: task.element_type,
       tokens: {
         prompt: task.tokens_prompt,
         completion: task.tokens_completion,

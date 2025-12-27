@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import useTaskProgress from "../../../hooks/useTaskProgress";
+import React from "react";
+import { ELEMENT_TYPES } from "../../../helpers";
 
 export default function EndpointDetailsTab({
   taskId,
@@ -7,31 +7,16 @@ export default function EndpointDetailsTab({
   setApiEndpoint,
   systemTag,
   setSystemTag,
+  dataDescription,
+  setDataDescription,
+  elementType,
+  setElementType,
   formError,
   onFetchEndpoint,
   isGeneratingPreview,
   generatingMessage,
   transformCode,
 }) {
-  const {
-    dataDescription: snapshotDataDescription,
-    elementType: snapshotElementType,
-  } = useTaskProgress(taskId);
-  const [dataDescription, setDataDescription] = useState("");
-  const [elementType, setElementType] = useState("generated");
-
-  useEffect(() => {
-    if (snapshotDataDescription && !dataDescription) {
-      setDataDescription(snapshotDataDescription);
-    }
-  }, [snapshotDataDescription]);
-
-  useEffect(() => {
-    if (snapshotElementType && elementType === "generated") {
-      setElementType(snapshotElementType);
-    }
-  }, [snapshotElementType]);
-
   function handleFetchEndpoint() {
     onFetchEndpoint(dataDescription, null, elementType);
   }
@@ -106,10 +91,11 @@ export default function EndpointDetailsTab({
             onChange={(e) => setElementType(e.target.value)}
             disabled={isGeneratingPreview}
           >
-            <option value="horizontal">Horizontal Cards</option>
-            <option value="vertical">Vertical Cards</option>
-            <option value="detail">Detail Page</option>
-            <option value="generated">Generated Page</option>
+            {Object.entries(ELEMENT_TYPES).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
           </select>
         </div>
 
