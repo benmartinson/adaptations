@@ -64,6 +64,53 @@
         }
       ],
       "example": "<VerticalCardList title=\"Books\" items={data.books.map(b => ({ id: b.id, imageUrl: b.cover, firstLineText: b.title, secondLineText: b.author, thirdLineText: b.year }))} />"
+    },
+    {
+      "name": "DetailPage",
+      "description": "A detail view component with image, headers, description, and key-value details section.",
+      "props": [
+        {
+          "name": "title",
+          "type": "string",
+          "required": true,
+          "description": "Main title of the item"
+        },
+        {
+          "name": "sub_title",
+          "type": "string",
+          "required": false,
+          "description": "Subtitle or series title"
+        },
+        {
+          "name": "imageUrl",
+          "type": "string",
+          "required": false,
+          "description": "URL for the item's main image"
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "required": false,
+          "description": "Primary description text"
+        },
+        {
+          "name": "detail_section_header",
+          "type": "string",
+          "required": false,
+          "description": "Header for the details section (defaults to 'Details')"
+        },
+        {
+          "name": "details",
+          "type": "array",
+          "required": false,
+          "description": "Array of detail objects { label, value }",
+          "itemShape": {
+            "label": "string - Label for the detail",
+            "value": "string - Value for the detail"
+          }
+        }
+      ],
+      "example": "<DetailPage data={{ title: 'The Great Gatsby', sub_title: 'Classic Literature', description: 'A story of wealth and obsession...', detail_section_header: 'Book Info', details: [{ label: 'Author', value: 'F. Scott Fitzgerald' }, { label: 'Published', value: '1925' }] }} />"
     }
   ]
 }

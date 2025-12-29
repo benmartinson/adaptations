@@ -25,3 +25,15 @@ Available global components you can use (no import needed, just use directly):
     - onItemClick (function, optional): Callback when an item is clicked, receives the item as argument
   Example: <VerticalCardList title="Books" items={data.books.map(b => ({ id: b.id, imageUrl: b.cover, firstLineText: b.title, secondLineText: b.author, thirdLineText: b.year }))} />
 
+- DetailPage: A detail view component with image, headers, description, and key-value details section.
+  Props:
+    - title (string, required): Main title of the item
+    - sub_title (string, optional): Subtitle or series title
+    - imageUrl (string, optional): URL for the item's main image
+    - description (string, optional): Primary description text
+    - detail_section_header (string, optional): Header for the details section (defaults to 'Details')
+    - details (array, optional): Array of detail objects { label, value }
+      - label: string - Label for the detail
+      - value: string - Value for the detail
+  Example: <DetailPage data={{ title: 'The Great Gatsby', sub_title: 'Classic Literature', description: 'A story of wealth and obsession...', detail_section_header: 'Book Info', details: [{ label: 'Author', value: 'F. Scott Fitzgerald' }, { label: 'Published', value: '1925' }] }} />
+

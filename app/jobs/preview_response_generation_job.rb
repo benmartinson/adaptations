@@ -7,7 +7,11 @@ class PreviewResponseGenerationJob < ApplicationJob
     'horizontal' => 'HorizontalCardList',
     'vertical' => 'VerticalCardList',
     'list' => 'HorizontalCardList',  # Backward compatibility
+    'horizontal_cards' => 'HorizontalCardList',
+    'vertical_cards' => 'VerticalCardList',
+    'detail_page' => 'DetailPage',
     'detail' => 'DetailPage',
+    'generated_page' => 'GeneratedPage',
     'generated' => 'GeneratedPage'
   }.freeze
 
@@ -54,8 +58,8 @@ class PreviewResponseGenerationJob < ApplicationJob
       bundle_path = save_and_build_component_bundle(component_code)
     end
 
-    if ['horizontal', 'vertical', 'list'].include?(element_type)
-      prompt = build_card_list_transform_prompt(from_response, data_description, component_code, component_name)
+    if ['horizontal', 'vertical', 'list', 'horizontal_cards', 'vertical_cards', 'detail_page', 'detail'].include?(element_type)
+      prompt = build_component_transform_prompt(from_response, data_description, component_code, component_name)
     else
       prompt = build_default_transform_prompt(from_response, data_description, component_code)
     end
@@ -212,7 +216,7 @@ class PreviewResponseGenerationJob < ApplicationJob
     File.read(component_path)
   end
 
-  def build_card_list_transform_prompt(from_response, data_description, component_code, component_name)
+  def build_component_transform_prompt(from_response, data_description, component_code, component_name)
     component_docs = component_documentation(component_name)
 
     <<~PROMPT
@@ -224,7 +228,7 @@ class PreviewResponseGenerationJob < ApplicationJob
       #{from_response}
 
       Transform this API response into the format expected by the #{component_name} component.
-      Map relevant fields from the API response to the item properties as described in the component documentation.
+      Map relevant fields from the API response to the component properties as described in the documentation.
 
       #{data_description.present? ? "User instructions for the data transformation: #{data_description}" : ""}
 

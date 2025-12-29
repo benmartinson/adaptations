@@ -1,5 +1,13 @@
-export default function VerticalCardList({ data }) {
-  const { title, items, onItemClick } = data || {};
+export default function VerticalCardList({
+  data,
+  title: directTitle,
+  items: directItems,
+  onItemClick: directOnItemClick,
+}) {
+  // Support both direct props and data wrapper for flexibility
+  const title = directTitle ?? data?.title;
+  const items = directItems ?? data?.items ?? [];
+  const onItemClick = directOnItemClick ?? data?.onItemClick;
 
   const { useState } = React;
   const [imageErrors, setImageErrors] = useState({});

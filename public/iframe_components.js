@@ -5,7 +5,7 @@
  * These components are designed to work in sandboxed iframes that load React via CDN.
  * All components are attached to window.* and use the global React instance.
  * 
- * Generated: 2025-12-27T18:27:38.019Z
+ * Generated: 2025-12-29T23:48:45.804Z
  */
 
 (function() {
@@ -17,19 +17,107 @@
     return;
   }
 
+  // ============ DetailPage ============
+  // Iframe-compatible component - uses global React from window
+// This component displays a detail view for an item, styled like the Book page
+
+function DetailPage({
+  data
+}) {
+  const {
+    title,
+    sub_title,
+    imageUrl,
+    description,
+    detail_section_header = "Details",
+    details = []
+  } = data || {};
+  const {
+    useState
+  } = React;
+  const [imageError, setImageError] = useState(false);
+
+  // Inline ImageNotFound component
+  const ImageNotFound = () => /*#__PURE__*/React.createElement("div", {
+    className: "w-[210px] h-[320px] m-auto [border-radius:0_6%_6%_0_/4%] drop-shadow-md bg-gray-200 flex items-center justify-center border-2 border-dashed border-gray-400"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-center text-gray-500"
+  }, /*#__PURE__*/React.createElement("svg", {
+    className: "w-16 h-16 mb-2 mx-auto",
+    fill: "none",
+    stroke: "currentColor",
+    viewBox: "0 0 24 24",
+    xmlns: "http://www.w3.org/2000/svg"
+  }, /*#__PURE__*/React.createElement("path", {
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+    strokeWidth: 2,
+    d: "M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+  })), /*#__PURE__*/React.createElement("p", {
+    className: "text-sm px-4"
+  }, "Image not available")));
+
+  // Inline Label component
+  const DetailLabel = ({
+    label,
+    value
+  }) => {
+    if (!value) return null;
+    return /*#__PURE__*/React.createElement("div", {
+      className: "flex text-[14px] leading-[18px] font-body mt-2 text-[#707070]"
+    }, /*#__PURE__*/React.createElement("p", {
+      className: "w-[125px] mr-2"
+    }, label), /*#__PURE__*/React.createElement("p", {
+      className: "flex-1"
+    }, value));
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    className: "mx-auto grid grid-cols-12 gap-6 mb-10 max-w-[1260px] min-w-[320px] w-full items-start mt-10"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "col-span-3 self-start sticky top-20"
+  }, imageUrl && !imageError ? /*#__PURE__*/React.createElement("img", {
+    src: imageUrl,
+    alt: title,
+    className: "w-[210px] h-[320px] m-auto [border-radius:0_6%_6%_0_/4%] drop-shadow-md object-cover",
+    onError: () => setImageError(true)
+  }) : /*#__PURE__*/React.createElement(ImageNotFound, null)), /*#__PURE__*/React.createElement("div", {
+    className: "col-span-9"
+  }, sub_title && /*#__PURE__*/React.createElement("div", {
+    className: "font-fancy italic text-[20px] leading-[28px] text-[#707070] mb-2"
+  }, sub_title), /*#__PURE__*/React.createElement("h1", {
+    className: "font-fancy text-[36px] leading-[46px] font-[600]"
+  }, title), /*#__PURE__*/React.createElement("div", {
+    className: "font-body grid grid-cols-9 gap-6 mt-3 max-h-[200px] overflow-y-auto"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "col-span-7"
+  }, /*#__PURE__*/React.createElement("p", {
+    className: "whitespace-pre-wrap text-[16px] leading-[24px]"
+  }, description))), detail_section_header && details && details.length > 0 && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("h4", {
+    className: "font-fancy text-[14px] leading-[20px] font-bold mt-6"
+  }, detail_section_header), /*#__PURE__*/React.createElement("div", {
+    className: "mt-3"
+  }, details.map((detail, index) => /*#__PURE__*/React.createElement(DetailLabel, {
+    key: index,
+    label: detail.label,
+    value: detail.value
+  }))))));
+}
+  window.DetailPage = DetailPage;
+
   // ============ HorizontalCardList ============
   // Iframe-compatible component - uses global React from window
 // This component displays items in a horizontal scrolling list with images
 
 function HorizontalCardList({
-  data
+  data,
+  title: directTitle,
+  items: directItems,
+  onItemClick: directOnItemClick
 }) {
-  // Destructure the data prop
-  const {
-    title,
-    items,
-    onItemClick
-  } = data || {};
+  // Support both direct props and data wrapper for flexibility
+  const title = directTitle ?? (data === null || data === void 0 ? void 0 : data.title);
+  const items = directItems ?? (data === null || data === void 0 ? void 0 : data.items) ?? [];
+  const onItemClick = directOnItemClick ?? (data === null || data === void 0 ? void 0 : data.onItemClick);
 
   // Use React from window (loaded via CDN in iframe)
   const {
@@ -99,13 +187,15 @@ function HorizontalCardList({
 
   // ============ VerticalCardList ============
   function VerticalCardList({
-  data
+  data,
+  title: directTitle,
+  items: directItems,
+  onItemClick: directOnItemClick
 }) {
-  const {
-    title,
-    items,
-    onItemClick
-  } = data || {};
+  // Support both direct props and data wrapper for flexibility
+  const title = directTitle ?? (data === null || data === void 0 ? void 0 : data.title);
+  const items = directItems ?? (data === null || data === void 0 ? void 0 : data.items) ?? [];
+  const onItemClick = directOnItemClick ?? (data === null || data === void 0 ? void 0 : data.onItemClick);
   const {
     useState
   } = React;
@@ -177,5 +267,5 @@ function HorizontalCardList({
 }
   window.VerticalCardList = VerticalCardList;
 
-  console.log('Iframe components loaded:', Object.keys(window).filter(k => ['HorizontalCardList', 'VerticalCardList'].includes(k)));
+  console.log('Iframe components loaded:', Object.keys(window).filter(k => ['DetailPage', 'HorizontalCardList', 'VerticalCardList'].includes(k)));
 })();
