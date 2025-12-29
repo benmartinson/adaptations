@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import useTaskProgress from "../../../hooks/useTaskProgress";
+import { ELEMENT_TYPES } from "../../../helpers";
 
 export default function SubTaskCard({
   subTask,
@@ -10,18 +11,14 @@ export default function SubTaskCard({
 }) {
   const [isEditing, setIsEditing] = useState(initialExpanded);
   const [notes, setNotes] = useState(subTask.notes || "");
-  const [endpointNotes, setEndpointNotes] = useState(
-    subTask.endpoint_notes || ""
-  );
   const [isSaving, setIsSaving] = useState(false);
   const { events } = useTaskProgress(taskId);
-  console.log({ events });
+  const elementType = ELEMENT_TYPES[subTask.element_type];
 
   // Sync local state when subTask prop changes
   useEffect(() => {
     setNotes(subTask.notes || "");
-    setEndpointNotes(subTask.endpoint_notes || "");
-  }, [subTask.notes, subTask.endpoint_notes]);
+  }, [subTask.notes]);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -59,7 +56,6 @@ export default function SubTaskCard({
 
   const handleCancel = () => {
     setNotes(subTask.notes || "");
-    setEndpointNotes(subTask.endpoint_notes || "");
     setIsEditing(false);
   };
 
@@ -93,6 +89,11 @@ export default function SubTaskCard({
           <code className="bg-gray-100 px-2 py-1 rounded text-sm font-medium">
             {subTask.system_tag}
           </code>
+          {elementType && (
+            <span className="text-xs text-gray-500 bg-gray-50 px-2 py-0.5 rounded border border-gray-100">
+              {elementType}
+            </span>
+          )}
           {isGeneratingUI && (
             <span className="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
               Generating UI Change...
@@ -163,14 +164,6 @@ export default function SubTaskCard({
             <p className="text-sm text-gray-500">
               <span className="font-medium text-gray-700">Placement:</span>{" "}
               {subTask.notes}
-            </p>
-          )}
-          {subTask.endpoint_notes && (
-            <p className="text-sm text-gray-500">
-              <span className="font-medium text-gray-700">
-                Endpoint Construction:
-              </span>{" "}
-              {subTask.endpoint_notes}
             </p>
           )}
         </div>

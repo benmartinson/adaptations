@@ -233,6 +233,7 @@ module Api
     end
 
     def serialize_sub_task(sub_task)
+      associated_task = Task.find_by(system_tag: sub_task.system_tag)
       {
         id: sub_task.id,
         task_id: sub_task.task_id,  # Parent task ID
@@ -240,6 +241,7 @@ module Api
         parent_system_tag: sub_task.parent_system_tag,
         notes: sub_task.notes,
         endpoint_notes: sub_task.endpoint_notes,
+        element_type: associated_task&.element_type,
         created_at: sub_task.created_at,
         updated_at: sub_task.updated_at
       }

@@ -75,7 +75,6 @@ export default function SubTasksTab({ taskId, parentSystemTag }) {
             system_tag: selectedTask.to_system_tag,
             parent_system_tag: parentSystemTag || "",
             notes: "",
-            endpoint_notes: "",
           },
         }),
       });
@@ -186,13 +185,9 @@ export default function SubTasksTab({ taskId, parentSystemTag }) {
 
   return (
     <div className="space-y-3">
-      {/* Header with Add Sub-Task button */}
-      <div className="flex items-center justify-between">
-        <div className="text-sm text-gray-600">
-          Embed a child element within the interface. Must be connected, click
-          "Create Connection" to create a new connection.
-        </div>
-        <div className="flex items-center gap-2">
+      {/* Header with Embed Sub-Process button */}
+      <div className="flex items-center">
+        <div className="flex justify-end w-full items-center gap-2">
           {availableTasks.length > 0 && (
             <button
               type="button"
@@ -212,7 +207,7 @@ export default function SubTasksTab({ taskId, parentSystemTag }) {
                   d="M12 4v16m8-8H4"
                 />
               </svg>
-              Add Sub-Task
+              Add Sub-Process
             </button>
           )}
           <button
@@ -220,12 +215,12 @@ export default function SubTasksTab({ taskId, parentSystemTag }) {
             onClick={handleCreateConnection}
             className="px-3 py-1.5 text-sm font-medium rounded-md bg-gray-800 text-white hover:bg-gray-900 cursor-pointer transition-colors"
           >
-            Create Connection
+            Create New Connection
           </button>
         </div>
       </div>
 
-      {/* Add Sub-Task inline form */}
+      {/* Embed Sub-Process inline form */}
       {showAddSubTask && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
           <div className="flex gap-3">
@@ -311,7 +306,7 @@ export default function SubTasksTab({ taskId, parentSystemTag }) {
         !showAddSubTask && (
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">
             <p className="text-gray-500 text-sm">
-              No sub-tasks configured yet. Click "Add Sub-Task" to embed a
+              No sub-tasks configured yet. Click "Embed Sub-Process" to embed a
               connected process.
             </p>
           </div>
