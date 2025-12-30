@@ -86,7 +86,7 @@ class RunTransformTestsJob < ApplicationJob
           ui_error = nil
           if should_validate_ui
             ui_validation = validate_ui_render(bundle_file_name, output)
-          ui_error = ui_validation[:error] unless ui_validation[:success]
+            ui_error = ui_validation[:error] unless ui_validation[:success]
           end
           
           if ui_error
@@ -147,6 +147,8 @@ class RunTransformTestsJob < ApplicationJob
     test_inputs.map do |test_input|
       begin
         output = execute_transform(code_body, test_input["input"])
+        # Apply list link connectors if the output is an array
+        output = apply_list_link_connectors(output)
         { "test_id" => test_input["test_id"], "success" => true, "output" => output }
       rescue StandardError => e
         { "test_id" => test_input["test_id"], "success" => false, "error" => e.message }
@@ -166,7 +168,7 @@ class RunTransformTestsJob < ApplicationJob
             child_task = Task.find_by(kind: "api_transform", system_tag: sub_task.system_tag)
             next unless child_task&.transform_code.present?
 
-            link_task = Task.find_by(kind: "link", system_tag: sub_task.parent_system_tag)
+            link_task = Task.find_by(kind: "subtask_connector", system_tag: sub_task.parent_system_tag)
             next unless link_task&.transform_code.present?
 
             sub_task_api_endpoint = execute_transform(link_task.transform_code, first_output)
@@ -187,10 +189,71 @@ class RunTransformTestsJob < ApplicationJob
           end
         end
         
+                # Apply list link connectors if the output is an array
+        merged_output = apply_list_link_connectors(merged_output)
         { "test_id" => test_input["test_id"], "success" => true, "output" => merged_output }
       rescue StandardError => e
         { "test_id" => test_input["test_id"], "success" => false, "error" => e.message }
       end
+    end
+  end
+
+  # Applies list_link_connector transforms to array items in the output
+  # Adds link_endpoint and link_task_id to each item for DynamicLink usage
+  def apply_list_link_connectors(output)
+    return output unless task.system_tag.present?
+    
+    # Find list_link_connector tasks for this task
+    list_link_connectors = Task.where(kind: "list_link_connector", system_tag: task.system_tag)
+    return output if list_link_connectors.empty?
+    
+    # Handle both direct arrays and hashes containing arrays
+    if output.is_a?(Array)
+      apply_connectors_to_array(output, list_link_connectors)
+    elsif output.is_a?(Hash)
+      # Look for array values in the hash and apply connectors
+      output.transform_values do |value|
+        if value.is_a?(Array)
+          apply_connectors_to_array(value, list_link_connectors)
+        else
+          value
+        end
+      end
+    else
+      output
+    end
+  rescue StandardError => e
+    Rails.logger.warn("[RunTransformTestsJob] Error applying list link connectors: #{e.message}")
+    output
+  end
+
+  def apply_connectors_to_array(array, list_link_connectors)
+    array.map do |item|
+      next item unless item.is_a?(Hash)
+      
+      enriched_item = item.dup
+      
+      list_link_connectors.each do |connector|
+        next unless connector.transform_code.present? && connector.to_system_tag.present?
+        
+        begin
+          # Find the target task to get its ID
+          target_task = Task.find_by(kind: "api_transform", system_tag: connector.to_system_tag)
+          next unless target_task
+          
+          # Run the connector's transform on the item to get the endpoint
+          link_endpoint = execute_transform(connector.transform_code, item)
+          next unless link_endpoint.present?
+          
+          # Add link data to the item
+          enriched_item["link_endpoint"] = link_endpoint.to_s.strip
+          enriched_item["link_task_id"] = target_task.id
+        rescue StandardError => e
+          Rails.logger.warn("[RunTransformTestsJob] Error applying connector #{connector.id} to item: #{e.message}")
+        end
+      end
+      
+      enriched_item
     end
   end
 
@@ -206,6 +269,7 @@ class RunTransformTestsJob < ApplicationJob
 
 
   def validate_ui_render(bundle_file_name, data)
+    binding.pry
     ReactSandbox.validate_render(bundle_file_name, data)
   rescue StandardError => e
     Rails.logger.warn("[RunTransformTestsJob] UI validation failed: #{e.message}")

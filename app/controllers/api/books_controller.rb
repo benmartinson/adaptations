@@ -25,7 +25,7 @@ module Api
         edition_authors_importer.import
       end
 
-      edition = Edition.includes(:book, edition_contributors: :author).find_by(isbn: isbn)
+      edition = Edition.includes(:book).find_by(isbn: isbn)
       book = Book.includes(:authors, :genres, :movies).find(edition.book_id)
       render json: BookSerializer.new(book, edition).as_json
     end

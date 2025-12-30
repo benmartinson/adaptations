@@ -18,12 +18,19 @@ export default function CreateTransformerTab({
   const navigate = useNavigate();
   const taskType = isLinkTask ? "link" : "task";
 
+  const isListLink = snapshot?.kind === "list_link_connector";
   const [activeSubTab, setActiveSubTab] = useState(
-    transformCode ? "transform-code" : "data-selector"
+    isListLink || transformCode ? "transform-code" : "data-selector"
   );
   const [cyclingMessage, setCyclingMessage] = useState(
     "Generating Transformation Code..."
   );
+
+  useEffect(() => {
+    if (isListLink) {
+      setActiveSubTab("transform-code");
+    }
+  }, [isListLink]);
 
   // Handle cycling message during transform code generation
   useEffect(() => {
@@ -45,10 +52,12 @@ export default function CreateTransformerTab({
     };
   }, [isGeneratingTransformCode]);
 
-  const subTabs = [
-    { id: "data-selector", label: "Data Selector" },
-    { id: "transform-code", label: "Transform Code" },
-  ];
+  const subTabs = isListLink
+    ? [{ id: "transform-code", label: "Ruby Transform" }]
+    : [
+        { id: "data-selector", label: "Data Selector" },
+        { id: "transform-code", label: "Transform Code" },
+      ];
 
   // Show loading state when generating
   if (isGeneratingTransformCode) {

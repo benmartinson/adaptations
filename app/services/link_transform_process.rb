@@ -3,7 +3,7 @@ class LinkTransformProcess
   class TransformError < StandardError; end
 
   # For link tasks:
-  # - from_system_tag: identifies the source task AND the link task (task.kind == "link")
+  # - from_system_tag: identifies the source task AND the link task (task.kind == "subtask_connector")
   # - to_system_tag: identifies the target task
   # - api_endpoint: optional override for the initial fetch (defaults to From_Task.api_endpoint)
   def initialize(from_system_tag:, to_system_tag:, api_endpoint: nil, log_tests: false)
@@ -39,7 +39,7 @@ class LinkTransformProcess
   attr_reader :from_system_tag, :to_system_tag, :api_endpoint, :log_tests
 
   def find_link_task!
-    task = Task.find_by(kind: "link", system_tag: from_system_tag, to_system_tag: to_system_tag)
+    task = Task.find_by(kind: "subtask_connector", system_tag: from_system_tag, to_system_tag: to_system_tag)
     raise NotFoundError, "No link Task found with from_system_tag: #{from_system_tag} and to_system_tag: #{to_system_tag}" unless task
     raise NotFoundError, "Link Task '#{from_system_tag} -> #{to_system_tag}' has no transform_code" if task.transform_code.blank?
     task

@@ -5,6 +5,7 @@ class AiBundleBuilder
   OUTPUT_DIR = Rails.root.join("public", "ai_bundles").freeze
   ENTRYPOINT = Rails.root.join("app", "javascript", "ai_bundles", "preview_list_entry.jsx").freeze
   REACT_SHIM = Rails.root.join("app", "javascript", "ai_bundles", "react_shim.js").freeze
+  IFRAME_COMPONENTS_SHIM = Rails.root.join("app", "javascript", "ai_bundles", "iframe_components_shim.js").freeze
 
   class BundleError < StandardError; end
 
@@ -83,6 +84,7 @@ class AiBundleBuilder
       "--outdir=#{OUTPUT_DIR}",
       "--entry-names=#{entry_name}-[hash]",
       "--alias:react=#{Rails.root.join('app/javascript/ai_bundles/react_shim.js')}",
+      "--inject:#{IFRAME_COMPONENTS_SHIM}",
       "--loader:.js=jsx",
       "--loader:.jsx=jsx"
     ]

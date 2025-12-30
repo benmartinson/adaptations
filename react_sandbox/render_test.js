@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import vm from "vm";
 import { JSDOM } from "jsdom";
 import React from "react";
 import { renderToString } from "react-dom/server";
@@ -25,6 +26,35 @@ global.React = React;
 
 // Also set up window.React for the react_shim used in bundled components
 global.window.React = React;
+
+// Load iframe components (HorizontalCardList, VerticalCardList, etc.)
+// These are attached to window.* by the iframe_components.js script
+function loadIframeComponents() {
+  const iframeComponentsPath = path.join(
+    WORKSPACE_PATH,
+    "iframe_components.js"
+  );
+  if (fs.existsSync(iframeComponentsPath)) {
+    try {
+      const iframeComponentsCode = fs.readFileSync(
+        iframeComponentsPath,
+        "utf8"
+      );
+      // Create a context with React available for the IIFE's `typeof React` check
+      const context = {
+        React,
+        window: global.window,
+        console,
+      };
+      vm.createContext(context);
+      vm.runInContext(iframeComponentsCode, context);
+    } catch (e) {
+      console.error("Failed to load iframe_components.js:", e.message);
+    }
+  }
+}
+
+loadIframeComponents();
 
 // Helper to write output
 function writeResult(result) {

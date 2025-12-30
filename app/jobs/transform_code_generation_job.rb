@@ -46,7 +46,7 @@ class TransformCodeGenerationJob < ApplicationJob
   end
 
   def build_prompt
-    tests_needing_changes = task.kind == "link" ? task.tests.where(status: "fail") : task.tests.where(status: "changes_needed")
+    tests_needing_changes = task.kind == "subtask_connector" ? task.tests.where(status: "fail") : task.tests.where(status: "changes_needed")
 
     if tests_needing_changes.exists?
       build_revision_prompt(tests_needing_changes)
@@ -58,7 +58,7 @@ class TransformCodeGenerationJob < ApplicationJob
   def build_initial_prompt
     from_response = task.input_payload.fetch("from_response", [])
     to_response = task.response_json
-    if task.kind == "link"
+    if task.kind == "subtask_connector"
       "Can you write a ruby data transformation: def transformation_procedure(data) ...something... end
         Where the 'data' param is fetched data from an api endpoint and the example given is this data format: #{from_response}
         And you need to write a transformation function that prepares this data to call the target API endpoint: #{to_response}
@@ -81,7 +81,7 @@ class TransformCodeGenerationJob < ApplicationJob
 
   def build_revision_prompt(tests_needing_changes)
     initial_prompt = build_initial_prompt
-    if task.kind == "link"
+    if task.kind == "subtask_connector"
       prompt = <<~PROMPT
       Previously, you recieved the instructions:
         #{initial_prompt}
@@ -126,7 +126,7 @@ class TransformCodeGenerationJob < ApplicationJob
       TEST_CASE
     end
 
-    if task.kind == "link"
+    if task.kind == "subtask_connector"
       prompt += <<~FOOTER
         Please revise the transformation code to handle all the test cases above.
         The transformation should prepare data to call the target API endpoint.

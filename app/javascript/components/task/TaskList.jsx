@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import moment from "moment";
 import Modal from "../common/Modal";
-import { ELEMENT_TYPES } from "../../helpers";
+import { ELEMENT_TYPES, filterTasksByKind } from "../../helpers";
 
 export default function TaskList() {
   const [tasks, setTasks] = useState([]);
@@ -27,10 +27,8 @@ export default function TaskList() {
 
       // Group Link tasks under their corresponding API Transform tasks
       const groupedTasks = [];
-      const apiTransformTasks = data.filter(
-        (task) => task.kind === "api_transform"
-      );
-      const linkTasks = data.filter((task) => task.kind === "link");
+      const apiTransformTasks = filterTasksByKind(data, "api_transform");
+      const linkTasks = filterTasksByKind(data, "subtask_connector");
 
       apiTransformTasks.forEach((apiTask) => {
         const connections = linkTasks.filter(
@@ -87,7 +85,8 @@ export default function TaskList() {
       }
 
       const task = await response.json();
-      const route = kind === "link" ? `/link/${task.id}` : `/task/${task.id}`;
+      const route =
+        kind === "subtask_connector" ? `/link/${task.id}` : `/task/${task.id}`;
       navigate(route);
     } catch (error) {
       console.error(error);
@@ -122,7 +121,7 @@ export default function TaskList() {
 
   function getKindColor(kind) {
     switch (kind) {
-      case "link":
+      case "subtask_connector":
         return "bg-blue-100 text-blue-800 border-blue-200";
       case "api_transform":
         return "bg-green-100 text-green-800 border-green-200";
@@ -190,7 +189,9 @@ export default function TaskList() {
             <Link
               key={task.id}
               to={
-                task.kind === "link" ? `/link/${task.id}` : `/task/${task.id}`
+                task.kind === "subtask_connector"
+                  ? `/link/${task.id}`
+                  : `/task/${task.id}`
               }
               className="block bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow"
             >
@@ -221,7 +222,9 @@ export default function TaskList() {
                     {task.system_tag && (
                       <div className="mb-2">
                         <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                          {task.kind === "link" ? "From" : "System Tag"}
+                          {task.kind === "subtask_connector"
+                            ? "From"
+                            : "System Tag"}
                         </label>
                         <p className="text-sm text-gray-900 font-mono break-all">
                           {task.system_tag}
@@ -229,16 +232,17 @@ export default function TaskList() {
                       </div>
                     )}
 
-                    {task.to_system_tag && task.kind === "link" && (
-                      <div className="mb-2">
-                        <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                          To
-                        </label>
-                        <p className="text-sm text-gray-900 font-mono break-all">
-                          {task.to_system_tag}
-                        </p>
-                      </div>
-                    )}
+                    {task.to_system_tag &&
+                      task.kind === "subtask_connector" && (
+                        <div className="mb-2">
+                          <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                            To
+                          </label>
+                          <p className="text-sm text-gray-900 font-mono break-all">
+                            {task.to_system_tag}
+                          </p>
+                        </div>
+                      )}
                   </div>
 
                   {/* Connections section for API Transform tasks */}

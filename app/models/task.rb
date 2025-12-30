@@ -1,5 +1,5 @@
 class Task < ApplicationRecord
-  KINDS = %w[api_transform link].freeze
+  KINDS = %w[api_transform subtask_connector list_link_connector].freeze
 
   has_many :tests, dependent: :destroy
   has_many :task_ui_files, dependent: :destroy

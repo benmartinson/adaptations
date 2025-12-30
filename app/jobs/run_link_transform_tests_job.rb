@@ -12,7 +12,7 @@ class RunLinkTransformTestsJob < ApplicationJob
   def perform(test_ids)
     @test_ids = Array(test_ids)
     @tests = Test.where(id: @test_ids).includes(:task)
-    @task = Task.where(kind: "link").find_by(id: @tests.first.task_id)
+    @task = Task.where(kind: "subtask_connector").find_by(id: @tests.first.task_id)
 
     if @tests.empty?
       Rails.logger.warn("[RunLinkTransformsJob] No tests found, skipping job")

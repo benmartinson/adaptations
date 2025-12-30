@@ -21,6 +21,9 @@ Rails.application.routes.draw do
         patch "sub_tasks/:sub_task_id", to: "tasks#update_sub_task"
         post "sub_tasks/:sub_task_id/generate_ui", to: "tasks#generate_subtask_ui"
         delete "sub_tasks/:sub_task_id", to: "tasks#delete_sub_task"
+        get :list_links
+        post :create_list_link
+        post :generate_list_link
       end
       resources :tests, only: %i[index create show update destroy] do
         member do

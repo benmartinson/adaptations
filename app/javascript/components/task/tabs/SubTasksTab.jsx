@@ -39,7 +39,7 @@ export default function SubTasksTab({ taskId, parentSystemTag }) {
         // Only show link tasks where the system_tag matches our parent system tag
         const available = tasks.filter(
           (task) =>
-            task.kind === "link" &&
+            task.kind === "subtask_connector" &&
             task.system_tag === parentSystemTag &&
             task.to_system_tag
         );
@@ -155,7 +155,7 @@ export default function SubTasksTab({ taskId, parentSystemTag }) {
         },
         body: JSON.stringify({
           task: {
-            kind: "link",
+            kind: "subtask_connector",
             metadata: { source: "web-ui", parent_system_tag: parentSystemTag },
           },
         }),

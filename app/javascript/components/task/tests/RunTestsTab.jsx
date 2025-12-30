@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useSearchParams } from "react-router-dom";
 import { fetchEndpointData } from "../../../helpers";
 import TestCard from "./TestCard";
 import LinkTestCard from "./LinkTestCard";
@@ -16,9 +16,11 @@ export default function RunTestsTab({
   fromSystemTag,
 }) {
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const expandTestId = location.state?.expandTestId;
   const focusNotes = location.state?.focusNotes;
   const [activeTab, setActiveTab] = useState("manual");
+  const hasHandledEndpointParam = useRef(false);
   const [runningTestIds, setRunningTestIds] = useState([]);
   const [newTestEndpoint, setNewTestEndpoint] = useState("");
   const [showAddTest, setShowAddTest] = useState(false);
@@ -42,6 +44,25 @@ export default function RunTestsTab({
     if (!apiEndpoint) return;
     fetchDataForEndpoint(apiEndpoint);
   }, [apiEndpoint]);
+
+  // Handle endpoint URL parameter - auto-create and run test from DynamicLink click
+  useEffect(() => {
+    const endpointParam = searchParams.get("endpoint");
+
+    if (endpointParam && task?.id && !hasHandledEndpointParam.current) {
+      hasHandledEndpointParam.current = true;
+
+      // Remove the endpoint param from URL immediately
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete("endpoint");
+      setSearchParams(newParams, { replace: true });
+
+      // Create and run a test with this endpoint
+      createTest(endpointParam, false).catch((error) => {
+        console.error("Failed to create test from endpoint param:", error);
+      });
+    }
+  }, [searchParams, task?.id]);
 
   // Auto-create primary test if none exists
   useEffect(() => {

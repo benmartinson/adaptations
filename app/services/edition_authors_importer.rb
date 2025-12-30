@@ -78,7 +78,7 @@ class EditionAuthorsImporter
       if author.nil?
         author = AuthorImporter.new(author_key: author_key).import
       end
-      book.authors << author unless book.authors.include?(author)
+      # book.authors << author unless book.authors.include?(author)
     end.filter { |author| author.present? }
   end
 end

@@ -7,6 +7,7 @@ import CreateTransformerTab from "./tabs/CreateTransformerTab";
 import RunTestsTab from "./tests/RunTestsTab";
 import DeployTab from "./tabs/DeployTab";
 import SubTasksTab from "./tabs/SubTasksTab";
+import ListLinksTab from "./tabs/ListLinksTab";
 import { fetchEndpointData } from "../../helpers";
 
 export default function TaskRunner() {
@@ -198,6 +199,10 @@ export default function TaskRunner() {
     }
   }
 
+  const isListType = ["horizontal_cards", "vertical_cards"].includes(
+    elementType
+  );
+
   const tabs = [
     { id: "endpoint", label: "Configure", enabled: true },
     { id: "preview", label: "Interface", enabled: !!responseJson },
@@ -210,6 +215,11 @@ export default function TaskRunner() {
       id: "subtasks",
       label: "Embed",
       enabled: !!snapshot?.system_tag,
+    },
+    {
+      id: "links",
+      label: "Links",
+      enabled: !!responseJson && isListType,
     },
     { id: "tests", label: "Test", enabled: !!transformCode },
     { id: "deploy", label: "Deploy", enabled: !!transformCode },
@@ -324,6 +334,14 @@ export default function TaskRunner() {
 
       {tab === "subtasks" && (
         <SubTasksTab taskId={task_id} parentSystemTag={snapshot?.system_tag} />
+      )}
+
+      {tab === "links" && (
+        <ListLinksTab
+          taskId={task_id}
+          parentSystemTag={snapshot?.system_tag}
+          responseJson={responseJson}
+        />
       )}
 
       {tab === "deploy" && <DeployTab task={snapshot} />}

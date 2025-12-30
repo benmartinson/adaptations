@@ -47,3 +47,7 @@ export async function fetchEndpointData(apiEndpoint, maxArraySize = 10) {
 
   return fetchedData;
 }
+
+export function filterTasksByKind(tasks, kind) {
+  return tasks.filter((task) => task.kind === kind);
+}

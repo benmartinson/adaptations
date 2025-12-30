@@ -32,8 +32,20 @@ export default function LinkRunner() {
   const [generatingTransformMessage, setGeneratingTransformMessage] =
     useState("");
   const [isGeneratingTests, setIsGeneratingTests] = useState(false);
+  const [exampleMappings, setExampleMappings] = useState([]);
   const fromTask = allTasks.find((t) => t.system_tag === fromSystemTag);
   const toTask = allTasks.find((t) => t.system_tag === toSystemTag);
+
+  useEffect(() => {
+    if (snapshot?.kind === "list_link_connector" && localFromResponse) {
+      const sampleItems = Array.isArray(localFromResponse)
+        ? localFromResponse.slice(0, 3)
+        : [];
+      if (exampleMappings.length === 0 && sampleItems.length > 0) {
+        setExampleMappings(sampleItems.map((item) => ({ item, endpoint: "" })));
+      }
+    }
+  }, [snapshot?.kind, localFromResponse]);
 
   useEffect(() => {
     if (snapshot?.input_payload?.from_response) {
@@ -136,29 +148,65 @@ export default function LinkRunner() {
     setFormError(null);
 
     try {
-      const updateResponse = await fetch(`/api/tasks/${task_id}/`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          task: {
-            system_tag: fromSystemTag,
-            to_system_tag: toSystemTag,
-            input_payload: { from_response: fromTask.response_json },
-            response_json: toTask.api_endpoint,
+      if (snapshot?.kind === "list_link_connector") {
+        // Save the to_system_tag first
+        await fetch(`/api/tasks/${task_id}/`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
           },
-        }),
-      });
+          body: JSON.stringify({
+            task: {
+              to_system_tag: toSystemTag,
+            },
+          }),
+        });
 
-      if (!updateResponse.ok) {
-        throw new Error("Failed to update link task");
+        const filledMappings = exampleMappings.filter((m) => m.endpoint.trim());
+        const response = await fetch(
+          `/api/tasks/${snapshot.metadata?.parent_task_id}/generate_list_link`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              list_link_id: task_id,
+              example_mappings: filledMappings,
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || "Failed to generate code");
+        }
+        // No navigate needed, the WebSocket will trigger tab change or UI update
+        // But for now let's navigate to transformer to show progress
+        navigate(`/link/${task_id}/transformer`);
+      } else {
+        const updateResponse = await fetch(`/api/tasks/${task_id}/`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            task: {
+              system_tag: fromSystemTag,
+              to_system_tag: toSystemTag,
+              input_payload: { from_response: fromTask.response_json },
+              response_json: toTask.api_endpoint,
+            },
+          }),
+        });
+
+        if (!updateResponse.ok) {
+          throw new Error("Failed to update link task");
+        }
+
+        setLocalFromResponse(fromTask.response_json);
+        setLocalToResponse(toTask.api_endpoint);
+
+        navigate(`/link/${task_id}/transformer`);
       }
-
-      setLocalFromResponse(fromTask.response_json);
-      setLocalToResponse(toTask.api_endpoint);
-
-      navigate(`/link/${task_id}/transformer`);
     } catch (error) {
       console.error("Continue error:", error);
       setFormError(error.message);
@@ -167,34 +215,68 @@ export default function LinkRunner() {
     }
   }
 
-  const hasLinkData = Boolean(
-    snapshot?.input_payload && snapshot?.response_json
-  );
+  const hasLinkData =
+    snapshot?.kind === "list_link_connector"
+      ? Boolean(snapshot?.transform_code)
+      : Boolean(snapshot?.input_payload && snapshot?.response_json);
 
   async function handleGenerateTransform() {
     setIsGeneratingTransformCode(true);
     navigate(`/link/${task_id}/transformer`);
 
     try {
-      const taskResponse = await fetch(`/api/tasks/${task_id}/run_job`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          task: {
-            input_payload: {
-              from_response:
-                localFromResponse || snapshot?.input_payload?.from_response,
-              to_response: localToResponse || snapshot?.response_json,
-              task_type: "transform_code_generation",
-            },
+      if (snapshot?.kind === "list_link_connector") {
+        // Save the to_system_tag first
+        await fetch(`/api/tasks/${task_id}/`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
           },
-        }),
-      });
+          body: JSON.stringify({
+            task: {
+              to_system_tag: toSystemTag,
+            },
+          }),
+        });
 
-      if (!taskResponse.ok) {
-        throw new Error("Unable to run transform job");
+        const filledMappings = exampleMappings.filter((m) => m.endpoint.trim());
+        const response = await fetch(
+          `/api/tasks/${snapshot.metadata?.parent_task_id}/generate_list_link`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              list_link_id: task_id,
+              example_mappings: filledMappings,
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || "Failed to generate code");
+        }
+      } else {
+        const taskResponse = await fetch(`/api/tasks/${task_id}/run_job`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            task: {
+              input_payload: {
+                from_response:
+                  localFromResponse || snapshot?.input_payload?.from_response,
+                to_response: localToResponse || snapshot?.response_json,
+                task_type: "transform_code_generation",
+              },
+            },
+          }),
+        });
+
+        if (!taskResponse.ok) {
+          throw new Error("Unable to run transform job");
+        }
       }
     } catch (error) {
       console.error(error);
@@ -280,6 +362,9 @@ export default function LinkRunner() {
           availableSystemTags={availableSystemTags}
           onContinue={handleCreateTask}
           isProcessing={isProcessing}
+          isListLink={snapshot?.kind === "list_link_connector"}
+          exampleMappings={exampleMappings}
+          setExampleMappings={setExampleMappings}
         />
       )}
 

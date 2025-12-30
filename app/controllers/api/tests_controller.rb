@@ -17,7 +17,7 @@ module Api
     def create
       test_data = params.require(:test).permit(:api_endpoint, :is_primary, :description, :from_response, :expected_output)
 
-      expected_output = if @task.kind == "link" && test_data[:is_primary]
+      expected_output = if @task.kind == "subtask_connector" && test_data[:is_primary]
         @task.response_json
       else
         test_data[:expected_output]
@@ -66,7 +66,7 @@ module Api
     end
 
     def enqueue_job(task, test)
-      if task.kind == "link"
+      if task.kind == "subtask_connector"
         job = RunLinkTransformTestsJob.perform_later(test.id)
       else
         job = RunTransformTestsJob.perform_later(test.id)

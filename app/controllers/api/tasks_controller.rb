@@ -2,7 +2,7 @@ module Api
   class TasksController < ApplicationController
     skip_before_action :verify_authenticity_token
 
-    before_action :set_task, only: %i[show update destroy run_job run_tests ui_files sub_tasks create_sub_task update_sub_task generate_subtask_ui delete_sub_task]
+    before_action :set_task, only: %i[show update destroy run_job run_tests ui_files sub_tasks create_sub_task update_sub_task generate_subtask_ui delete_sub_task list_links create_list_link generate_list_link]
     before_action :set_sub_task, only: %i[update_sub_task generate_subtask_ui delete_sub_task]
 
     def index
@@ -62,7 +62,7 @@ module Api
         return
       end
 
-      if @task.kind == "link"
+      if @task.kind == "subtask_connector"
         job = RunLinkTransformTestsJob.perform_later(test_ids)
       else
         job = RunTransformTestsJob.perform_later(test_ids)
@@ -120,6 +120,53 @@ module Api
     def delete_sub_task
       @sub_task.destroy!
       head :no_content
+    end
+
+    # List link connectors - returns list_link_connector tasks associated with this task's system_tag
+    def list_links
+      list_link_tasks = Task.where(kind: "list_link_connector", system_tag: @task.system_tag)
+      render json: list_link_tasks.map { |t| serialize_task(t) }
+    end
+
+    # Create a new list_link_connector task
+    def create_list_link
+      list_link_params = params.require(:list_link).permit(:to_system_tag, :to_task_id)
+
+      # Find the target task to get its system_tag
+      to_task = if list_link_params[:to_task_id].present?
+                  Task.find(list_link_params[:to_task_id])
+                elsif list_link_params[:to_system_tag].present?
+                  Task.find_by!(system_tag: list_link_params[:to_system_tag])
+                else
+                  raise ActionController::ParameterMissing, "to_system_tag or to_task_id is required"
+                end
+
+      list_link_task = Task.create!(
+        kind: "list_link_connector",
+        system_tag: @task.system_tag,
+        to_system_tag: to_task.system_tag,
+        metadata: { parent_task_id: @task.id }
+      )
+
+      render json: serialize_task(list_link_task), status: :created
+    end
+
+    # Generate transform code for a list_link_connector task
+    def generate_list_link
+      list_link_id = params.require(:list_link_id)
+      example_mappings = params.require(:example_mappings)
+
+      list_link_task = Task.find(list_link_id)
+
+      unless list_link_task.kind == "list_link_connector"
+        render json: { error: "Task is not a list_link_connector" }, status: :unprocessable_entity
+        return
+      end
+
+      job = ListLinksGenerationJob.perform_later(list_link_task.id, example_mappings.to_a)
+      list_link_task.update!(job_id: job.job_id) if job.respond_to?(:job_id)
+
+      render json: serialize_task(list_link_task), status: :accepted
     end
 
     private

@@ -73,7 +73,7 @@ export default function DynamicUIFile({ taskId, responseJson }) {
     };
   }, [activeFile?.file_name]);
 
-  // Listen for height updates and errors from *this* iframe only.
+  // Listen for height updates, errors, and link clicks from *this* iframe only.
   useEffect(() => {
     const handleMessage = (event) => {
       // Only accept messages from our iframe window.
@@ -89,6 +89,16 @@ export default function DynamicUIFile({ taskId, responseJson }) {
         setIframeError(null);
       } else if (data.type === "iframe-error" && data.error) {
         setIframeError(data.error);
+      } else if (data.type === "dynamic-link-click") {
+        // Handle dynamic link click - open new tab to target task's tests page
+        const { taskId: linkedTaskId, endpoint } = data;
+        if (linkedTaskId && endpoint) {
+          const encodedEndpoint = encodeURIComponent(endpoint);
+          window.open(
+            `/task/${linkedTaskId}/tests?endpoint=${encodedEndpoint}`,
+            "_blank"
+          );
+        }
       }
     };
 
@@ -243,6 +253,49 @@ export default function DynamicUIFile({ taskId, responseJson }) {
               }
 
               return React.createElement(Component, { data: this.props.data });
+            }
+          };
+
+          // DynamicLink component for navigating to linked tasks
+          // When clicked, opens a new tab to run a test on the target task with the specified endpoint
+          window.DynamicLink = class DynamicLink extends React.Component {
+            constructor(props) {
+              super(props);
+              this.handleClick = this.handleClick.bind(this);
+            }
+
+            handleClick(e) {
+              e.preventDefault();
+              e.stopPropagation();
+              
+              const { taskId, endpoint } = this.props;
+              
+              if (!taskId || !endpoint) {
+                console.error('DynamicLink requires taskId and endpoint props');
+                return;
+              }
+
+              // Post message to parent to handle the navigation
+              postToParent({
+                type: 'dynamic-link-click',
+                taskId: taskId,
+                endpoint: endpoint
+              });
+            }
+
+            render() {
+              const { children, className, style } = this.props;
+              
+              return React.createElement(
+                'a',
+                {
+                  href: '#',
+                  onClick: this.handleClick,
+                  className: className || 'text-blue-600 hover:text-blue-800 hover:underline cursor-pointer',
+                  style: style || {}
+                },
+                children || 'View Details'
+              );
             }
           };
 

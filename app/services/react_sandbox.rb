@@ -7,6 +7,7 @@ class ReactSandbox
   SANDBOX_IMAGE = "react-sandbox"
   CONTAINER_WORKSPACE_PATH = "/workspace"
   TMP_ROOT = Rails.root.join("tmp", "react_sandbox")
+  IFRAME_COMPONENTS_PATH = Rails.root.join("public", "iframe_components.js").freeze
 
   class RenderError < StandardError; end
 
@@ -35,11 +36,13 @@ class ReactSandbox
       FileUtils.mkdir_p(out_dir)
       FileUtils.chmod(0o777, out_dir)
 
-      # Copy the bundle file and write data
+      # Copy the bundle file, iframe components, and write data
       component_dest = File.join(tmp, "component.js")
+      iframe_components_dest = File.join(tmp, "iframe_components.js")
       data_path = File.join(tmp, "data.json")
 
       FileUtils.cp(bundle_path, component_dest)
+      FileUtils.cp(IFRAME_COMPONENTS_PATH, iframe_components_dest) if File.exist?(IFRAME_COMPONENTS_PATH)
       File.write(data_path, data.to_json)
 
       cmd = [
