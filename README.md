@@ -1,10 +1,8 @@
 # Adaptations
 
-A Rails 8 + React application for building **AI-powered data transformation pipelines** with automatic UI generation. Transform external API data into beautiful React components using intelligent code generation.
+AI-Driven CMS that converts API response data into a fully functional UI using generated React components and Ruby transformations, testing pipelines, background jobs, WebSockets, and code sandboxing.
 
 ---
-
-## ✨ What is This?
 
 Adaptations is a development tool that helps you:
 
@@ -18,7 +16,7 @@ Perfect for rapidly prototyping data-driven interfaces without writing boilerpla
 
 ---
 
-## 🛠 Tech Stack
+## Tech Stack
 
 ### Backend
 
@@ -43,7 +41,7 @@ Perfect for rapidly prototyping data-driven interfaces without writing boilerpla
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -51,7 +49,7 @@ Perfect for rapidly prototyping data-driven interfaces without writing boilerpla
 - Node.js 18+
 - Yarn 4.x
 - SQLite 3
-- Docker (for sandboxed code execution)
+- Docker
 
 ### Installation
 
@@ -111,7 +109,7 @@ yarn test:js:watch
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 app/
@@ -146,7 +144,7 @@ app/
 
 ---
 
-## 🔄 How It Works
+## How It Works
 
 ### 1. Create a Task
 
@@ -183,11 +181,11 @@ end
 
 ### 5. Deploy
 
-Export your transformation and UI components for production use. Still in progress
+Export your transformation and UI components for production use. Still in progress..
 
 ---
 
-## 🔗 Key Features
+## Key Features
 
 ### Task Types
 
@@ -208,48 +206,6 @@ WebSocket connections (`TaskChannel`) provide live updates during:
 ### Sandboxed Execution
 
 Transformation code runs in isolated Docker containers for security.
-
----
-
-## 📚 API Routes
-
-```
-GET  /api/books/:isbn              # Book details
-GET  /api/books/:work_id/editions  # Book editions
-GET  /api/authors/:slug            # Author details
-GET  /api/authors/:slug/books      # Author's books
-
-# Task Management
-GET    /api/tasks                  # List tasks
-POST   /api/tasks                  # Create task
-GET    /api/tasks/:id              # Task details
-PATCH  /api/tasks/:id              # Update task
-DELETE /api/tasks/:id              # Delete task
-POST   /api/tasks/:id/run_job      # Run task job
-POST   /api/tasks/:id/run_tests    # Run all tests
-```
-
----
-
-## 🧪 Development
-
-### Build Commands
-
-```bash
-# Build JavaScript once
-yarn build
-
-# Build CSS once
-yarn build:css
-
-# Build iframe components
-yarn build:iframe
-
-# Watch modes
-yarn build:watch
-yarn build:css:watch
-yarn build:iframe:watch
-```
 
 ### Background Jobs
 
