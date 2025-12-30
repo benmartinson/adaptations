@@ -153,8 +153,9 @@ module Api
 
     # Generate transform code for a list_link_connector task
     def generate_list_link
-      list_link_id = params.require(:list_link_id)
-      example_mappings = params.require(:example_mappings)
+      list_link_params = params.permit(:list_link_id, example_mappings: [])
+      list_link_id = list_link_params[:list_link_id]
+      example_mappings = list_link_params[:example_mappings] || []
 
       list_link_task = Task.find(list_link_id)
 
@@ -163,7 +164,7 @@ module Api
         return
       end
 
-      job = ListLinksGenerationJob.perform_later(list_link_task.id, example_mappings.to_a)
+      job = ListLinksGenerationJob.perform_later(list_link_task.id, example_mappings)
       list_link_task.update!(job_id: job.job_id) if job.respond_to?(:job_id)
 
       render json: serialize_task(list_link_task), status: :accepted

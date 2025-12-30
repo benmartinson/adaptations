@@ -37,10 +37,14 @@ export default function LinkRunner() {
   const toTask = allTasks.find((t) => t.system_tag === toSystemTag);
 
   useEffect(() => {
+    console.log("localFromResponse", localFromResponse);
     if (snapshot?.kind === "list_link_connector" && localFromResponse) {
       const sampleItems = Array.isArray(localFromResponse)
         ? localFromResponse.slice(0, 3)
+        : Array.isArray(localFromResponse.items)
+        ? localFromResponse.items.slice(0, 3)
         : [];
+
       if (exampleMappings.length === 0 && sampleItems.length > 0) {
         setExampleMappings(sampleItems.map((item) => ({ item, endpoint: "" })));
       }
@@ -143,70 +147,38 @@ export default function LinkRunner() {
     }
   }
 
-  async function handleCreateTask() {
+  async function handleCreateTask(exampleMappings) {
     setIsProcessing(true);
     setFormError(null);
 
     try {
-      if (snapshot?.kind === "list_link_connector") {
-        // Save the to_system_tag first
-        await fetch(`/api/tasks/${task_id}/`, {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            task: {
-              to_system_tag: toSystemTag,
-            },
-          }),
-        });
-
-        const filledMappings = exampleMappings.filter((m) => m.endpoint.trim());
-        const response = await fetch(
-          `/api/tasks/${snapshot.metadata?.parent_task_id}/generate_list_link`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              list_link_id: task_id,
+      const filledMappings = exampleMappings.filter((m) => m.endpoint.trim());
+      const updateResponse = await fetch(`/api/tasks/${task_id}/`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          task: {
+            system_tag: fromSystemTag,
+            to_system_tag: toSystemTag,
+            input_payload: {
+              from_response: fromTask?.response_json,
               example_mappings: filledMappings,
-            }),
-          }
-        );
-
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.error || "Failed to generate code");
-        }
-        // No navigate needed, the WebSocket will trigger tab change or UI update
-        // But for now let's navigate to transformer to show progress
-        navigate(`/link/${task_id}/transformer`);
-      } else {
-        const updateResponse = await fetch(`/api/tasks/${task_id}/`, {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            task: {
-              system_tag: fromSystemTag,
-              to_system_tag: toSystemTag,
-              input_payload: { from_response: fromTask.response_json },
-              response_json: toTask.api_endpoint,
             },
-          }),
-        });
+            response_json: toTask?.api_endpoint,
+          },
+        }),
+      });
 
-        if (!updateResponse.ok) {
-          throw new Error("Failed to update link task");
-        }
-
-        setLocalFromResponse(fromTask.response_json);
-        setLocalToResponse(toTask.api_endpoint);
-
-        navigate(`/link/${task_id}/transformer`);
+      if (!updateResponse.ok) {
+        throw new Error("Failed to update link task");
       }
+
+      setLocalFromResponse(fromTask?.response_json);
+      setLocalToResponse(toTask?.api_endpoint);
+
+      navigate(`/link/${task_id}/transformer`);
     } catch (error) {
       console.error("Continue error:", error);
       setFormError(error.message);
@@ -239,7 +211,9 @@ export default function LinkRunner() {
           }),
         });
 
-        const filledMappings = exampleMappings.filter((m) => m.endpoint.trim());
+        const filledMappings = (
+          snapshot?.input_payload?.example_mappings || []
+        ).filter((m) => m.endpoint.trim());
         const response = await fetch(
           `/api/tasks/${snapshot.metadata?.parent_task_id}/generate_list_link`,
           {
@@ -356,6 +330,8 @@ export default function LinkRunner() {
         <LinkDetailsTab
           fromSystemTag={fromSystemTag}
           setFromSystemTag={handleFromSystemTagChange}
+          responseJson={localToResponse}
+          fromResponse={localFromResponse}
           toSystemTag={toSystemTag}
           setToSystemTag={setToSystemTag}
           formError={formError}
@@ -363,8 +339,6 @@ export default function LinkRunner() {
           onContinue={handleCreateTask}
           isProcessing={isProcessing}
           isListLink={snapshot?.kind === "list_link_connector"}
-          exampleMappings={exampleMappings}
-          setExampleMappings={setExampleMappings}
         />
       )}
 

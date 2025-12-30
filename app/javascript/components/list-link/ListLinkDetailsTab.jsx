@@ -1,48 +1,38 @@
-import React from "react";
+import React, { useEffect } from "react";
 
-export default function LinkDetailsTab({
-  responseJson,
-  fromResponse,
+export default function ListLinkDetailsTab({
   fromSystemTag,
-  setFromSystemTag,
   toSystemTag,
   setToSystemTag,
+  fromResponse,
+  toEndpoint,
   formError,
   availableSystemTags = [],
+  exampleMappings,
+  setExampleMappings,
   onContinue,
   isProcessing = false,
-  isListLink = false,
 }) {
-  const [exampleMappings, setExampleMappings] = React.useState([]);
-
-  // Initialize exampleMappings for list links
-  React.useEffect(() => {
-    if (
-      isListLink &&
-      fromResponse &&
-      exampleMappings.length === 0 &&
-      responseJson
-    ) {
-      const sampleItems = Array.isArray(fromResponse)
-        ? fromResponse.slice(0, 3)
-        : Array.isArray(fromResponse.items)
-        ? fromResponse.items.slice(0, 3)
-        : [];
-
-      if (sampleItems.length > 0) {
+  // Populate empty endpoint fields with toEndpoint when it becomes available
+  useEffect(() => {
+    if (toEndpoint && exampleMappings.length > 0) {
+      const hasEmptyEndpoints = exampleMappings.some((m) => !m.endpoint);
+      if (hasEmptyEndpoints) {
         setExampleMappings(
-          sampleItems.map((item) => ({ item, endpoint: responseJson || "" }))
+          exampleMappings.map((m) => ({
+            ...m,
+            endpoint: m.endpoint || toEndpoint,
+          }))
         );
       }
     }
-  }, [isListLink, fromResponse, exampleMappings.length, responseJson]);
+  }, [toEndpoint, exampleMappings.length]);
 
   const canContinue =
     fromSystemTag &&
     toSystemTag &&
     !isProcessing &&
-    (!isListLink ||
-      exampleMappings.filter((m) => m.endpoint.trim()).length >= 2);
+    exampleMappings.filter((m) => m.endpoint.trim()).length >= 2;
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-4">
@@ -61,8 +51,7 @@ export default function LinkDetailsTab({
             <select
               className="w-full rounded-lg border border-gray-300 p-3 focus:ring-2 focus:ring-blue-500 bg-white disabled:bg-gray-50 disabled:text-gray-500"
               value={fromSystemTag}
-              onChange={(event) => setFromSystemTag(event.target.value)}
-              disabled={isListLink}
+              disabled={true}
             >
               <option value="">Select a system tag...</option>
               {availableSystemTags.map((tag) => (
@@ -72,7 +61,7 @@ export default function LinkDetailsTab({
               ))}
             </select>
             <p className="text-xs text-gray-500">
-              The source system tag to link from.
+              The source system tag (set by parent task).
             </p>
           </div>
 
@@ -100,7 +89,7 @@ export default function LinkDetailsTab({
           </div>
         </div>
 
-        {isListLink && toSystemTag && responseJson && (
+        {toSystemTag && toEndpoint && (
           <div className="space-y-4 pt-4 border-t border-gray-100">
             <div>
               <h4 className="font-medium text-gray-900">
@@ -145,6 +134,7 @@ export default function LinkDetailsTab({
                           newMappings[index].endpoint = e.target.value;
                           setExampleMappings(newMappings);
                         }}
+                        placeholder={toEndpoint}
                         className="mt-1 w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                     </div>

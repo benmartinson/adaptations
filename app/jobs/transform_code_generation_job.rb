@@ -149,18 +149,6 @@ class TransformCodeGenerationJob < ApplicationJob
     response
   end
 
-  def sanitize_code(response)
-    code = response.dup
-    code = code.gsub("\\n", "\n")
-    code = code.gsub(/```ruby?\s*/i, "")
-    code = code.gsub(/```\s*/i, "")
-
-    heredoc_match = code.match(/^<<~?RUBY\s*\n(.*)\nRUBY\s*$/m)
-    code = heredoc_match[1] if heredoc_match
-
-    code.strip
-  end
-
   def broadcast_event(data)
     channel_class = "TaskChannel".safe_constantize
     payload = {

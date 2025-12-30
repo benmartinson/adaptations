@@ -15,7 +15,7 @@ class ListLinksGenerationJob < ApplicationJob
   # @param example_mappings [Array<Hash>] Array of { item: Hash, endpoint: String }
   def perform(task_id, example_mappings)
     @task = Task.find(task_id)
-    @example_mappings = example_mappings
+    @example_mappings = @task.input_payload["example_mappings"]
 
     unless @task.kind == "list_link_connector"
       raise StandardError, "Task must be of kind 'list_link_connector'"
@@ -38,7 +38,7 @@ class ListLinksGenerationJob < ApplicationJob
 
     code_prompt = build_prompt
     raw_response = generate_code_response(code_prompt)
-    code_body = extract_code(raw_response)
+    code_body = sanitize_code(raw_response)
 
     task.update!(transform_code: code_body)
     broadcast_event(
@@ -49,22 +49,24 @@ class ListLinksGenerationJob < ApplicationJob
   end
 
   def build_prompt
-    examples_text = example_mappings.map.with_index do |mapping, index|
+    examples_text = @example_mappings.map.with_index do |mapping, index|
       <<~EXAMPLE
         Example #{index + 1}:
-        Input item: #{mapping[:item].to_json}
-        Expected endpoint: #{mapping[:endpoint]}
+        Input item: #{mapping["item"].to_json}
+        Expected endpoint: #{mapping["endpoint"]}
       EXAMPLE
     end.join("\n")
 
     <<~PROMPT
       Write a Ruby transformation function that takes a single item from an array and returns
-      the API endpoint URL that should be used to fetch detailed data for that item.
+      the API endpoint URL that is expected based on the examples below. 
+      The function should work for ANY item in the array, not just the examples.
+      In the examples, what should be changing are the path or query parameters of the endpoint, the
+      rest of the endpoint should be the same.
 
       The function signature must be:
       def transformation_procedure(item)
-        # Extract data from item and construct the endpoint URL
-        # Return the endpoint URL as a string
+        # code here
       end
 
       Here are examples of input items and their corresponding endpoint URLs:

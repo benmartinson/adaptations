@@ -49,7 +49,7 @@ export default function ListLinksTab({
 
       if (response.ok) {
         const task = await response.json();
-        navigate(`/link/${task.id}/details`);
+        navigate(`/list-link/${task.id}/details`);
       } else {
         const error = await response.json();
         alert(`Failed to create link: ${error.error || "Unknown error"}`);
@@ -130,7 +130,7 @@ export default function ListLinksTab({
         {listLinks.map((link) => (
           <Link
             key={link.id}
-            to={`/link/${link.id}/details`}
+            to={`/list-link/${link.id}/details`}
             className="block bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow group"
           >
             <div className="flex items-center justify-between">
