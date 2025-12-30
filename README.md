@@ -3,7 +3,9 @@
 AI-Driven CMS that converts API response data into a fully functional UI using generated React components and Ruby transformations, testing pipelines, background jobs, WebSockets, and code sandboxing.
 
 ---
+<img width="1464" height="959" alt="image" src="https://github.com/user-attachments/assets/c3d4a902-18cd-499d-a0cf-82f6ebeea6c3" />
 
+---
 Adaptations is a development tool that helps you:
 
 1. **Connect to APIs** — Point to any REST endpoint (built-in Open Library integration)
