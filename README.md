@@ -16,6 +16,79 @@ Perfect for rapidly prototyping data-driven interfaces without writing boilerpla
 
 ---
 
+## How It Works
+
+### 1. Create a Task
+
+Navigate to `/tasks` and create a new transformation task. Specify:
+
+- **API Endpoint** — The data source URL
+- **System Tag** — A unique identifier for your UI component
+- **Element Type** — Card layouts, lists, etc.
+
+### 2. Generate UI Preview
+
+The system fetches your API data and uses Gemini AI to generate a React component that visualizes the response structure.
+
+### 3. Build Transformation Code
+
+AI generates Ruby code (`transformation_procedure`) that converts the raw API response into the exact shape your React component expects.
+
+```ruby
+def transformation_procedure(data)
+  # AI-generated transformation logic
+  {
+    title: data["name"],
+    image: data["covers"]&.first,
+    # ...
+  }
+end
+```
+
+### 4. Test & Iterate
+
+- Create test cases with sample inputs and expected outputs
+- Run tests in a sandboxed Docker environment
+- AI automatically refines the transformation based on failed tests
+
+### 5. Deploy
+
+Export your transformation and UI components for production use. Still in progress..
+
+---
+
+## Key Features
+
+### Task Types
+
+| Type                  | Description                             |
+| --------------------- | --------------------------------------- |
+| `api_transform`       | Transform API data → UI component props |
+| `subtask_connector`   | Chain tasks together                    |
+| `list_link_connector` | Link list items to detail views         |
+
+### Real-time Updates
+
+WebSocket connections (`TaskChannel`) provide live updates during:
+
+- AI code generation
+- Test execution
+- Preview rendering
+
+### Sandboxed Execution
+
+Transformation code runs in isolated Docker containers for security.
+
+### Background Jobs
+
+Jobs run via Solid Queue:
+
+```bash
+bin/jobs  # Start job worker
+```
+
+---
+
 ## Tech Stack
 
 ### Backend
@@ -141,78 +214,3 @@ app/
 │   └── open_library_*.rb # Open Library API services
 └── views/
 ```
-
----
-
-## How It Works
-
-### 1. Create a Task
-
-Navigate to `/tasks` and create a new transformation task. Specify:
-
-- **API Endpoint** — The data source URL
-- **System Tag** — A unique identifier for your UI component
-- **Element Type** — Card layouts, lists, etc.
-
-### 2. Generate UI Preview
-
-The system fetches your API data and uses Gemini AI to generate a React component that visualizes the response structure.
-
-### 3. Build Transformation Code
-
-AI generates Ruby code (`transformation_procedure`) that converts the raw API response into the exact shape your React component expects.
-
-```ruby
-def transformation_procedure(data)
-  # AI-generated transformation logic
-  {
-    title: data["name"],
-    image: data["covers"]&.first,
-    # ...
-  }
-end
-```
-
-### 4. Test & Iterate
-
-- Create test cases with sample inputs and expected outputs
-- Run tests in a sandboxed Docker environment
-- AI automatically refines the transformation based on failed tests
-
-### 5. Deploy
-
-Export your transformation and UI components for production use. Still in progress..
-
----
-
-## Key Features
-
-### Task Types
-
-| Type                  | Description                             |
-| --------------------- | --------------------------------------- |
-| `api_transform`       | Transform API data → UI component props |
-| `subtask_connector`   | Chain tasks together                    |
-| `list_link_connector` | Link list items to detail views         |
-
-### Real-time Updates
-
-WebSocket connections (`TaskChannel`) provide live updates during:
-
-- AI code generation
-- Test execution
-- Preview rendering
-
-### Sandboxed Execution
-
-Transformation code runs in isolated Docker containers for security.
-
-### Background Jobs
-
-Jobs run via Solid Queue:
-
-```bash
-bin/jobs  # Start job worker
-```
-
----
