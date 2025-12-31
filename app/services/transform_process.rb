@@ -12,6 +12,7 @@ class TransformProcess
     task = find_task!
     data = fetch_data
     result = execute_transform(task.transform_code, data)
+    result = execute_subtasks(task, result)
     result = attach_list_links(result)
     log_test_result(task, data, result) if @log_tests
     result
@@ -54,9 +55,58 @@ class TransformProcess
     raise TransformError, "Transform execution failed: #{e.message}"
   end
 
-  def attach_list_links(result)
-    # Find active list_link_connector task for this system_tag
-    list_links_task = Task.find_by(kind: "list_link_connector", system_tag: system_tag, is_active: true)
+  def execute_subtasks(task, result)
+    sub_tasks = task.sub_tasks
+    return result unless sub_tasks.any?
+
+    merged_output = result.is_a?(Hash) ? result.dup : { "data" => result }
+
+    sub_tasks.each do |sub_task|
+      begin
+        # Find the child task that handles this subtask's data transformation
+        child_task = Task.find_by(kind: "api_transform", system_tag: sub_task.system_tag)
+        next unless child_task&.transform_code.present?
+
+        # Find the link task that produces the API endpoint for this subtask
+        link_task = Task.find_by(kind: "subtask_connector", system_tag: sub_task.parent_system_tag)
+        next unless link_task&.transform_code.present?
+
+        # Execute the link transform to get the subtask's API endpoint
+        sub_task_api_endpoint = execute_transform(link_task.transform_code, result)
+        next if sub_task_api_endpoint.blank?
+
+        # Fetch data from the subtask's endpoint
+        sub_task_data = fetch_endpoint_data(sub_task_api_endpoint)
+        next if sub_task_data.blank?
+
+        # Execute the child task's transform on the fetched data
+        sub_output = execute_transform(child_task.transform_code, sub_task_data)
+        next unless sub_output.present?
+
+        # Attach list links for this subtask before merging
+        sub_output = attach_list_links(sub_output, sub_task.system_tag)
+        merged_output[sub_task.system_tag] = sub_output
+      rescue StandardError => e
+        merged_output[sub_task.system_tag] = nil
+        Rails.logger.warn("[TransformProcess] Error executing subtask #{sub_task.system_tag}: #{e.message}")
+      end
+    end
+
+    merged_output
+  end
+
+  def fetch_endpoint_data(endpoint_url)
+    response = HTTParty.get(endpoint_url)
+    return response.parsed_response if response.success?
+    nil
+  rescue StandardError => e
+    Rails.logger.warn("[TransformProcess] Failed to fetch endpoint data from #{endpoint_url}: #{e.message}")
+    nil
+  end
+
+  def attach_list_links(result, tag = system_tag)
+    # Find active list_link_connector task for the given system_tag
+    list_links_task = Task.find_by(kind: "list_link_connector", system_tag: tag, is_active: true)
     return result unless list_links_task&.transform_code.present?
 
     # Determine the items array to process
