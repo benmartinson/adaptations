@@ -2,7 +2,7 @@ module Api
   class TasksController < ApplicationController
     skip_before_action :verify_authenticity_token
 
-    before_action :set_task, only: %i[show update destroy run_job run_tests ui_files sub_tasks create_sub_task update_sub_task generate_subtask_ui delete_sub_task list_links create_list_link generate_list_link]
+    before_action :set_task, only: %i[show update destroy run_job run_tests ui_files sub_tasks create_sub_task update_sub_task generate_subtask_ui delete_sub_task list_links create_list_link generate_list_link attach_links set_active_link]
     before_action :set_sub_task, only: %i[update_sub_task generate_subtask_ui delete_sub_task]
 
     def index
@@ -170,6 +170,37 @@ module Api
       render json: serialize_task(list_link_task), status: :accepted
     end
 
+    # Attach DynamicLink components to the task's UI based on configured list link connectors
+    def attach_links
+      job = ListLinkAttachmentGenerationJob.perform_later(@task.id)
+      @task.update!(job_id: job.job_id) if job.respond_to?(:job_id)
+
+      render json: serialize_task(@task), status: :accepted
+    end
+
+    # Set a list_link_connector task as active (deactivates others with same system_tag)
+    def set_active_link
+      link_id = params[:link_id]
+      list_link_task = Task.find(link_id)
+
+      unless list_link_task.kind == "list_link_connector"
+        render json: { error: "Task is not a list_link_connector" }, status: :unprocessable_entity
+        return
+      end
+
+      # Deactivate all other list_link_connector tasks with the same system_tag
+      Task.where(kind: "list_link_connector", system_tag: list_link_task.system_tag)
+          .where.not(id: list_link_task.id)
+          .update_all(is_active: false)
+
+      # Activate the selected one
+      list_link_task.update!(is_active: true)
+
+      # Return all list links for this task so frontend can update
+      list_link_tasks = Task.where(kind: "list_link_connector", system_tag: @task.system_tag)
+      render json: list_link_tasks.map { |t| serialize_task(t) }
+    end
+
     private
 
     def set_task
@@ -232,6 +263,7 @@ module Api
         element_type: task.element_type,
         response_json: task.response_json,
         transform_code: task.transform_code,
+        is_active: task.is_active,
         started_at: task.started_at,
         finished_at: task.finished_at,
         last_progress_at: task.last_progress_at,

@@ -24,6 +24,8 @@ Rails.application.routes.draw do
         get :list_links
         post :create_list_link
         post :generate_list_link
+        post :attach_links
+        post :set_active_link
       end
       resources :tests, only: %i[index create show update destroy] do
         member do

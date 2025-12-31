@@ -8,13 +8,25 @@ export default function ListLinksTab({
   responseJson,
 }) {
   const navigate = useNavigate();
+  const { snapshot } = useTaskProgress(taskId);
   const [listLinks, setListLinks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
+  const [isAttaching, setIsAttaching] = useState(false);
+
+  const isAttachingLinks =
+    isAttaching || snapshot?.phase === "link_attachment_generation";
 
   useEffect(() => {
     loadListLinks();
   }, [taskId]);
+
+  // Reset isAttaching when job completes
+  useEffect(() => {
+    if (snapshot?.phase === "completed-link-attachment") {
+      setIsAttaching(false);
+    }
+  }, [snapshot?.phase]);
 
   const loadListLinks = async () => {
     try {
@@ -84,6 +96,61 @@ export default function ListLinksTab({
     }
   };
 
+  const handleAttachLinks = async () => {
+    setIsAttaching(true);
+    try {
+      const response = await fetch(`/api/tasks/${taskId}/attach_links`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        alert(`Failed to attach links: ${error.error || "Unknown error"}`);
+        setIsAttaching(false);
+      }
+      // Job started successfully, isAttaching will be reset when job completes via snapshot
+    } catch (error) {
+      console.error("Failed to attach links:", error);
+      alert("Failed to attach links");
+      setIsAttaching(false);
+    }
+  };
+
+  const handleSetActiveLink = async (e, linkId) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    console.log("Setting active link:", linkId);
+    try {
+      const response = await fetch(`/api/tasks/${taskId}/set_active_link`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ link_id: linkId }),
+      });
+
+      if (response.ok) {
+        const updatedLinks = await response.json();
+        setListLinks(updatedLinks);
+      } else {
+        const error = await response.json();
+        alert(`Failed to set active link: ${error.error || "Unknown error"}`);
+      }
+    } catch (error) {
+      console.error("Failed to set active link:", error);
+      alert("Failed to set active link");
+    }
+  };
+
+  // Check if there is an active configured link available for attachment
+  const hasActiveConfiguredLink = listLinks.some(
+    (link) => link.is_active && link.transform_code && link.to_system_tag
+  );
+
   if (loading) {
     return (
       <div className="text-center py-8">
@@ -102,45 +169,106 @@ export default function ListLinksTab({
             Configure links for list items to navigate to detail pages
           </p>
         </div>
-        <button
-          type="button"
-          onClick={handleCreateListLink}
-          disabled={isCreating}
-          className="px-3 py-1.5 text-sm font-medium rounded-md bg-gray-800 text-white hover:bg-gray-900 cursor-pointer transition-colors flex items-center gap-1.5"
-        >
-          <svg
-            className="w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+        <div className="flex items-center gap-3">
+          {isAttachingLinks && (
+            <span className="text-sm text-gray-600 font-medium animate-pulse">
+              Attaching links to UI...
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={handleAttachLinks}
+            disabled={isAttachingLinks || !hasActiveConfiguredLink}
+            title={
+              !hasActiveConfiguredLink
+                ? "Select and configure an active link connection first"
+                : ""
+            }
+            className="px-3 py-1.5 text-sm font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors flex items-center gap-1.5"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 4v16m8-8H4"
-            />
-          </svg>
-          {isCreating ? "Creating..." : "Create Link Connection"}
-        </button>
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+              />
+            </svg>
+            {isAttachingLinks ? "Attaching..." : "Attach Links"}
+          </button>
+          <button
+            type="button"
+            onClick={handleCreateListLink}
+            disabled={isCreating}
+            className="px-3 py-1.5 text-sm font-medium rounded-md bg-gray-800 text-white hover:bg-gray-900 cursor-pointer transition-colors flex items-center gap-1.5"
+          >
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 4v16m8-8H4"
+              />
+            </svg>
+            {isCreating ? "Creating..." : "Create Link Connection"}
+          </button>
+        </div>
       </div>
 
       {/* List of existing links */}
       <div className="space-y-2">
         {listLinks.map((link) => (
-          <Link
+          <div
             key={link.id}
-            to={`/list-link/${link.id}/details`}
-            className="block bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow group"
+            className={`bg-white rounded-lg shadow-sm border p-4 hover:shadow-md transition-shadow group ${
+              link.is_active
+                ? "border-blue-500 ring-1 ring-blue-500"
+                : "border-gray-200"
+            }`}
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <code className="bg-blue-50 text-blue-700 px-2 py-1 rounded text-sm font-medium">
-                  → {link.to_system_tag || "Unconfigured"}
-                </code>
+                {/* Radio button for active selection */}
+                <button
+                  type="button"
+                  onClick={(e) => handleSetActiveLink(e, link.id)}
+                  className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors cursor-pointer ${
+                    link.is_active
+                      ? "border-blue-500 bg-blue-500"
+                      : "border-gray-300 hover:border-blue-400"
+                  }`}
+                  title={link.is_active ? "Active link" : "Set as active link"}
+                >
+                  {link.is_active && (
+                    <div className="w-2 h-2 rounded-full bg-white" />
+                  )}
+                </button>
+                <Link
+                  to={`/list-link/${link.id}/details`}
+                  className="flex items-center gap-3 hover:underline"
+                >
+                  <code className="bg-blue-50 text-blue-700 px-2 py-1 rounded text-sm font-medium">
+                    → {link.to_system_tag || "Unconfigured"}
+                  </code>
+                </Link>
                 {link.transform_code && (
                   <span className="text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded">
                     Configured
+                  </span>
+                )}
+                {link.is_active && (
+                  <span className="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded font-medium">
+                    Active
                   </span>
                 )}
               </div>
@@ -165,22 +293,24 @@ export default function ListLinksTab({
                     />
                   </svg>
                 </button>
-                <svg
-                  className="w-5 h-5 text-gray-300"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 5l7 7-7 7"
-                  />
-                </svg>
+                <Link to={`/list-link/${link.id}/details`} className="p-1.5">
+                  <svg
+                    className="w-5 h-5 text-gray-300"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5l7 7-7 7"
+                    />
+                  </svg>
+                </Link>
               </div>
             </div>
-          </Link>
+          </div>
         ))}
 
         {/* Empty state */}

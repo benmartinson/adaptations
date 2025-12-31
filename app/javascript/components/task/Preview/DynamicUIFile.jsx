@@ -257,21 +257,58 @@ export default function DynamicUIFile({ taskId, responseJson }) {
           };
 
           // DynamicLink component for navigating to linked tasks
-          // When clicked, opens a new tab to run a test on the target task with the specified endpoint
+          // When clicked, looks up the task by systemTag and opens a new tab to run a test with the specified apiEndpoint
           window.DynamicLink = class DynamicLink extends React.Component {
             constructor(props) {
               super(props);
+              this.state = { taskId: null, loading: false, error: null };
               this.handleClick = this.handleClick.bind(this);
+            }
+
+            componentDidMount() {
+              this.lookupTask();
+            }
+
+            componentDidUpdate(prevProps) {
+              if (prevProps.systemTag !== this.props.systemTag) {
+                this.lookupTask();
+              }
+            }
+
+            async lookupTask() {
+              const { systemTag } = this.props;
+              
+              if (!systemTag || typeof systemTag !== 'string' || systemTag.trim() === '') {
+                return;
+              }
+
+              this.setState({ loading: true, error: null });
+
+              try {
+                const response = await fetch(\`/api/tasks/by_system_tag/\${encodeURIComponent(systemTag)}\`);
+                if (!response.ok) {
+                  if (response.status === 404) {
+                    throw new Error(\`Task not found with system tag: \${systemTag}\`);
+                  }
+                  throw new Error(\`Failed to fetch task: \${response.status}\`);
+                }
+                const task = await response.json();
+                this.setState({ taskId: task.id, loading: false });
+              } catch (error) {
+                console.error('DynamicLink lookup error:', error);
+                this.setState({ error: error.message, loading: false });
+              }
             }
 
             handleClick(e) {
               e.preventDefault();
               e.stopPropagation();
               
-              const { taskId, endpoint } = this.props;
+              const { apiEndpoint } = this.props;
+              const { taskId } = this.state;
               
-              if (!taskId || !endpoint) {
-                console.error('DynamicLink requires taskId and endpoint props');
+              if (!taskId || !apiEndpoint) {
+                console.error('DynamicLink requires systemTag (to resolve taskId) and apiEndpoint props');
                 return;
               }
 
@@ -279,12 +316,21 @@ export default function DynamicUIFile({ taskId, responseJson }) {
               postToParent({
                 type: 'dynamic-link-click',
                 taskId: taskId,
-                endpoint: endpoint
+                endpoint: apiEndpoint
               });
             }
 
             render() {
               const { children, className, style } = this.props;
+              const { loading, error } = this.state;
+              
+              if (error) {
+                return React.createElement(
+                  'span',
+                  { className: 'text-red-500 text-sm', title: error },
+                  children || 'Link Error'
+                );
+              }
               
               return React.createElement(
                 'a',
@@ -292,7 +338,7 @@ export default function DynamicUIFile({ taskId, responseJson }) {
                   href: '#',
                   onClick: this.handleClick,
                   className: className || 'text-blue-600 hover:text-blue-800 hover:underline cursor-pointer',
-                  style: style || {}
+                  style: { ...style, opacity: loading ? 0.5 : 1 }
                 },
                 children || 'View Details'
               );
