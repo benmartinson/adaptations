@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_31_002209) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_31_213004) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -37,6 +37,13 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_31_002209) do
     t.bigint "blob_id", null: false
     t.string "variation_digest", null: false
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
+  end
+
+  create_table "apps", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.text "description"
+    t.string "name"
+    t.datetime "updated_at", null: false
   end
 
   create_table "author_books", force: :cascade do |t|
@@ -169,6 +176,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_31_002209) do
 
   create_table "tasks", force: :cascade do |t|
     t.text "api_endpoint"
+    t.integer "app_id", null: false
     t.datetime "cancelled_at"
     t.datetime "created_at", null: false
     t.text "data_description"
@@ -192,6 +200,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_31_002209) do
     t.integer "tokens_total", default: 0, null: false
     t.text "transform_code"
     t.datetime "updated_at", null: false
+    t.index ["app_id"], name: "index_tasks_on_app_id"
     t.index ["created_at"], name: "index_tasks_on_created_at"
     t.index ["kind"], name: "index_tasks_on_kind"
     t.index ["status"], name: "index_tasks_on_status"
@@ -230,5 +239,6 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_31_002209) do
   add_foreign_key "movie_books", "movies"
   add_foreign_key "sub_tasks", "tasks"
   add_foreign_key "task_ui_files", "tasks"
+  add_foreign_key "tasks", "apps"
   add_foreign_key "tests", "tasks"
 end

@@ -7,6 +7,7 @@ module Api
 
     def index
       tasks = Task.recent.limit(limit_param)
+      tasks = tasks.where(app_id: params[:app_id]) if params[:app_id].present?
       render json: tasks.map { |task| serialize_task(task) }
     end
 
@@ -216,7 +217,7 @@ module Api
     end
 
     def task_params
-      payload = params.require(:task).permit(:kind, :api_endpoint, :system_tag, :to_system_tag, :data_description, :element_type, metadata: {}, input_payload: {}, output_payload: {})
+      payload = params.require(:task).permit(:kind, :api_endpoint, :system_tag, :to_system_tag, :data_description, :element_type, :app_id, metadata: {}, input_payload: {}, output_payload: {})
 
       result = {}
       result[:kind] = payload[:kind] if payload[:kind].present?
@@ -225,6 +226,7 @@ module Api
       result[:to_system_tag] = payload[:to_system_tag] if payload.key?(:to_system_tag)
       result[:data_description] = payload[:data_description] if payload.key?(:data_description)
       result[:element_type] = payload[:element_type] if payload.key?(:element_type)
+      result[:app_id] = payload[:app_id] if payload.key?(:app_id)
       result[:metadata] = payload[:metadata] if payload[:metadata].present?
       result[:input_payload] = payload[:input_payload] if payload[:input_payload].present?
       result[:output_payload] = payload[:output_payload] if payload[:output_payload].present?
@@ -277,6 +279,7 @@ module Api
         output_payload: task.output_payload,
         error_message: task.error_message,
         job_id: task.job_id,
+        app: task.app ? { id: task.app.id, name: task.app.name } : nil,
         tests: task.tests.order(created_at: :desc).map { |t| serialize_test(t) },
         created_at: task.created_at,
         updated_at: task.updated_at

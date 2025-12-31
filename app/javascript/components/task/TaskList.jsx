@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import moment from "moment";
 import Modal from "../common/Modal";
 import { ELEMENT_TYPES, filterTasksByKind } from "../../helpers";
 
 export default function TaskList() {
+  const { app_id } = useParams();
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -19,7 +20,7 @@ export default function TaskList() {
   async function loadTasks() {
     try {
       setLoading(true);
-      const response = await fetch("/api/tasks?limit=50");
+      const response = await fetch(`/api/tasks?app_id=${app_id}&limit=50`);
       if (!response.ok) {
         throw new Error("Unable to load tasks");
       }
@@ -75,6 +76,7 @@ export default function TaskList() {
         body: JSON.stringify({
           task: {
             kind,
+            app_id: parseInt(app_id),
             metadata: { source: "web-ui" },
           },
         }),
@@ -86,7 +88,9 @@ export default function TaskList() {
 
       const task = await response.json();
       const route =
-        kind === "subtask_connector" ? `/link/${task.id}` : `/task/${task.id}`;
+        kind === "subtask_connector"
+          ? `/${app_id}/link/${task.id}`
+          : `/${app_id}/process/${task.id}`;
       navigate(route);
     } catch (error) {
       console.error(error);
@@ -190,8 +194,8 @@ export default function TaskList() {
               key={task.id}
               to={
                 task.kind === "subtask_connector"
-                  ? `/link/${task.id}`
-                  : `/task/${task.id}`
+                  ? `/${app_id}/link/${task.id}`
+                  : `/${app_id}/process/${task.id}`
               }
               className="block bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow"
             >
@@ -257,7 +261,7 @@ export default function TaskList() {
                           {task.connections.map((connection) => (
                             <Link
                               key={connection.id}
-                              to={`/link/${connection.id}`}
+                              to={`/${app_id}/link/${connection.id}`}
                               className="block text-sm text-gray-700 font-mono bg-gray-50 px-2 py-1 rounded hover:bg-gray-100 transition-colors cursor-pointer"
                             >
                               → {connection.to_system_tag}

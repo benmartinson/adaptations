@@ -6,7 +6,7 @@ import { Link } from "react-router-dom";
 //   { to: "/author/patrick-rothfuss", label: "Authors" },
 //   { to: "/tasks", label: "Tasks" },
 // ];
-const links = [];
+const links = [{ to: "/apps", label: "Apps" }];
 
 export default function Navbar() {
   return (

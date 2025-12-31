@@ -11,6 +11,7 @@ import TestPreviewPage from "./components/task/tests/TestPreviewPage";
 import LinkRunner from "./components/link/LinkRunner";
 import ListLinkRunner from "./components/list-link/ListLinkRunner";
 import AppRunner from "./components/app/AppRunner";
+import AppsList from "./components/app/AppsList";
 
 // Expose React globally so remotely-bundled components can share the same React instance.
 if (typeof window !== "undefined") {
@@ -22,34 +23,38 @@ root.render(
   <BrowserRouter>
     <Navbar />
     <Routes>
-      <Route path="/books" element={<BookList />} />
+      {/* <Route path="/books" element={<BookList />} />
       <Route path="/books/:isbn" element={<Book />} />
-      <Route path="/author/:slug" element={<Author />} />
-      <Route path="/tasks" element={<TaskList />} />
+      <Route path="/author/:slug" element={<Author />} /> */}
+      <Route path="/apps" element={<AppsList />} />
+      <Route path="/:app_id/processes" element={<TaskList />} />
       <Route
-        path="/task/:task_id"
+        path="/:app_id/process/:task_id"
         element={<Navigate to="endpoint" replace />}
       />
-      <Route path="/task/:task_id/:tab" element={<TaskRunner />} />
+      <Route path="/:app_id/process/:task_id/:tab" element={<TaskRunner />} />
       <Route
-        path="/task/:task_id/tests/preview"
+        path="/:app_id/process/:task_id/tests/preview"
         element={<TestPreviewPage />}
       />
       <Route
-        path="/link/:task_id"
+        path="/:app_id/link/:task_id"
         element={<Navigate to="details" replace />}
       />
       <Route
-        path="/link/:task_id/tests/preview"
+        path="/:app_id/link/:task_id/tests/preview"
         element={<TestPreviewPage />}
       />
-      <Route path="/link/:task_id/:tab" element={<LinkRunner />} />
+      <Route path="/:app_id/link/:task_id/:tab" element={<LinkRunner />} />
       <Route
-        path="/list-link/:task_id"
+        path="/:app_id/list-link/:task_id"
         element={<Navigate to="details" replace />}
       />
-      <Route path="/list-link/:task_id/:tab" element={<ListLinkRunner />} />
-      <Route path="/app/:system_tag" element={<AppRunner />} />
+      <Route
+        path="/:app_id/list-link/:task_id/:tab"
+        element={<ListLinkRunner />}
+      />
+      <Route path="/:app_id/app/:system_tag" element={<AppRunner />} />
     </Routes>
   </BrowserRouter>
 );

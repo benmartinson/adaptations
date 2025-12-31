@@ -1,6 +1,7 @@
 class Task < ApplicationRecord
   KINDS = %w[api_transform subtask_connector list_link_connector].freeze
 
+  belongs_to :app
   has_many :tests, dependent: :destroy
   has_many :task_ui_files, dependent: :destroy
   has_many :sub_tasks, dependent: :destroy  # SubTasks where this task is the parent
