@@ -12,6 +12,7 @@ class TransformProcess
     task = find_task!
     data = fetch_data
     result = execute_transform(task.transform_code, data)
+    result = attach_list_links(result)
     log_test_result(task, data, result) if @log_tests
     result
   end
@@ -51,6 +52,33 @@ class TransformProcess
     end
   rescue SyntaxError, StandardError => e
     raise TransformError, "Transform execution failed: #{e.message}"
+  end
+
+  def attach_list_links(result)
+    # Find active list_link_connector task for this system_tag
+    list_links_task = Task.find_by(kind: "list_link_connector", system_tag: system_tag, is_active: true)
+    return result unless list_links_task&.transform_code.present?
+
+    # Determine the items array to process
+    items = if result.is_a?(Array)
+              result
+            elsif result.is_a?(Hash) && result["items"].is_a?(Array)
+              result["items"]
+            else
+              return result # No items to process
+            end
+
+    # Process each item and add api_endpoint_link
+    items.each do |item|
+      begin
+        link_result = execute_transform(list_links_task.transform_code, item)
+        item["api_endpoint_link"] = link_result if link_result.present?
+      rescue StandardError => e
+        Rails.logger.warn("[TransformProcess] Failed to attach list link for item: #{e.message}")
+      end
+    end
+
+    result
   end
 
   def log_test_result(task, input_data, output)

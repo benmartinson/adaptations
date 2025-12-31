@@ -102,11 +102,6 @@ function buildComponents() {
     }
   }
 
-  output += `  console.log('Iframe components loaded:', Object.keys(window).filter(k => ['${files
-    .map((f) => path.basename(f, ".jsx"))
-    .join("', '")}'].includes(k)));\n`;
-  output += "})();\n";
-
   // Write output
   fs.writeFileSync(OUTPUT_FILE, output);
   console.log(`\n✓ Built ${files.length} component(s) to ${OUTPUT_FILE}`);

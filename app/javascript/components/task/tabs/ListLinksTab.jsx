@@ -230,11 +230,7 @@ export default function ListLinksTab({
         {listLinks.map((link) => (
           <div
             key={link.id}
-            className={`bg-white rounded-lg shadow-sm border p-4 hover:shadow-md transition-shadow group ${
-              link.is_active
-                ? "border-blue-500 ring-1 ring-blue-500"
-                : "border-gray-200"
-            }`}
+            className={`bg-white rounded-lg shadow-sm border p-4 hover:shadow-md transition-shadow group border-gray-200`}
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">

@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import useTaskProgress from "../../../hooks/useTaskProgress";
 
 export default function DynamicUIFile({ taskId, responseJson }) {
   const { snapshot } = useTaskProgress(taskId);
+  const navigate = useNavigate();
   const iframeRef = useRef(null);
 
   const [activeFile, setActiveFile] = useState(null);
@@ -78,8 +80,9 @@ export default function DynamicUIFile({ taskId, responseJson }) {
     const handleMessage = (event) => {
       // Only accept messages from our iframe window.
       if (event.source !== iframeRef.current?.contentWindow) return;
-      // Only accept same-origin messages (we expect allow-same-origin).
-      if (event.origin !== window.location.origin) return;
+      // srcDoc iframes have null origin, so we check for that or same-origin
+      if (event.origin !== "null" && event.origin !== window.location.origin)
+        return;
 
       const data = event.data;
       if (!data || data.frameId !== frameId) return;
@@ -90,13 +93,14 @@ export default function DynamicUIFile({ taskId, responseJson }) {
       } else if (data.type === "iframe-error" && data.error) {
         setIframeError(data.error);
       } else if (data.type === "dynamic-link-click") {
-        // Handle dynamic link click - open new tab to target task's tests page
-        const { taskId: linkedTaskId, endpoint } = data;
-        if (linkedTaskId && endpoint) {
+        // Handle dynamic link click - navigate to app runner with system_tag and api_endpoint
+        const { systemTag, endpoint } = data;
+        if (systemTag && endpoint) {
           const encodedEndpoint = encodeURIComponent(endpoint);
-          window.open(
-            `/task/${linkedTaskId}/tests?endpoint=${encodedEndpoint}`,
-            "_blank"
+          navigate(
+            `/app/${encodeURIComponent(
+              systemTag
+            )}?api_endpoint=${encodedEndpoint}`
           );
         }
       }
@@ -104,7 +108,7 @@ export default function DynamicUIFile({ taskId, responseJson }) {
 
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [frameId]);
+  }, [frameId, navigate]);
 
   if (error) {
     return (
@@ -257,78 +261,40 @@ export default function DynamicUIFile({ taskId, responseJson }) {
           };
 
           // DynamicLink component for navigating to linked tasks
-          // When clicked, looks up the task by systemTag and opens a new tab to run a test with the specified apiEndpoint
+          // When clicked, opens a new tab to /app/:systemTag?api_endpoint=... 
           window.DynamicLink = class DynamicLink extends React.Component {
             constructor(props) {
               super(props);
-              this.state = { taskId: null, loading: false, error: null };
               this.handleClick = this.handleClick.bind(this);
-            }
-
-            componentDidMount() {
-              this.lookupTask();
-            }
-
-            componentDidUpdate(prevProps) {
-              if (prevProps.systemTag !== this.props.systemTag) {
-                this.lookupTask();
-              }
-            }
-
-            async lookupTask() {
-              const { systemTag } = this.props;
-              
-              if (!systemTag || typeof systemTag !== 'string' || systemTag.trim() === '') {
-                return;
-              }
-
-              this.setState({ loading: true, error: null });
-
-              try {
-                const response = await fetch(\`/api/tasks/by_system_tag/\${encodeURIComponent(systemTag)}\`);
-                if (!response.ok) {
-                  if (response.status === 404) {
-                    throw new Error(\`Task not found with system tag: \${systemTag}\`);
-                  }
-                  throw new Error(\`Failed to fetch task: \${response.status}\`);
-                }
-                const task = await response.json();
-                this.setState({ taskId: task.id, loading: false });
-              } catch (error) {
-                console.error('DynamicLink lookup error:', error);
-                this.setState({ error: error.message, loading: false });
-              }
             }
 
             handleClick(e) {
               e.preventDefault();
               e.stopPropagation();
               
-              const { apiEndpoint } = this.props;
-              const { taskId } = this.state;
-              
-              if (!taskId || !apiEndpoint) {
-                console.error('DynamicLink requires systemTag (to resolve taskId) and apiEndpoint props');
+              const { systemTag, apiEndpoint } = this.props;
+              if (!systemTag || !apiEndpoint) {
+                console.error('DynamicLink requires systemTag and apiEndpoint props');
                 return;
               }
 
               // Post message to parent to handle the navigation
               postToParent({
                 type: 'dynamic-link-click',
-                taskId: taskId,
+                systemTag: systemTag,
                 endpoint: apiEndpoint
               });
             }
 
             render() {
-              const { children, className, style } = this.props;
-              const { loading, error } = this.state;
+              const { children, className, style, systemTag, apiEndpoint } = this.props;
+              const isValid = systemTag && apiEndpoint;
               
-              if (error) {
+              if (!isValid) {
                 return React.createElement(
                   'span',
-                  { className: 'text-red-500 text-sm', title: error },
-                  children || 'Link Error'
+                  { className: 'text-gray-400 text-sm', title: 'Missing systemTag or apiEndpoint' },
+                  children || 'Invalid Link'
                 );
               }
               
@@ -338,7 +304,7 @@ export default function DynamicUIFile({ taskId, responseJson }) {
                   href: '#',
                   onClick: this.handleClick,
                   className: className || 'text-blue-600 hover:text-blue-800 hover:underline cursor-pointer',
-                  style: { ...style, opacity: loading ? 0.5 : 1 }
+                  style: style
                 },
                 children || 'View Details'
               );
@@ -347,9 +313,9 @@ export default function DynamicUIFile({ taskId, responseJson }) {
 
           function postToParent(payload) {
             try {
-              window.parent.postMessage({ frameId, ...payload }, window.location.origin);
-            } catch (_) {
-              // ignore
+              window.parent.postMessage({ frameId, ...payload }, '*');
+            } catch (err) {
+              console.error("postToParent error:", err);
             }
           }
 

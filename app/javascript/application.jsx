@@ -10,6 +10,7 @@ import TaskList from "./components/task/TaskList";
 import TestPreviewPage from "./components/task/tests/TestPreviewPage";
 import LinkRunner from "./components/link/LinkRunner";
 import ListLinkRunner from "./components/list-link/ListLinkRunner";
+import AppRunner from "./components/app/AppRunner";
 
 // Expose React globally so remotely-bundled components can share the same React instance.
 if (typeof window !== "undefined") {
@@ -48,6 +49,7 @@ root.render(
         element={<Navigate to="details" replace />}
       />
       <Route path="/list-link/:task_id/:tab" element={<ListLinkRunner />} />
+      <Route path="/app/:system_tag" element={<AppRunner />} />
     </Routes>
   </BrowserRouter>
 );

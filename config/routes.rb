@@ -7,6 +7,9 @@ Rails.application.routes.draw do
     get 'authors/:slug/books', to: 'author#books'
     get "ai_bundles/preview_list", to: "ai_bundles#preview_list"
 
+    # App runner - executes TransformProcess and returns data for UI rendering
+    post 'apps/run', to: 'apps#run'
+
     resources :tasks, only: %i[index show create update destroy] do
       collection do
         get :system_tags
