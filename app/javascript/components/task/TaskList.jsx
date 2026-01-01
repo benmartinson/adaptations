@@ -3,9 +3,11 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import moment from "moment";
 import Modal from "../common/Modal";
 import { ELEMENT_TYPES, filterTasksByKind } from "../../helpers";
+import { useUser } from "../UserContext";
 
 export default function TaskList() {
   const { app_id } = useParams();
+  const { userId } = useUser(); // Access user_id from URL query parameter
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -14,8 +16,9 @@ export default function TaskList() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    console.log("Current user_id from URL:", userId); // Debug: shows user_id from query parameter
     loadTasks();
-  }, []);
+  }, [userId]); // Added userId as dependency to reload tasks when user changes
 
   async function loadTasks() {
     try {

@@ -21,7 +21,6 @@ Rails.application.routes.draw do
       member do
         post :run_job
         post :run_tests
-        get :ui_files
         get :sub_tasks
         post :create_sub_task
         patch "sub_tasks/:sub_task_id", to: "tasks#update_sub_task"
@@ -33,6 +32,7 @@ Rails.application.routes.draw do
         post :attach_links
         post :set_active_link
       end
+      resources :ui_files, only: [:index], controller: "ui_files"
       resources :tests, only: %i[index create show update destroy] do
         member do
           post :run_job

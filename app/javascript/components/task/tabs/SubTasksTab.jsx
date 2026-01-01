@@ -167,7 +167,7 @@ export default function SubTasksTab({ taskId, parentSystemTag }) {
 
       const task = await response.json();
       navigate(
-        `/link/${task.id}/details?from=${encodeURIComponent(parentSystemTag)}`
+        `/1/link/${task.id}/details?from=${encodeURIComponent(parentSystemTag)}`
       );
     } catch (error) {
       console.error("Failed to create connection:", error);

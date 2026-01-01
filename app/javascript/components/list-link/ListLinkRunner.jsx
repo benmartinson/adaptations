@@ -121,7 +121,7 @@ export default function ListLinkRunner() {
       }
 
       setLocalFromResponse(fromTask?.response_json || localFromResponse);
-      navigate(`/list-link/${task_id}/transformer`);
+      navigate(`/1/list-link/${task_id}/transformer`);
     } catch (error) {
       console.error("Save error:", error);
       setFormError(error.message);
@@ -132,7 +132,7 @@ export default function ListLinkRunner() {
 
   async function handleGenerateTransform() {
     setIsGeneratingTransformCode(true);
-    navigate(`/list-link/${task_id}/transformer`);
+    navigate(`/1/list-link/${task_id}/transformer`);
 
     try {
       // Save the to_system_tag first
@@ -280,4 +280,3 @@ export default function ListLinkRunner() {
     </div>
   );
 }
-

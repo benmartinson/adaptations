@@ -280,7 +280,7 @@ export default function TestPreviewPage() {
               <button
                 type="button"
                 onClick={() =>
-                  navigate(`/task/${task_id}/tests`, {
+                  navigate(`/1/process/${task_id}/tests`, {
                     state: { expandTestId: selectedTest.id, focusNotes: true },
                   })
                 }

@@ -1,11 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useTaskProgress from "../../../hooks/useTaskProgress";
+import { useUser } from "../../UserContext";
 
 export default function DynamicUIFile({ taskId, responseJson }) {
   const { snapshot } = useTaskProgress(taskId);
   const navigate = useNavigate();
   const iframeRef = useRef(null);
+  const { userId } = useUser();
 
   const [activeFile, setActiveFile] = useState(null);
   const [Component, setComponent] = useState(null);
@@ -26,7 +28,14 @@ export default function DynamicUIFile({ taskId, responseJson }) {
 
     async function fetchActiveFile() {
       try {
-        const res = await fetch(`/api/tasks/${taskId}/ui_files`);
+        const url = new URL(
+          `/api/tasks/${taskId}/ui_files`,
+          window.location.origin
+        );
+        if (userId) {
+          url.searchParams.set("user_id", userId);
+        }
+        const res = await fetch(url);
         if (!res.ok) throw new Error(`UI files endpoint failed: ${res.status}`);
         const files = await res.json();
 
@@ -45,7 +54,7 @@ export default function DynamicUIFile({ taskId, responseJson }) {
     return () => {
       cancelled = true;
     };
-  }, [taskId, snapshot?.metadata?.phase]);
+  }, [taskId, snapshot?.metadata?.phase, userId]);
 
   useEffect(() => {
     if (!activeFile) return;
@@ -79,6 +88,7 @@ export default function DynamicUIFile({ taskId, responseJson }) {
   useEffect(() => {
     const handleMessage = (event) => {
       // Only accept messages from our iframe window.
+
       if (event.source !== iframeRef.current?.contentWindow) return;
       // srcDoc iframes have null origin, so we check for that or same-origin
       if (event.origin !== "null" && event.origin !== window.location.origin)
@@ -98,7 +108,7 @@ export default function DynamicUIFile({ taskId, responseJson }) {
         if (systemTag && endpoint) {
           const encodedEndpoint = encodeURIComponent(endpoint);
           navigate(
-            `/app/${encodeURIComponent(
+            `/1/app/${encodeURIComponent(
               systemTag
             )}?api_endpoint=${encodedEndpoint}`
           );
@@ -182,6 +192,8 @@ export default function DynamicUIFile({ taskId, responseJson }) {
           const frameId = '${frameId}';
           const componentUrl = '${activeFile?.file_name || ""}';
           const componentData = ${JSON.stringify(responseJson)};
+          const userId = ${JSON.stringify(userId)};
+          const baseHref = '${baseHref}';
 
           // SubTask component for nested task rendering
           window.SubTask = class SubTask extends React.Component {
@@ -212,8 +224,12 @@ export default function DynamicUIFile({ taskId, responseJson }) {
 
                 const task = await taskResponse.json();
 
-                // Get the active UI file
-                const uiFilesResponse = await fetch(\`/api/tasks/\${task.id}/ui_files\`);
+                // Get the active UI file (include userId if available)
+                const uiFilesUrl = new URL(\`/api/tasks/\${task.id}/ui_files\`, baseHref);
+                if (userId) {
+                  uiFilesUrl.searchParams.set('user_id', userId);
+                }
+                const uiFilesResponse = await fetch(uiFilesUrl);
                 const uiFiles = await uiFilesResponse.json();
 
                 if (uiFiles.length === 0) {

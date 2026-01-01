@@ -178,7 +178,7 @@ export default function LinkRunner() {
       setLocalFromResponse(fromTask?.response_json);
       setLocalToResponse(toTask?.api_endpoint);
 
-      navigate(`/link/${task_id}/transformer`);
+      navigate(`/1/link/${task_id}/transformer`);
     } catch (error) {
       console.error("Continue error:", error);
       setFormError(error.message);
@@ -194,7 +194,7 @@ export default function LinkRunner() {
 
   async function handleGenerateTransform() {
     setIsGeneratingTransformCode(true);
-    navigate(`/link/${task_id}/transformer`);
+    navigate(`/1/link/${task_id}/transformer`);
 
     try {
       if (snapshot?.kind === "list_link_connector") {

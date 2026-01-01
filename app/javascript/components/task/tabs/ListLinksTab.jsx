@@ -61,7 +61,7 @@ export default function ListLinksTab({
 
       if (response.ok) {
         const task = await response.json();
-        navigate(`/list-link/${task.id}/details`);
+        navigate(`/1/list-link/${task.id}/details`);
       } else {
         const error = await response.json();
         alert(`Failed to create link: ${error.error || "Unknown error"}`);

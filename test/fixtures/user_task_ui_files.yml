@@ -1,0 +1,11 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  template_file: one
+  override_file: one
+  user: one
+
+two:
+  template_file: two
+  override_file: two
+  user: two

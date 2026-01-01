@@ -7,3 +7,7 @@
 #   ["Action", "Comedy", "Drama", "Horror"].each do |genre_name|
 #     MovieGenre.find_or_create_by!(name: genre_name)
 #   end
+
+# Create sample users
+User.find_or_create_by!(user_id: "user1")
+User.find_or_create_by!(user_id: "user2")

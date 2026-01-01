@@ -2,7 +2,7 @@ module Api
   class TasksController < ApplicationController
     skip_before_action :verify_authenticity_token
 
-    before_action :set_task, only: %i[show update destroy run_job run_tests ui_files sub_tasks create_sub_task update_sub_task generate_subtask_ui delete_sub_task list_links create_list_link generate_list_link attach_links set_active_link]
+    before_action :set_task, only: %i[show update destroy run_job run_tests sub_tasks create_sub_task update_sub_task generate_subtask_ui delete_sub_task list_links create_list_link generate_list_link attach_links set_active_link]
     before_action :set_sub_task, only: %i[update_sub_task generate_subtask_ui delete_sub_task]
 
     def index
@@ -71,11 +71,6 @@ module Api
       @task.update!(job_id: job.job_id) if job.respond_to?(:job_id)
 
       render json: serialize_task(@task), status: :accepted
-    end
-
-    def ui_files
-      ui_files = @task.task_ui_files.where(is_active: true).order(created_at: :desc)
-      render json: ui_files.map { |file| serialize_ui_file(file) }
     end
 
     def sub_tasks
@@ -302,16 +297,6 @@ module Api
         attempts: test.attempts,
         created_at: test.created_at,
         updated_at: test.updated_at
-      }
-    end
-
-    def serialize_ui_file(ui_file)
-      {
-        id: ui_file.id,
-        file_name: ui_file.file_name,
-        is_active: ui_file.is_active,
-        created_at: ui_file.created_at,
-        updated_at: ui_file.updated_at
       }
     end
 

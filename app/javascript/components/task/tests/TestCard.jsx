@@ -167,7 +167,7 @@ export default function TestCard({
             <button
               type="button"
               onClick={() =>
-                navigate(`/task/${taskId}/tests/preview`, {
+                navigate(`/1/process/${taskId}/tests/preview`, {
                   state: { testId: test.id },
                 })
               }

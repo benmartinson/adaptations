@@ -48,7 +48,7 @@ export default function TaskRunner() {
     ) {
       setIsRegenerating(false);
       // Navigate to tests tab and run all tests
-      navigate(`/task/${task_id}/tests`);
+      navigate(`/1/process/${task_id}/tests`);
       fetch(`/api/tasks/${task_id}/run_tests`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -131,7 +131,7 @@ export default function TaskRunner() {
       if (!taskResponse.ok) {
         throw new Error("Unable to run task");
       }
-      navigate(`/task/${task_id}/preview`);
+      navigate(`/1/process/${task_id}/preview`);
       setFetchingEndpoint(false);
     } catch (error) {
       console.error(error);
@@ -142,7 +142,7 @@ export default function TaskRunner() {
 
   async function handleGenerateTransform() {
     setGeneratingTransform(true);
-    navigate(`/task/${task_id}/transformer`);
+    navigate(`/1/process/${task_id}/transformer`);
 
     try {
       const taskResponse = await fetch(`/api/tasks/${task_id}/run_job`, {
@@ -173,7 +173,7 @@ export default function TaskRunner() {
   async function handleRegenerateTransform() {
     setIsRegenerating(true);
     prevTransformCodeRef.current = transformCode;
-    navigate(`/task/${task_id}/transformer`);
+    navigate(`/1/process/${task_id}/transformer`);
 
     try {
       const taskResponse = await fetch(`/api/tasks/${task_id}/run_job`, {
@@ -256,7 +256,7 @@ export default function TaskRunner() {
             t.enabled ? (
               <Link
                 key={t.id}
-                to={`/task/${task_id}/${t.id}`}
+                to={`/1/process/${task_id}/${t.id}`}
                 className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
                   tab === t.id
                     ? "border-blue-500 text-blue-600"
@@ -301,7 +301,7 @@ export default function TaskRunner() {
       {tab === "preview" && (
         <UIPreviewTab
           isGeneratingPreview={isGeneratingPreview}
-          onNextStep={() => navigate(`/task/${task_id}/transformer`)}
+          onNextStep={() => navigate(`/1/process/${task_id}/transformer`)}
           taskId={task_id}
           onRequestChanges={(notes) =>
             handleFetchEndpoint(snapshot.data_description, notes)

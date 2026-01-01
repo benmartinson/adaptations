@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_31_213004) do
+ActiveRecord::Schema[8.1].define(version: 2026_01_01_012845) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -225,6 +225,23 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_31_213004) do
     t.index ["task_id"], name: "index_tests_on_task_id"
   end
 
+  create_table "user_task_ui_files", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.integer "override_file_id", null: false
+    t.integer "template_file_id", null: false
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.index ["override_file_id"], name: "index_user_task_ui_files_on_override_file_id"
+    t.index ["template_file_id"], name: "index_user_task_ui_files_on_template_file_id"
+    t.index ["user_id"], name: "index_user_task_ui_files_on_user_id"
+  end
+
+  create_table "users", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "user_id"
+  end
+
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "author_books", "authors"
@@ -241,4 +258,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_31_213004) do
   add_foreign_key "task_ui_files", "tasks"
   add_foreign_key "tasks", "apps"
   add_foreign_key "tests", "tasks"
+  add_foreign_key "user_task_ui_files", "task_ui_files", column: "override_file_id"
+  add_foreign_key "user_task_ui_files", "task_ui_files", column: "template_file_id"
+  add_foreign_key "user_task_ui_files", "users"
 end
