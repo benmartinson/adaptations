@@ -5,23 +5,25 @@ module Api
     before_action :set_task
 
     def index
-      ui_files = @task.task_ui_files.where(is_active: true).order(created_at: :desc)
+      template_files = @task.task_ui_files.where(is_template: true).order(created_at: :desc)
+      ui_files = template_files
+
       # If user_id is provided, check for user-specific overrides
       if user_id_param.present?
         # Look up the user by their user_id field (string identifier)
-        user = User.find_by(user_id: user_id_param)
-
+        user = User.find(user_id_param)
         if user
-          ui_files = ui_files.map do |ui_file|
+          override_files = UserTaskUiFile.where(user_id: user.id).includes(:override_file, :template_file)
+          ui_files = template_files.map do |template_file|
             user_override = UserTaskUiFile.find_by(
-              template_file_id: ui_file.id,
+              template_file_id: template_file.id,
               user_id: user.id
             )
 
             if user_override
-              user_override.override_file
+              TaskUiFile.find(user_override.override_file_id)
             else
-              ui_file
+              template_file
             end
           end
         end
@@ -44,7 +46,7 @@ module Api
       {
         id: ui_file.id,
         file_name: ui_file.file_name,
-        is_active: ui_file.is_active,
+        is_template: ui_file.is_template,
         created_at: ui_file.created_at,
         updated_at: ui_file.updated_at
       }
